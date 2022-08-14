@@ -105,11 +105,11 @@ Token *tokenize(char *p) {
       continue;
     }
 
-    if (*p == '+' || *p == '-') {
+    if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' || *p == ')' ) {
       cur = new_token(TK_RESERVED, cur, p++);
       continue;
     }
-
+    
     if (isdigit(*p)) {
       cur = new_token(TK_NUM, cur, p);
       cur->val = strtol(p, &p, 10);
@@ -202,7 +202,53 @@ Node *primary(){
 }
 
 
+void push_node(Node* current_node){
+
+  printf("  push %d\n",current_node -> val );
+
+}
+
+void gen_node(Node* current_node){
+
+  printf("  pop rdi\n");
+  printf("  pop rax\n");
+	
+  switch(current_node->kind){
+  case  ND_ADD:
+    printf("  add rax, rdi\n");    
+    break;
+  case  ND_SUB:
+    printf("  sub rax, rdi\n");        
+    break;    
+  case  ND_MUL:
+    printf("  mul rax, rdi\n");        
+    break;    
+  case  ND_DIV:
+    printf("  div rax, rdi\n");        
+    break;
+    }
+  printf("  push rax\n");
+
+}
+
+void calc_node(Node* current_node){
+
+  if(current_node->kind == ND_NUM){
+    push_node(current_node);
+  }
+  else{
+    calc_node(current_node->lhs);
+    calc_node(current_node->rhs);        
+    gen_node(current_node);
+  }
+}
+
+
 int main(int argc, char **argv) {
+
+
+  Node* node;
+
   if (argc != 2) {
     error("引数の個数が正しくありません");
     return 1;
@@ -217,22 +263,11 @@ int main(int argc, char **argv) {
   printf(".globl main\n");
   printf("main:\n");
 
-  // 式の最初は数でなければならないので、それをチェックして
-  // 最初のmov命令を出力
-  printf("  mov rax, %d\n", expect_number());
 
-  // `+ <数>`あるいは`- <数>`というトークンの並びを消費しつつ
-  // アセンブリを出力
-  while (!at_eof()) {
-    if (consume('+')) {
-      printf("  add rax, %d\n", expect_number());
-      continue;
-    }
+  node = expr();
+  calc_node(node);
 
-    expect('-');
-    printf("  sub rax, %d\n", expect_number());
-  }
-
+  printf("  pop rax\n");
   printf("  ret\n");
   return 0;
 }
