@@ -51,7 +51,6 @@ struct Token {
 // 現在着目しているトークン
 Token *token;
 
-
 // 次のトークンが期待している記号のときには、トークンを1つ読み進めて
 // 真を返す。それ以外の場合には偽を返す。
 bool consume(char op) {
@@ -162,6 +161,7 @@ Node *new_node_num(int val) {
 
 Node *expr();
 Node *mul();
+Node *unary();
 Node *primary(); 
 
 Node *expr(){
@@ -190,6 +190,19 @@ Node *mul(){
   }
 }
 
+/*
+Node *unary(){
+  Node *node = primary();
+	      
+  if (consume('+'))
+    node = new_node(ND_ADD,node,primary());    
+  else if (consume('-'))
+    node = new_node(ND_SUB,node,primary());        
+  else
+   return node;
+}
+*/
+
 Node *primary(){
   
   if(consume('(')){
@@ -202,50 +215,54 @@ Node *primary(){
 }
 
 
-void push_node(Node* current_node){
+void print_assemble_from_node(Node* current_node,bool is_first_call){
 
-  printf("  push %d\n",current_node -> val );
+  // アセンブリの前半部分を出力
+  if(is_first_call){  
+    printf(".intel_syntax noprefix\n");
+    printf(".globl main\n");
+    printf("main:\n");
+  }    
 
-}
-
-void gen_node(Node* current_node){
-
-  printf("  pop rdi\n");
-  printf("  pop rax\n");
-	
-  switch(current_node->kind){
-  case  ND_ADD:
-    printf("  add rax, rdi\n");    
-    break;
-  case  ND_SUB:
-    printf("  sub rax, rdi\n");        
-    break;    
-  case  ND_MUL:
-    printf("  mul rax, rdi\n");        
-    break;    
-  case  ND_DIV:
-    printf("  div rax, rdi\n");        
-    break;
-    }
-  printf("  push rax\n");
-
-}
-
-void calc_node(Node* current_node){
-
+  //内容の四則演算を入力
   if(current_node->kind == ND_NUM){
-    push_node(current_node);
+    printf("  push %d\n",current_node -> val );
   }
   else{
-    calc_node(current_node->lhs);
-    calc_node(current_node->rhs);        
-    gen_node(current_node);
+    print_assemble_from_node(current_node->lhs,false);
+    print_assemble_from_node(current_node->rhs,false);    
+
+    printf("  pop rdi\n");
+    printf("  pop rax\n");
+	
+    switch(current_node->kind){
+    case  ND_ADD:
+      printf("  add rax, rdi\n");    
+      break;
+    case  ND_SUB:
+      printf("  sub rax, rdi\n");        
+      break;    
+    case  ND_MUL:
+      printf("  imul rax, rdi\n");        
+      break;    
+    case  ND_DIV:
+      printf("  cqo\n");    
+      printf("  idiv rdi\n");
+      break;
+    }
+    printf("  push rax\n");
   }
+
+  //アセンブリの終了部分を出力
+  if(is_first_call){
+    printf("  pop rax\n");
+    printf("  ret\n");
+  }
+  
 }
 
 
 int main(int argc, char **argv) {
-
 
   Node* node;
 
@@ -258,16 +275,8 @@ int main(int argc, char **argv) {
   user_input = argv[1];
   token = tokenize(user_input);
 
-  // アセンブリの前半部分を出力
-  printf(".intel_syntax noprefix\n");
-  printf(".globl main\n");
-  printf("main:\n");
-
-
   node = expr();
-  calc_node(node);
+  print_assemble_from_node(node,true);
 
-  printf("  pop rax\n");
-  printf("  ret\n");
   return 0;
 }
