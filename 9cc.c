@@ -45,6 +45,7 @@ struct Token {
   TokenKind kind; // トークンの型
   Token *next;    // 次の入力トークン
   int val;        // kindがTK_NUMの場合、その数値
+
   char *str;      // トークン文字列
 };
 
@@ -104,7 +105,7 @@ Token *tokenize(char *p) {
       continue;
     }
 
-    if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' || *p == ')' ) {
+    if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '%' || *p == '(' || *p == ')' ) {
       cur = new_token(TK_RESERVED, cur, p++);
       continue;
     }
@@ -124,10 +125,16 @@ Token *tokenize(char *p) {
 
 // 抽象構文木のノードの種類
 typedef enum {
+  //四則演算子
   ND_ADD, // +
   ND_SUB, // -
   ND_MUL, // *
   ND_DIV, // /
+  ND_MOD, // %
+  //ポインタ関係
+  ND_POINTA, //&（ポインタ）
+  ND_DERFER, //*（デリィファレンサ）
+  //実値
   ND_NUM, // 整数
 } NodeKind;
 
@@ -178,30 +185,41 @@ Node *expr(){
 }
 
 Node *mul(){
-  Node *node = primary();
+  Node *node = unary();
 	      
   for(;;){
     if (consume('*'))
-      node = new_node(ND_MUL,node,primary());
+      node = new_node(ND_MUL,node,unary());
     else if (consume('/'))
-      node = new_node(ND_DIV,node,primary());      
+      node = new_node(ND_DIV,node,unary());
+    else if (consume('%'))
+      node = new_node(ND_MOD,node,unary());
     else
       return node;
   }
 }
 
-/*
 Node *unary(){
-  Node *node = primary();
-	      
+
+  Node *node;
+
   if (consume('+'))
-    node = new_node(ND_ADD,node,primary());    
+    node = primary();
   else if (consume('-'))
-    node = new_node(ND_SUB,node,primary());        
+    node = new_node(ND_SUB,new_node_num(0),primary());
+  else if (consume('&')){
+    //todo:ポインタのアドレス
+  }
+  else if (consume('*')){
+    //todo:ポインタのデリファレンサ
+  }
   else
-   return node;
+    node = primary();    
+  return node;
+
+
 }
-*/
+
 
 Node *primary(){
   
@@ -248,6 +266,11 @@ void print_assemble_from_node(Node* current_node,bool is_first_call){
     case  ND_DIV:
       printf("  cqo\n");    
       printf("  idiv rdi\n");
+      break;
+    case  ND_MOD:
+      printf("  cqo\n");    
+      printf("  idiv rdi\n");
+      printf("  mov rax,rdx\n");      
       break;
     }
     printf("  push rax\n");
