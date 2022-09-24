@@ -45,7 +45,7 @@ struct Token {
   TokenKind kind; // トークンの型
   Token *next;    // 次の入力トークン
   int val;        // kindがTK_NUMの場合、その数値
-
+  int len;
   char *str;      // トークン文字列
 };
 
@@ -54,8 +54,8 @@ Token *token;
 
 // 次のトークンが期待している記号のときには、トークンを1つ読み進めて
 // 真を返す。それ以外の場合には偽を返す。
-bool consume(char op) {
-  if (token->kind != TK_RESERVED || token->str[0] != op)
+bool consume(char *op) {
+  if (token->kind != TK_RESERVED ||  strncmp(token->str,op,token->len) != 0)  
     return false;
   token = token->next;
   return true;
@@ -63,9 +63,9 @@ bool consume(char op) {
 
 // 次のトークンが期待している記号のときには、トークンを1つ読み進める。
 // それ以外の場合にはエラーを報告する。
-void expect(char op) {
-  if (token->kind != TK_RESERVED || token->str[0] != op)
-    error_at(token->str,"'%c'ではありません", op);
+void expect(char *op) {
+  if (token->kind != TK_RESERVED || strncmp(token->str,op,token->len) != 0)
+    error_at(token->str,"'%s'ではありません", op);
   token = token->next;
 }
 
@@ -84,11 +84,20 @@ bool at_eof() {
 }
 
 // 新しいトークンを作成してcurに繋げる
-Token *new_token(TokenKind kind, Token *cur, char *str) {
+Token *new_token(TokenKind kind, Token *cur, char *str,int len) {
+
   Token *tok = calloc(1, sizeof(Token));
+  //fprintf(stderr,"param str:%s len:%d\n",str,len);                    
+
   tok->kind = kind;
-  tok->str = str;
+  tok->str = str;  
+  strncpy(tok->str,str,len);
+  tok->len = len;
+
+  //fprintf(stderr,"len:%d,value:%d, str:%s\n",tok->len,tok->val,tok->str);                  
+  
   cur->next = tok;
+  
   return tok;
 }
 
@@ -105,13 +114,26 @@ Token *tokenize(char *p) {
       continue;
     }
 
-    if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '%' || *p == '(' || *p == ')' ) {
-      cur = new_token(TK_RESERVED, cur, p++);
+    //2文字の演算子のトークナイズ
+    if (strncmp(p,"<=",2) == 0
+	|| strncmp(p,">=",2) == 0
+	|| strncmp(p,"==",2) == 0
+	|| strncmp(p,"!=",2) == 0
+	) {
+      cur = new_token(TK_RESERVED, cur,p,2);
+      continue;
+    }
+
+    //1文字の演算子のトークナイズ
+    if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '%' || *p == '(' || *p == ')' || *p == '<' || *p == '>'){
+      cur = new_token(TK_RESERVED, cur,p,1);
+      p= p+1;
       continue;
     }
     
     if (isdigit(*p)) {
-      cur = new_token(TK_NUM, cur, p);
+      cur = new_token(TK_NUM, cur, p,0);
+
       cur->val = strtol(p, &p, 10);
       continue;
     }
@@ -119,7 +141,7 @@ Token *tokenize(char *p) {
     error("トークナイズできません");
   }
 
-  new_token(TK_EOF, cur, p);
+  new_token(TK_EOF, cur, p,0);
   return head.next;
 }
 
@@ -131,6 +153,8 @@ typedef enum {
   ND_MUL, // *
   ND_DIV, // /
   ND_MOD, // %
+  //比較演算子
+
   //ポインタ関係
   ND_POINTA, //&（ポインタ）
   ND_DERFER, //*（デリィファレンサ）
@@ -175,9 +199,9 @@ Node *expr(){
   Node *node = mul();
 
   for(;;){
-    if (consume('+'))
+    if (consume("+"))
       node = new_node(ND_ADD,node,mul());
-    else if (consume('-'))
+    else if (consume("-"))
       node = new_node(ND_SUB,node,mul());      
     else
       return node;
@@ -188,11 +212,11 @@ Node *mul(){
   Node *node = unary();
 	      
   for(;;){
-    if (consume('*'))
+    if (consume("*"))
       node = new_node(ND_MUL,node,unary());
-    else if (consume('/'))
+    else if (consume("/"))
       node = new_node(ND_DIV,node,unary());
-    else if (consume('%'))
+    else if (consume("%"))
       node = new_node(ND_MOD,node,unary());
     else
       return node;
@@ -203,29 +227,28 @@ Node *unary(){
 
   Node *node;
 
-  if (consume('+'))
+  if (consume("+"))
     node = primary();
-  else if (consume('-'))
+  else if (consume("-"))
     node = new_node(ND_SUB,new_node_num(0),primary());
-  else if (consume('&')){
+  else if (consume("&")){
     //todo:ポインタのアドレス
   }
-  else if (consume('*')){
+  else if (consume("*")){
     //todo:ポインタのデリファレンサ
   }
   else
     node = primary();    
   return node;
 
-
 }
 
 
 Node *primary(){
   
-  if(consume('(')){
+  if(consume("(")){
     Node *n = expr();
-    expect(')');
+    expect(")");
     return n;
   }
 
@@ -288,7 +311,8 @@ void print_assemble_from_node(Node* current_node,bool is_first_call){
 int main(int argc, char **argv) {
 
   Node* node;
-
+  Token head;
+  
   if (argc != 2) {
     error("引数の個数が正しくありません");
     return 1;
@@ -298,8 +322,17 @@ int main(int argc, char **argv) {
   user_input = argv[1];
   token = tokenize(user_input);
 
+  /*
+  while(token->kind != TK_EOF){
+    printf("%s\n",token->str);
+    token = token->next;
+  }
+  return 0;
+  */
+
   node = expr();
   print_assemble_from_node(node,true);
 
   return 0;
+
 }
