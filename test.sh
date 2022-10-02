@@ -16,8 +16,6 @@ assert() {
   fi
 }
 
-assert 0 0
-assert 42 42
 assert 21 "5+20-4"
 assert 41 "12 + 34 - 5"
 assert 42 "6*7"
@@ -29,6 +27,19 @@ assert 3 "1 + +2"
 assert 7 "10 + -3"
 assert 13 "10 - -3"
 assert 14 "(10 % (7-3))*7"
+assert 0 "35+65==50*2+(1+1)"
+assert 1 "35+65==100"
+assert 1 "35+65!=50*2+(1+1)"
+assert 0 "35+65!=100"
+assert 1 "100<101"
+assert 0 "100<100"
+assert 1 "99<=100"
+assert 1 "100<=100"
+assert 1 "100<=101"
+assert 1 "201>200"
+assert 0 "200>200"
+assert 1 "200>=200"
+assert 0 "199>=200"
 
 
 

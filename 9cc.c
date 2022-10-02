@@ -121,13 +121,17 @@ Token *tokenize(char *p) {
 	|| strncmp(p,"!=",2) == 0
 	) {
       cur = new_token(TK_RESERVED, cur,p,2);
+      p += 2;      
       continue;
     }
 
     //1文字の演算子のトークナイズ
-    if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '%' || *p == '(' || *p == ')' || *p == '<' || *p == '>'){
+    if (*p == '+' || *p == '-' ||
+	*p == '*' || *p == '/' || *p == '%'||
+        *p == '(' || *p == ')' ||
+	*p == '<' || *p == '>'){
       cur = new_token(TK_RESERVED, cur,p,1);
-      p= p+1;
+      p += 1;      
       continue;
     }
     
@@ -153,13 +157,19 @@ typedef enum {
   ND_MUL, // *
   ND_DIV, // /
   ND_MOD, // %
+  
   //比較演算子
-
+  ND_EQ, // ==
+  ND_NOTEQ, // !=
+  ND_LLESS,// <
+  ND_LLESSEQ,// <=
   //ポインタ関係
-  ND_POINTA, //&（ポインタ）
+  ND_POINTER, //&（ポインタ）
   ND_DERFER, //*（デリィファレンサ）
+
   //実値
   ND_NUM, // 整数
+  
 } NodeKind;
 
 typedef struct Node Node;
@@ -191,13 +201,56 @@ Node *new_node_num(int val) {
 
 
 Node *expr();
-Node *mul();
+Node *equality();
+Node *relational();
+Node *add(); 
+Node *mul(); 
 Node *unary();
 Node *primary(); 
 
 Node *expr(){
-  Node *node = mul();
+  return equality();
+}
 
+Node *equality(){
+
+  Node *node = relational();
+  
+  for(;;){
+    if (consume("=="))
+      node = new_node(ND_EQ,node,relational());
+    else if (consume("!="))
+      node = new_node(ND_NOTEQ,node,relational());      
+    else
+      return node;
+  }
+  
+}
+
+Node *relational(){
+
+  Node *node = add();
+  
+  for(;;){
+    //>および>=不等号が逆の場合は左右のノード自体を逆に生成する    
+    if (consume("<"))
+     node = new_node(ND_LLESS,node,add());      
+    else if (consume(">"))
+      node = new_node(ND_LLESS,add(),node);
+    else if (consume("<="))
+      node = new_node(ND_LLESSEQ,node,add());
+    else if (consume(">="))
+      node = new_node(ND_LLESSEQ,add(),node);
+    else
+      return node;
+  }
+  
+}
+
+Node *add(){
+
+  Node *node = mul();
+  
   for(;;){
     if (consume("+"))
       node = new_node(ND_ADD,node,mul());
@@ -206,9 +259,11 @@ Node *expr(){
     else
       return node;
   }
+  
 }
 
 Node *mul(){
+
   Node *node = unary();
 	      
   for(;;){
@@ -242,7 +297,6 @@ Node *unary(){
   return node;
 
 }
-
 
 Node *primary(){
   
@@ -295,6 +349,26 @@ void print_assemble_from_node(Node* current_node,bool is_first_call){
       printf("  idiv rdi\n");
       printf("  mov rax,rdx\n");      
       break;
+    case ND_EQ:
+      printf("  cmp rax,rdi\n");    
+      printf("  sete al\n");
+      printf("  movzb rax,al\n");      
+      break;      
+    case ND_NOTEQ:
+      printf("  cmp rax,rdi\n");    
+      printf("  setne al\n");
+      printf("  movzb rax,al\n");      
+      break;
+    case ND_LLESS:
+      printf("  cmp rax,rdi\n");    
+      printf("  setl al\n");
+      printf("  movzb rax,al\n");            
+      break;      
+    case ND_LLESSEQ:
+      printf("  cmp rax,rdi\n");    
+      printf("  setle al\n");
+      printf("  movzb rax,al\n");            
+      break;            
     }
     printf("  push rax\n");
   }
@@ -306,6 +380,19 @@ void print_assemble_from_node(Node* current_node,bool is_first_call){
   }
   
 }
+
+/* todo:unfinished
+void list_token(Token* head){
+
+  Token *tk = head;
+
+  while(tk->kind != TK_EOF){
+    // fprintf(stderr,"str:%s val:%d\n",tk->str,tk->val);                        
+    tk = tk->next;
+  }
+
+}
+*/
 
 
 int main(int argc, char **argv) {
@@ -320,19 +407,17 @@ int main(int argc, char **argv) {
 
   // トークナイズする
   user_input = argv[1];
+  //fprintf(stderr,"begin takenize\n");                          
   token = tokenize(user_input);
 
-  /*
-  while(token->kind != TK_EOF){
-    printf("%s\n",token->str);
-    token = token->next;
-  }
-  return 0;
-  */
+  //list_token(&head);
 
+  //fprintf(stderr,"begin create node\n");                          
   node = expr();
   print_assemble_from_node(node,true);
 
   return 0;
 
 }
+
+  
