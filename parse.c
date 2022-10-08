@@ -1,11 +1,6 @@
-#include <ctype.h>
-#include <stdarg.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "9cc.h"
 
-char *user_input;
+extern char *user_input;//main関数の引数
 
 // エラーを報告するための関数
 // printfと同じ引数を取る
@@ -31,26 +26,8 @@ void error_at(char *loc, char *fmt, ...) {
   exit(1);
 }
 
-// トークンの種類
-typedef enum {
-  TK_RESERVED, // 記号
-  TK_NUM,      // 整数トークン
-  TK_EOF,      // 入力の終わりを表すトークン
-} TokenKind;
 
-typedef struct Token Token;
-
-// トークン型
-struct Token {
-  TokenKind kind; // トークンの型
-  Token *next;    // 次の入力トークン
-  int val;        // kindがTK_NUMの場合、その数値
-  int len;
-  char *str;      // トークン文字列
-};
-
-// 現在着目しているトークン
-Token *token;
+extern Token *token;// 現在着目しているトークン
 
 // 次のトークンが期待している記号のときには、トークンを1つ読み進めて
 // 真を返す。それ以外の場合には偽を返す。
@@ -149,38 +126,6 @@ Token *tokenize(char *p) {
   return head.next;
 }
 
-// 抽象構文木のノードの種類
-typedef enum {
-  //四則演算子
-  ND_ADD, // +
-  ND_SUB, // -
-  ND_MUL, // *
-  ND_DIV, // /
-  ND_MOD, // %
-  
-  //比較演算子
-  ND_EQ, // ==
-  ND_NOTEQ, // !=
-  ND_LLESS,// <
-  ND_LLESSEQ,// <=
-  //ポインタ関係
-  ND_POINTER, //&（ポインタ）
-  ND_DERFER, //*（デリィファレンサ）
-
-  //実値
-  ND_NUM, // 整数
-  
-} NodeKind;
-
-typedef struct Node Node;
-
-// 抽象構文木のノードの型
-struct Node {
-  NodeKind kind; // ノードの型
-  Node *lhs;     // 左辺
-  Node *rhs;     // 右辺
-  int val;       // kindがND_NUMの場合のみ使う
-};
 
 //数値以外のノードの作成
 Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
@@ -309,115 +254,3 @@ Node *primary(){
   return new_node_num(expect_number());
 }
 
-
-void print_assemble_from_node(Node* current_node,bool is_first_call){
-
-  // アセンブリの前半部分を出力
-  if(is_first_call){  
-    printf(".intel_syntax noprefix\n");
-    printf(".globl main\n");
-    printf("main:\n");
-  }    
-
-  //内容の四則演算を入力
-  if(current_node->kind == ND_NUM){
-    printf("  push %d\n",current_node -> val );
-  }
-  else{
-    print_assemble_from_node(current_node->lhs,false);
-    print_assemble_from_node(current_node->rhs,false);    
-
-    printf("  pop rdi\n");
-    printf("  pop rax\n");
-	
-    switch(current_node->kind){
-    case  ND_ADD:
-      printf("  add rax, rdi\n");    
-      break;
-    case  ND_SUB:
-      printf("  sub rax, rdi\n");        
-      break;    
-    case  ND_MUL:
-      printf("  imul rax, rdi\n");        
-      break;    
-    case  ND_DIV:
-      printf("  cqo\n");    
-      printf("  idiv rdi\n");
-      break;
-    case  ND_MOD:
-      printf("  cqo\n");    
-      printf("  idiv rdi\n");
-      printf("  mov rax,rdx\n");      
-      break;
-    case ND_EQ:
-      printf("  cmp rax,rdi\n");    
-      printf("  sete al\n");
-      printf("  movzb rax,al\n");      
-      break;      
-    case ND_NOTEQ:
-      printf("  cmp rax,rdi\n");    
-      printf("  setne al\n");
-      printf("  movzb rax,al\n");      
-      break;
-    case ND_LLESS:
-      printf("  cmp rax,rdi\n");    
-      printf("  setl al\n");
-      printf("  movzb rax,al\n");            
-      break;      
-    case ND_LLESSEQ:
-      printf("  cmp rax,rdi\n");    
-      printf("  setle al\n");
-      printf("  movzb rax,al\n");            
-      break;            
-    }
-    printf("  push rax\n");
-  }
-
-  //アセンブリの終了部分を出力
-  if(is_first_call){
-    printf("  pop rax\n");
-    printf("  ret\n");
-  }
-  
-}
-
-/* todo:unfinished
-void list_token(Token* head){
-
-  Token *tk = head;
-
-  while(tk->kind != TK_EOF){
-    // fprintf(stderr,"str:%s val:%d\n",tk->str,tk->val);                        
-    tk = tk->next;
-  }
-
-}
-*/
-
-
-int main(int argc, char **argv) {
-
-  Node* node;
-  Token head;
-  
-  if (argc != 2) {
-    error("引数の個数が正しくありません");
-    return 1;
-  }
-
-  // トークナイズする
-  user_input = argv[1];
-  //fprintf(stderr,"begin takenize\n");                          
-  token = tokenize(user_input);
-
-  //list_token(&head);
-
-  //fprintf(stderr,"begin create node\n");                          
-  node = expr();
-  print_assemble_from_node(node,true);
-
-  return 0;
-
-}
-
-  
