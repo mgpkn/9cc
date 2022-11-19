@@ -3,7 +3,7 @@ SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
 
 9cc: $(OBJS)
-	$(CC) -o 9cc $(OBJS) $(LDFLAGS)
+	$(CC) -o 9cc $(OBJS) $(CFLAGS)
 
 $(OBJS): 9cc.h
 
@@ -12,7 +12,7 @@ test: 9cc
 
 params:
 	echo $(CC)
-	echo $(LDFLAGS)
+	echo $(CFLAGS)
 	echo $(SRCS)
 	echo $(OBJS)
 

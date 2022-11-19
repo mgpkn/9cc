@@ -1,74 +1,110 @@
 #include "9cc.h"
 
-void generate_assemble_code(Node* current_node,bool is_first_call){
+void generate_assemble_code_header(){
 
-  // アセンブリの前半部分を出力
-  if(is_first_call){  
-    printf(".intel_syntax noprefix\n");
-    printf(".globl main\n");
-    printf("main:\n");
-  }    
+  //プロローグ
+  printf(".intel_syntax noprefix\n");
+  printf(".globl main\n");
+  printf("main:\n");
 
-  //内容の四則演算を入力
-  if(current_node->kind == ND_NUM){
-    printf("  push %d\n",current_node -> val );
-  }
-  else{
-    generate_assemble_code(current_node->lhs,false);
-    generate_assemble_code(current_node->rhs,false);    
+  //変数領域の確保。（今は26個で固定）
+  printf("  push rbp\n");
+  printf("  mov rbp, rsp\n");
+  printf("  sub rsp, 208\n");  
+}
 
+  
+void generate_assemble_code_footer(){
+
+  //帰り値を格納。
+  printf("  pop rax\n");  
+  
+  //エピローグ
+  printf("  mov rsp, rbp\n");
+  printf("  pop rbp\n");
+  printf("  ret\n");
+  return;
+}
+
+void generate_assemble_code_body_lval(Node* current_node){
+  if(current_node->kind !=ND_LVAL)
+    error("代入の左辺値が変数ではありません。");
+  printf("  mov rax,rbp\n");
+  printf("  sub rax,%d\n",current_node->offset);
+  printf("  push rax\n");  
+}
+
+
+void generate_assemble_code_body(Node* current_node){
+
+  switch(current_node->kind){
+  case ND_NUM:
+    printf("  push %d\n",current_node -> val );    
+    return;
+  case ND_LVAL:
+    generate_assemble_code_body_lval(current_node);
+    printf("  pop rax\n");
+    printf("  mov rax,[rax]\n");
+    printf("  push rax\n");        
+    return;
+  case ND_ASSIGN:
+    generate_assemble_code_body_lval(current_node->lhs);
+    generate_assemble_code_body(current_node->rhs);
     printf("  pop rdi\n");
     printf("  pop rax\n");
-	
-    switch(current_node->kind){
-    case  ND_ADD:
-      printf("  add rax, rdi\n");    
-      break;
-    case  ND_SUB:
-      printf("  sub rax, rdi\n");        
-      break;    
-    case  ND_MUL:
-      printf("  imul rax, rdi\n");        
-      break;    
-    case  ND_DIV:
-      printf("  cqo\n");    
-      printf("  idiv rdi\n");
-      break;
-    case  ND_MOD:
-      printf("  cqo\n");    
-      printf("  idiv rdi\n");
-      printf("  mov rax,rdx\n");      
-      break;
-    case ND_EQ:
-      printf("  cmp rax,rdi\n");    
-      printf("  sete al\n");
-      printf("  movzb rax,al\n");      
-      break;      
-    case ND_NOTEQ:
-      printf("  cmp rax,rdi\n");    
-      printf("  setne al\n");
-      printf("  movzb rax,al\n");      
-      break;
-    case ND_LLESS:
-      printf("  cmp rax,rdi\n");    
-      printf("  setl al\n");
-      printf("  movzb rax,al\n");            
-      break;      
-    case ND_LLESSEQ:
-      printf("  cmp rax,rdi\n");    
-      printf("  setle al\n");
-      printf("  movzb rax,al\n");            
-      break;            
-    }
-    printf("  push rax\n");
-  }
-
-  //アセンブリの終了部分を出力
-  if(is_first_call){
-    printf("  pop rax\n");
-    printf("  ret\n");
+    printf("  mov [rax],rdi\n");        
+    printf("  push [rax]\n");            
+    return;
   }
   
+  generate_assemble_code_body(current_node->lhs);
+  generate_assemble_code_body(current_node->rhs);    
+
+  printf("  pop rdi\n");
+  printf("  pop rax\n");
+	
+  switch(current_node->kind){
+  case  ND_ADD:
+    printf("  add rax, rdi\n");    
+    break;
+  case  ND_SUB:
+    printf("  sub rax, rdi\n");        
+    break;    
+  case  ND_MUL:
+    printf("  imul rax, rdi\n");        
+    break;    
+  case  ND_DIV:
+    printf("  cqo\n");    
+    printf("  idiv rdi\n");
+    break;
+  case  ND_MOD:
+    printf("  cqo\n");    
+    printf("  idiv rdi\n");
+    printf("  mov rax,rdx\n");      
+    break;
+  case ND_EQ:
+    printf("  cmp rax,rdi\n");    
+    printf("  sete al\n");
+    printf("  movzb rax,al\n");      
+   break;      
+ case ND_NOTEQ:
+    printf("  cmp rax,rdi\n");    
+    printf("  setne al\n");
+    printf("  movzb rax,al\n");      
+    break;
+ case ND_LLESS:
+    printf("  cmp rax,rdi\n");    
+    printf("  setl al\n");
+    printf("  movzb rax,al\n");            
+    break;      
+ case ND_LLESSEQ:
+    printf("  cmp rax,rdi\n");    
+    printf("  setle al\n");
+    printf("  movzb rax,al\n");            
+    break;            
+  }
+  printf("  push rax\n");
+
 }
 
 

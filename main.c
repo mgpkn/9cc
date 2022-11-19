@@ -2,10 +2,11 @@
 
 char *user_input;//main関数の引数
 Token *token;// 現在着目しているトークン
+Node *code[100];
 
 int main(int argc, char **argv) {
 
-  Node* node;
+  Node* node;//やがて消す
   Token head;
   
   if (argc != 2) {
@@ -21,11 +22,10 @@ int main(int argc, char **argv) {
   //list_token(&head);
 
   //fprintf(stderr,"begin create node\n");                          
-  node = expr();
-  generate_assemble_code(node,true);
-
+  node = statment();
+  generate_assemble_code_header();    
+  generate_assemble_code_body(node);
+  generate_assemble_code_footer();  
   return 0;
 
 }
-
-  

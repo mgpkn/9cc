@@ -26,23 +26,34 @@ void error_at(char *loc, char *fmt, ...) {
   exit(1);
 }
 
-
 extern Token *token;// 現在着目しているトークン
 
 // 次のトークンが期待している記号のときには、トークンを1つ読み進めて
 // 真を返す。それ以外の場合には偽を返す。
 bool consume(char *op) {
-  if (token->kind != TK_RESERVED ||  strncmp(token->str,op,token->len) != 0)  
+  if (token->kind != TK_RESERVED
+      || strlen(op) != token->len
+      ||  strncmp(token->str,op,strlen(op)) != 0)    
     return false;
   token = token->next;
   return true;
 }
 
+bool consume_number(char *op) {
+  if (token->kind != TK_NUM)  
+    return false;
+  token = token->next;
+  return true;
+}
+
+
 // 次のトークンが期待している記号のときには、トークンを1つ読み進める。
 // それ以外の場合にはエラーを報告する。
 void expect(char *op) {
-  if (token->kind != TK_RESERVED || strncmp(token->str,op,token->len) != 0)
-    error_at(token->str,"'%s'ではありません", op);
+  if (token->kind != TK_RESERVED
+      || strlen(op) != token->len
+      ||  strncmp(token->str,op,strlen(op)) != 0)    
+    error_at(token->str,"'%s'ではありません", op);    
   token = token->next;
 }
 
@@ -54,6 +65,15 @@ int expect_number() {
   int val = token->val;
   token = token->next;
   return val;
+}
+
+
+char *consume_ident() {
+  if (token->kind != TK_IDENT)  
+    error_at(token->str,"変数ではありません");
+  char *ident = token->str;
+  token = token->next;
+  return ident;
 }
 
 bool at_eof() {
@@ -71,8 +91,7 @@ Token *new_token(TokenKind kind, Token *cur, char *str,int len) {
   strncpy(tok->str,str,len);
   tok->len = len;
 
-  //fprintf(stderr,"len:%d,value:%d, str:%s\n",tok->len,tok->val,tok->str);                  
-  
+  //fprintf(stderr,"len:%d,value:%d, str:%s\n",tok->len,tok->val,tok->str);                
   cur->next = tok;
   
   return tok;
@@ -91,6 +110,7 @@ Token *tokenize(char *p) {
       continue;
     }
 
+    
     //2文字の演算子のトークナイズ
     if (strncmp(p,"<=",2) == 0
 	|| strncmp(p,">=",2) == 0
@@ -106,8 +126,16 @@ Token *tokenize(char *p) {
     if (*p == '+' || *p == '-' ||
 	*p == '*' || *p == '/' || *p == '%'||
         *p == '(' || *p == ')' ||
-	*p == '<' || *p == '>'){
-      cur = new_token(TK_RESERVED, cur,p,1);
+	*p == '<' || *p == '>'||
+        *p == '=' ||
+	*p == ';') 
+      {
+      cur = new_token(TK_RESERVED,cur,p,1);
+      p += 1;      
+      continue;
+    }
+    if ('a' <= *p &&  *p <= 'z'){
+      cur = new_token(TK_IDENT, cur,p,1);
       p += 1;      
       continue;
     }
@@ -118,7 +146,6 @@ Token *tokenize(char *p) {
       cur->val = strtol(p, &p, 10);
       continue;
     }
-
     error("トークナイズできません");
   }
 
@@ -144,7 +171,18 @@ Node *new_node_num(int val) {
   return node;
 }
 
+//変数ノードの作成
+Node *new_node_ident(char *ident) {
+  Node *node = calloc(1, sizeof(Node));
+  node->kind = ND_LVAL;
+  node->offset = (ident[0] - 'a' + 1)*8;
+  return node;
+}
 
+
+void program();
+Node *statment();
+Node *assign();
 Node *expr();
 Node *equality();
 Node *relational();
@@ -153,84 +191,113 @@ Node *mul();
 Node *unary();
 Node *primary(); 
 
+
+extern Node *code[100];
+void program(){
+
+  int i=0;
+  while(!at_eof){
+      code[i] =statment();
+      i++;
+  }
+      code[i] =NULL;  
+}
+
+Node *statment(){
+  Node *n = expr();
+  expect(";");  
+  return n;
+}
+
+
 Node *expr(){
-  return equality();
+  Node *n = assign();
+  return n;
+}
+
+
+Node *assign(){
+  Node *n = equality();
+  if(consume("=")){
+      n = new_node(ND_ASSIGN,n,assign());    
+  }
+  return n;
 }
 
 Node *equality(){
 
-  Node *node = relational();
+  Node *n = relational();
   
   for(;;){
     if (consume("=="))
-      node = new_node(ND_EQ,node,relational());
+      n = new_node(ND_EQ,n,relational());
     else if (consume("!="))
-      node = new_node(ND_NOTEQ,node,relational());      
+      n = new_node(ND_NOTEQ,n,relational());      
     else
-      return node;
+      return n;
   }
   
 }
 
 Node *relational(){
 
-  Node *node = add();
+  Node *n = add();
   
   for(;;){
     //>および>=不等号が逆の場合は左右のノード自体を逆に生成する    
-    if (consume("<"))
-     node = new_node(ND_LLESS,node,add());      
-    else if (consume(">"))
-      node = new_node(ND_LLESS,add(),node);
-    else if (consume("<="))
-      node = new_node(ND_LLESSEQ,node,add());
+    if (consume("<="))
+      n = new_node(ND_LLESSEQ,n,add());
     else if (consume(">="))
-      node = new_node(ND_LLESSEQ,add(),node);
+      n = new_node(ND_LLESSEQ,add(),n);
+    else if (consume("<"))
+      n = new_node(ND_LLESS,n,add());      
+    else if (consume(">"))
+      n = new_node(ND_LLESS,add(),n);
     else
-      return node;
+      return n;
   }
   
 }
 
 Node *add(){
 
-  Node *node = mul();
+  Node *n = mul();
   
   for(;;){
     if (consume("+"))
-      node = new_node(ND_ADD,node,mul());
+      n = new_node(ND_ADD,n,mul());
     else if (consume("-"))
-      node = new_node(ND_SUB,node,mul());      
+      n = new_node(ND_SUB,n,mul());      
     else
-      return node;
+      return n;
   }
   
 }
 
 Node *mul(){
 
-  Node *node = unary();
+  Node *n = unary();
 	      
   for(;;){
     if (consume("*"))
-      node = new_node(ND_MUL,node,unary());
+      n = new_node(ND_MUL,n,unary());
     else if (consume("/"))
-      node = new_node(ND_DIV,node,unary());
+      n = new_node(ND_DIV,n,unary());
     else if (consume("%"))
-      node = new_node(ND_MOD,node,unary());
+      n = new_node(ND_MOD,n,unary());
     else
-      return node;
+      return n;
   }
 }
 
 Node *unary(){
 
-  Node *node;
+  Node *n;
 
   if (consume("+"))
-    node = primary();
+    n = primary();
   else if (consume("-"))
-    node = new_node(ND_SUB,new_node_num(0),primary());
+    n = new_node(ND_SUB,new_node_num(0),primary());
   else if (consume("&")){
     //todo:ポインタのアドレス
   }
@@ -238,19 +305,28 @@ Node *unary(){
     //todo:ポインタのデリファレンサ
   }
   else
-    node = primary();    
-  return node;
+    n = primary();    
+  return n;
 
 }
 
 Node *primary(){
-  
+
   if(consume("(")){
     Node *n = expr();
     expect(")");
     return n;
   }
 
-  return new_node_num(expect_number());
+  if (token->kind == TK_IDENT )
+    return new_node_ident(consume_ident());
+  else
+    return new_node_num(expect_number());
+  
+
 }
+
+  
+
+
 

@@ -14,6 +14,7 @@ void error_at(char *loc, char *fmt, ...);
 // トークンの種類
 typedef enum {
   TK_RESERVED, // 記号
+  TK_IDENT, //識別子
   TK_NUM,      // 整数トークン
   TK_EOF,      // 入力の終わりを表すトークン
 } TokenKind;
@@ -25,7 +26,7 @@ struct Token {
   TokenKind kind; // トークンの型
   Token *next;    // 次の入力トークン
   int val;        // kindがTK_NUMの場合、その数値
-  int len;
+  int len; //トークンの長さ
   char *str;      // トークン文字列
 };
 
@@ -53,10 +54,17 @@ typedef enum {
   ND_NOTEQ, // !=
   ND_LLESS,// <
   ND_LLESSEQ,// <=
+
   //ポインタ関係
   ND_POINTER, //&（ポインタ）
   ND_DERFER, //*（デリィファレンサ）
 
+  //代入演算子
+  ND_ASSIGN,//=
+
+  //変数
+  ND_LVAL,//ローカル
+  
   //実値
   ND_NUM, // 整数
   
@@ -70,8 +78,8 @@ struct Node {
   Node *lhs;     // 左辺
   Node *rhs;     // 右辺
   int val;       // kindがND_NUMの場合のみ使う
+  int offset; //kindがND_VAL系の場合のみ扱う
 };
-
 
 Node *new_node(NodeKind kind, Node *lhs, Node *rhs);
 Node *new_node_num(int val);
@@ -85,5 +93,7 @@ Node *unary();
 Node *primary(); 
 
 //GenerateCode
-void generate_assemble_code(Node* current_node,bool is_first_call);
+void generate_assemble_code_header();
+void generate_assemble_code_footer();
+void generate_assemble_code_body(Node* current_node);
 
