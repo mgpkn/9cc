@@ -109,7 +109,6 @@ Token *tokenize(char *p) {
       p++;
       continue;
     }
-
     
     //2文字の演算子のトークナイズ
     if (strncmp(p,"<=",2) == 0
@@ -181,7 +180,7 @@ Node *new_node_ident(char *ident) {
 
 
 void program();
-Node *statment();
+Node *statement();
 Node *assign();
 Node *expr();
 Node *equality();
@@ -191,19 +190,16 @@ Node *mul();
 Node *unary();
 Node *primary(); 
 
-
-extern Node *code[100];
+extern Node *code[NODENUM];  
 void program(){
-
   int i=0;
-  while(!at_eof){
-      code[i] =statment();
+  while(!at_eof()){
+      code[i] =statement();
       i++;
-  }
-      code[i] =NULL;  
+   }
 }
 
-Node *statment(){
+Node *statement(){
   Node *n = expr();
   expect(";");  
   return n;

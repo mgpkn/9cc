@@ -6,7 +6,7 @@ void generate_assemble_code_header(){
   printf(".intel_syntax noprefix\n");
   printf(".globl main\n");
   printf("main:\n");
-
+  
   //変数領域の確保。（今は26個で固定）
   printf("  push rbp\n");
   printf("  mov rbp, rsp\n");
@@ -16,9 +16,6 @@ void generate_assemble_code_header(){
   
 void generate_assemble_code_footer(){
 
-  //帰り値を格納。
-  printf("  pop rax\n");  
-  
   //エピローグ
   printf("  mov rsp, rbp\n");
   printf("  pop rbp\n");
@@ -27,13 +24,13 @@ void generate_assemble_code_footer(){
 }
 
 void generate_assemble_code_body_lval(Node* current_node){
+  
   if(current_node->kind !=ND_LVAL)
     error("代入の左辺値が変数ではありません。");
   printf("  mov rax,rbp\n");
   printf("  sub rax,%d\n",current_node->offset);
   printf("  push rax\n");  
 }
-
 
 void generate_assemble_code_body(Node* current_node){
 
@@ -86,7 +83,7 @@ void generate_assemble_code_body(Node* current_node){
     printf("  cmp rax,rdi\n");    
     printf("  sete al\n");
     printf("  movzb rax,al\n");      
-   break;      
+    break;      
  case ND_NOTEQ:
     printf("  cmp rax,rdi\n");    
     printf("  setne al\n");
@@ -105,6 +102,8 @@ void generate_assemble_code_body(Node* current_node){
   }
   printf("  push rax\n");
 
+
+  
 }
 
 

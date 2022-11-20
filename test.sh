@@ -44,9 +44,8 @@ assert 0 "199>=200;"
 assert 42 "10+32;"
 assert 3 "a=3;"
 assert 15 "b=3*4+3;"
-#assert 10 "b=a=10;"
-#assert 20 "a=18;a+2;"
-#assert 1 "a=b=2;"
+assert 10 "b=a=10;"
+assert 20 "a=18;b=2;c=a+b;"
 
 
 echo OK

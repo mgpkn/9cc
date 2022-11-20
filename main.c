@@ -2,12 +2,13 @@
 
 char *user_input;//main関数の引数
 Token *token;// 現在着目しているトークン
-Node *code[100];
 
+
+Node *code[NODENUM];  
 int main(int argc, char **argv) {
 
-  Node* node;//やがて消す
   Token head;
+  int i;
   
   if (argc != 2) {
     error("引数の個数が正しくありません");
@@ -19,12 +20,21 @@ int main(int argc, char **argv) {
   //fprintf(stderr,"begin takenize\n");                          
   token = tokenize(user_input);
 
-  //list_token(&head);
+  program();//ノードの集団を生成
 
-  //fprintf(stderr,"begin create node\n");                          
-  node = statment();
-  generate_assemble_code_header();    
-  generate_assemble_code_body(node);
+  generate_assemble_code_header();
+
+
+  for(i=0;code[i];i++){
+    generate_assemble_code_body(code[i]);
+
+    // 式の評価結果としてスタックに一つの値が残っている
+    // はずなので、スタックが溢れないようにポップしておく
+    printf("  pop rax\n");  
+    
+  }
+  //generate_assemble_code_body(code[0]);
+
   generate_assemble_code_footer();  
   return 0;
 

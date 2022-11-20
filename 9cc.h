@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define  NODENUM  100
+
 //CallError
 void error(char *fmt, ...);
 void error_at(char *loc, char *fmt, ...);
@@ -84,6 +86,8 @@ struct Node {
 Node *new_node(NodeKind kind, Node *lhs, Node *rhs);
 Node *new_node_num(int val);
 
+void program();
+Node *statement();
 Node *expr();
 Node *equality();
 Node *relational();
