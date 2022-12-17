@@ -101,8 +101,6 @@ void generate_assemble_code_body(Node* current_node){
     break;            
   }
   printf("  push rax\n");
-
-
   
 }
 

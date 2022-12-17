@@ -26,6 +26,18 @@ void error_at(char *loc, char *fmt, ...) {
   exit(1);
 }
 
+extern LVar *locals;
+
+LVar *find_lvar(Token *tok){
+
+  for(LVar *v=locals;v;v=v->next){
+    if(tok->len==v->len && strncmp(tok->str,v->name,tok->len) == 0) return v;
+    }
+  
+  return NULL;
+}
+
+
 extern Token *token;// 現在着目しているトークン
 
 // 次のトークンが期待している記号のときには、トークンを1つ読み進めて
@@ -67,13 +79,12 @@ int expect_number() {
   return val;
 }
 
-
-char *consume_ident() {
+Token *expect_ident() {
   if (token->kind != TK_IDENT)  
     error_at(token->str,"変数ではありません");
-  char *ident = token->str;
+  Token *t = token;
   token = token->next;
-  return ident;
+  return t;
 }
 
 bool at_eof() {
@@ -102,7 +113,8 @@ Token *tokenize(char *p) {
   Token head;
   head.next = NULL;
   Token *cur = &head;
-
+  int i;
+  
   while (*p) {
     // 空白文字をスキップ
     if (isspace(*p)) {
@@ -133,24 +145,52 @@ Token *tokenize(char *p) {
       p += 1;      
       continue;
     }
-    if ('a' <= *p &&  *p <= 'z'){
-      cur = new_token(TK_IDENT, cur,p,1);
-      p += 1;      
+
+
+    //変数のトークナイズ
+    //変数として有効な文字の探索
+    i=0;
+    while(true){
+
+      //[a-zA-Z_]なら変数に使用
+      if(('a' <= *(p+i) &&  *(p+i) <= 'z') ||
+	 ('A' <= *(p+i) &&  *(p+i) <= 'Z') ||
+	 *(p+i) =='_' )	{
+	i++;
+	continue;
+	}
+
+      //２文字目移行は数字も有効とする
+      if(i>0 && ('0' <= *(p+i) &&  *(p+i) <= '9')) {
+	i++;
+	continue;
+	}
+
+      //変数のルールに該当しなかった場合はブレイク
+      break;
+    }
+    
+    if(i>0) {
+      cur = new_token(TK_IDENT, cur,p,i);
+      p += i;      
       continue;
     }
     
+   
+    //整数値のトークナイズ
     if (isdigit(*p)) {
       cur = new_token(TK_NUM, cur, p,0);
-
       cur->val = strtol(p, &p, 10);
       continue;
     }
+    
     error("トークナイズできません");
   }
 
   new_token(TK_EOF, cur, p,0);
   return head.next;
 }
+
 
 
 //数値以外のノードの作成
@@ -171,10 +211,34 @@ Node *new_node_num(int val) {
 }
 
 //変数ノードの作成
-Node *new_node_ident(char *ident) {
-  Node *node = calloc(1, sizeof(Node));
-  node->kind = ND_LVAL;
-  node->offset = (ident[0] - 'a' + 1)*8;
+Node *new_node_ident(Token *t) {
+  Node *node =NULL;
+  if(t){
+    node = calloc(1, sizeof(Node));
+    node->kind = ND_LVAL;
+
+
+    //すでに宣言された変数かを確認する
+    LVar *lvar = find_lvar(t);
+    if (lvar){
+      //宣言済ならその変数のオフセットを返却。
+      node->offset = lvar->offset;
+    }else{
+      //なければlocalsに追加
+      lvar = calloc(1,sizeof(LVar));
+      lvar->next = locals;
+      lvar->name = t->str;
+      lvar->len = t->len;
+      if(locals){
+	lvar->offset = locals->offset+OFFSETVAL;
+      }else{
+	//1st declare
+	lvar->offset = OFFSETVAL;	
+      }
+      locals = lvar;
+      node->offset = lvar->offset;          
+    }
+  }
   return node;
 }
 
@@ -315,10 +379,9 @@ Node *primary(){
   }
 
   if (token->kind == TK_IDENT )
-    return new_node_ident(consume_ident());
+    return new_node_ident(expect_ident());
   else
     return new_node_num(expect_number());
-  
 
 }
 

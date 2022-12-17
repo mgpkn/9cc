@@ -46,6 +46,9 @@ assert 3 "a=3;"
 assert 15 "b=3*4+3;"
 assert 10 "b=a=10;"
 assert 20 "a=18;b=2;c=a+b;"
-
+assert 20 "a=18;b=2;z=a+b;"
+assert 20 "hoge=18+2;"
+assert 40 "a=18;b=2;c=(a+b)*2;"
+assert 111 "hoge=18+2;a=10;hoge*a/2+11;"
 
 echo OK

@@ -3,8 +3,12 @@
 char *user_input;//main関数の引数
 Token *token;// 現在着目しているトークン
 
+Node *code[NODENUM];
+LVar *locals;//ローカル変数のセット
 
-Node *code[NODENUM];  
+//const int NODENUM=100;
+//const int OFFSETVAL =8;
+
 int main(int argc, char **argv) {
 
   Token head;

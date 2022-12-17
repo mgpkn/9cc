@@ -5,7 +5,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define  NODENUM  100
+#define NODENUM  100
+#define OFFSETVAL 8
+
 
 //CallError
 void error(char *fmt, ...);
@@ -72,9 +74,17 @@ typedef enum {
   
 } NodeKind;
 
-typedef struct Node Node;
+//local variable
+typedef struct LVar LVar;
+struct LVar {
+  LVar *next; //次の変数（最後ならnull）
+  char *name;//変数名
+  int len;       // 変数名の長さ
+  int offset; //RBPからのオフセット
+};
 
 // 抽象構文木のノードの型
+typedef struct Node Node;
 struct Node {
   NodeKind kind; // ノードの型
   Node *lhs;     // 左辺
@@ -100,4 +110,5 @@ Node *primary();
 void generate_assemble_code_header();
 void generate_assemble_code_footer();
 void generate_assemble_code_body(Node* current_node);
+
 
