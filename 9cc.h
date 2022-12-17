@@ -18,9 +18,10 @@ void error_at(char *loc, char *fmt, ...);
 // トークンの種類
 typedef enum {
   TK_RESERVED, // 記号
+  TK_RETURN,      //return  
   TK_IDENT, //識別子
-  TK_NUM,      // 整数トークン
-  TK_EOF,      // 入力の終わりを表すトークン
+  TK_NUM,      // 整数
+  TK_EOF,      // コードの終わり
 } TokenKind;
 
 typedef struct Token Token;
@@ -46,7 +47,7 @@ Token *tokenize(char *p);
 //Node
 // 抽象構文木のノードの種類
 typedef enum {
-  //四則演算子
+  //四則演算子p
   ND_ADD, // +
   ND_SUB, // -
   ND_MUL, // *
@@ -71,6 +72,8 @@ typedef enum {
   
   //実値
   ND_NUM, // 整数
+  
+  ND_RETURN//rertun
   
 } NodeKind;
 
@@ -107,8 +110,9 @@ Node *unary();
 Node *primary(); 
 
 //GenerateCode
-void generate_assemble_code_header();
-void generate_assemble_code_footer();
-void generate_assemble_code_body(Node* current_node);
+void generate_assemble_header();
+void generate_assemble_footer();
+void generate_assemble_statement(Node* current_node);
+void generate_assemble_statement_lval(Node* current_node);
 
 

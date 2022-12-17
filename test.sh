@@ -49,6 +49,11 @@ assert 20 "a=18;b=2;c=a+b;"
 assert 20 "a=18;b=2;z=a+b;"
 assert 20 "hoge=18+2;"
 assert 40 "a=18;b=2;c=(a+b)*2;"
-assert 111 "hoge=18+2;a=10;hoge*a/2+11;"
+assert 111 "hoge4=18+2;a=10;hoge4*a/2+11;"
+assert 7 "return7=7;"
+assert 8 "return 8;"
+assert 20 "return (8*3-4);"
+assert 20 "hei=4;return (8*3-hei);"
+assert 13 "return7=3;return7+10;"
 
 echo OK

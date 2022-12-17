@@ -45,6 +45,7 @@ extern Token *token;// 現在着目しているトークン
 bool consume(char *op) {
   if (token->kind != TK_RESERVED
       || strlen(op) != token->len
+
       ||  strncmp(token->str,op,strlen(op)) != 0)    
     return false;
   token = token->next;
@@ -108,6 +109,26 @@ Token *new_token(TokenKind kind, Token *cur, char *str,int len) {
   return tok;
 }
 
+
+//アルファベットもしくは条件付きで数値かどうか？
+bool is_alnum(char c,bool allow_num){
+
+  //[a-zA-Z_]は有効
+  if(('a' <= c && c <= 'z') ||
+     ('A' <= c && c <= 'Z') ||
+     c =='_' ){
+    return true;
+    }
+
+  //allow_numなら[0-9]も有効
+  if(allow_num && ('0' <= c && c <= '9')) {
+    return true;
+  }
+
+  return false;
+  
+}
+
 // 入力文字列pをトークナイズしてそれを返す
 Token *tokenize(char *p) {
   Token head;
@@ -121,6 +142,7 @@ Token *tokenize(char *p) {
       p++;
       continue;
     }
+
     
     //2文字の演算子のトークナイズ
     if (strncmp(p,"<=",2) == 0
@@ -146,22 +168,20 @@ Token *tokenize(char *p) {
       continue;
     }
 
-
+    //その他キーワードのトークナイズ
+    //return
+    if (strncmp(p,"return",6)==0 && !is_alnum(*(p+6),true)){
+      cur = new_token(TK_RETURN,cur,p,6);
+      p += 6;      
+      continue;
+    }
+    
     //変数のトークナイズ
     //変数として有効な文字の探索
     i=0;
     while(true){
 
-      //[a-zA-Z_]なら変数に使用
-      if(('a' <= *(p+i) &&  *(p+i) <= 'z') ||
-	 ('A' <= *(p+i) &&  *(p+i) <= 'Z') ||
-	 *(p+i) =='_' )	{
-	i++;
-	continue;
-	}
-
-      //２文字目移行は数字も有効とする
-      if(i>0 && ('0' <= *(p+i) &&  *(p+i) <= '9')) {
+      if(is_alnum(*(p+i),i>0)){
 	i++;
 	continue;
 	}
@@ -264,7 +284,16 @@ void program(){
 }
 
 Node *statement(){
-  Node *n = expr();
+  Node *n;
+
+  if(token->kind==TK_RETURN){
+    //fprintf(stderr,"gen return\n");
+    token = token->next;
+    n = new_node(ND_RETURN,expr(),NULL);
+  } else {
+    n=expr();
+  }
+
   expect(";");  
   return n;
 }

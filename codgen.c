@@ -1,6 +1,6 @@
 #include "9cc.h"
 
-void generate_assemble_code_header(){
+void generate_assemble_header(){
 
   //プロローグ
   printf(".intel_syntax noprefix\n");
@@ -14,7 +14,7 @@ void generate_assemble_code_header(){
 }
 
   
-void generate_assemble_code_footer(){
+void generate_assemble_footer(){
 
   //エピローグ
   printf("  mov rsp, rbp\n");
@@ -23,7 +23,7 @@ void generate_assemble_code_footer(){
   return;
 }
 
-void generate_assemble_code_body_lval(Node* current_node){
+void generate_assemble_statement_lval(Node* current_node){
   
   if(current_node->kind !=ND_LVAL)
     error("代入の左辺値が変数ではありません。");
@@ -32,21 +32,28 @@ void generate_assemble_code_body_lval(Node* current_node){
   printf("  push rax\n");  
 }
 
-void generate_assemble_code_body(Node* current_node){
+void generate_assemble_statement(Node* current_node){
 
   switch(current_node->kind){
+  case ND_RETURN:
+    generate_assemble_statement(current_node->lhs);
+    printf("  pop rax\n");
+    printf("  mov rsp, rbp\n");
+    printf("  pop rbp\n");
+    printf("  ret\n");
+    return;
   case ND_NUM:
     printf("  push %d\n",current_node -> val );    
     return;
   case ND_LVAL:
-    generate_assemble_code_body_lval(current_node);
+    generate_assemble_statement_lval(current_node);
     printf("  pop rax\n");
     printf("  mov rax,[rax]\n");
     printf("  push rax\n");        
     return;
   case ND_ASSIGN:
-    generate_assemble_code_body_lval(current_node->lhs);
-    generate_assemble_code_body(current_node->rhs);
+    generate_assemble_statement_lval(current_node->lhs);
+    generate_assemble_statement(current_node->rhs);
     printf("  pop rdi\n");
     printf("  pop rax\n");
     printf("  mov [rax],rdi\n");        
@@ -54,8 +61,8 @@ void generate_assemble_code_body(Node* current_node){
     return;
   }
   
-  generate_assemble_code_body(current_node->lhs);
-  generate_assemble_code_body(current_node->rhs);    
+  generate_assemble_statement(current_node->lhs);
+  generate_assemble_statement(current_node->rhs);    
 
   printf("  pop rdi\n");
   printf("  pop rax\n");

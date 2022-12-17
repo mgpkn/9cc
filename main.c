@@ -6,8 +6,6 @@ Token *token;// 現在着目しているトークン
 Node *code[NODENUM];
 LVar *locals;//ローカル変数のセット
 
-//const int NODENUM=100;
-//const int OFFSETVAL =8;
 
 int main(int argc, char **argv) {
 
@@ -26,20 +24,18 @@ int main(int argc, char **argv) {
 
   program();//ノードの集団を生成
 
-  generate_assemble_code_header();
-
-
+  //アセンブリの出力
+  generate_assemble_header();  
   for(i=0;code[i];i++){
-    generate_assemble_code_body(code[i]);
+    generate_assemble_statement(code[i]);
 
     // 式の評価結果としてスタックに一つの値が残っている
     // はずなので、スタックが溢れないようにポップしておく
     printf("  pop rax\n");  
     
   }
-  //generate_assemble_code_body(code[0]);
+  generate_assemble_footer();  
 
-  generate_assemble_code_footer();  
   return 0;
 
 }
