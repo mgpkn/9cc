@@ -1,6 +1,7 @@
 #include "9cc.h"
 
 extern char *user_input;//main関数の引数
+extern int label_cnt;
 
 // エラーを報告するための関数
 // printfと同じ引数を取る
@@ -43,9 +44,8 @@ extern Token *token;// 現在着目しているトークン
 // 次のトークンが期待している記号のときには、トークンを1つ読み進めて
 // 真を返す。それ以外の場合には偽を返す。
 bool consume(char *op) {
-  if (token->kind != TK_RESERVED
+  if (token->kind != TK_KEYWORD
       || strlen(op) != token->len
-
       ||  strncmp(token->str,op,strlen(op)) != 0)    
     return false;
   token = token->next;
@@ -63,7 +63,7 @@ bool consume_number(char *op) {
 // 次のトークンが期待している記号のときには、トークンを1つ読み進める。
 // それ以外の場合にはエラーを報告する。
 void expect(char *op) {
-  if (token->kind != TK_RESERVED
+  if (token->kind != TK_KEYWORD
       || strlen(op) != token->len
       ||  strncmp(token->str,op,strlen(op)) != 0)    
     error_at(token->str,"'%s'ではありません", op);    
@@ -96,19 +96,21 @@ bool at_eof() {
 Token *new_token(TokenKind kind, Token *cur, char *str,int len) {
 
   Token *tok = calloc(1, sizeof(Token));
-  //fprintf(stderr,"param str:%s len:%d\n",str,len);                    
 
   tok->kind = kind;
   tok->str = str;  
-  strncpy(tok->str,str,len);
   tok->len = len;
 
-  //fprintf(stderr,"len:%d,value:%d, str:%s\n",tok->len,tok->val,tok->str);                
   cur->next = tok;
   
   return tok;
 }
 
+bool equal_token(Token *tk,char *op){
+
+  return (strncmp(tk->str,op,tk->len)==0 && tk->len>0);
+  //return (strncmp(tk->str,op,tk->len)==0 && op[tk->len]=='\0');
+}
 
 //アルファベットもしくは条件付きで数値かどうか？
 bool is_alnum(char c,bool allow_num){
@@ -135,6 +137,7 @@ Token *tokenize(char *p) {
   head.next = NULL;
   Token *cur = &head;
   int i;
+  int estamate_len;
   
   while (*p) {
     // 空白文字をスキップ
@@ -145,17 +148,19 @@ Token *tokenize(char *p) {
 
     
     //2文字の演算子のトークナイズ
-    if (strncmp(p,"<=",2) == 0
-	|| strncmp(p,">=",2) == 0
-	|| strncmp(p,"==",2) == 0
-	|| strncmp(p,"!=",2) == 0
+    estamate_len=2;    
+    if (strncmp(p,"<=",estamate_len) == 0
+	|| strncmp(p,">=",estamate_len) == 0
+	|| strncmp(p,"==",estamate_len) == 0
+	|| strncmp(p,"!=",estamate_len) == 0
 	) {
-      cur = new_token(TK_RESERVED, cur,p,2);
-      p += 2;      
+      cur = new_token(TK_KEYWORD, cur,p,estamate_len);
+      p += estamate_len;      
       continue;
     }
 
     //1文字の演算子のトークナイズ
+    estamate_len=1;
     if (*p == '+' || *p == '-' ||
 	*p == '*' || *p == '/' || *p == '%'||
         *p == '(' || *p == ')' ||
@@ -163,19 +168,40 @@ Token *tokenize(char *p) {
         *p == '=' ||
 	*p == ';') 
       {
-      cur = new_token(TK_RESERVED,cur,p,1);
-      p += 1;      
+      cur = new_token(TK_KEYWORD,cur,p,1);
+      p += estamate_len;      
       continue;
     }
 
     //その他キーワードのトークナイズ
     //return
-    if (strncmp(p,"return",6)==0 && !is_alnum(*(p+6),true)){
-      cur = new_token(TK_RETURN,cur,p,6);
-      p += 6;      
+    estamate_len=6;
+    if (strncmp(p,"return",estamate_len)==0 && !is_alnum(*(p+estamate_len),true)){
+      cur = new_token(TK_KEYWORD,cur,p,estamate_len);
+      p += estamate_len;      
       continue;
     }
-    
+
+    //while
+
+    //for
+
+    //if
+    estamate_len=2;
+    if (strncmp(p,"if",estamate_len)==0 && !is_alnum(*(p+estamate_len),true)){
+      cur = new_token(TK_KEYWORD,cur,p,estamate_len);
+      p += estamate_len;      
+      continue;
+    }
+
+    //else
+    estamate_len=4;
+    if (strncmp(p,"else",estamate_len)==0 && !is_alnum(*(p+estamate_len),true)){
+      cur = new_token(TK_KEYWORD,cur,p,estamate_len);
+      p += estamate_len;      
+      continue;
+    }
+
     //変数のトークナイズ
     //変数として有効な文字の探索
     i=0;
@@ -278,23 +304,49 @@ extern Node *code[NODENUM];
 void program(){
   int i=0;
   while(!at_eof()){
-      code[i] =statement();
-      i++;
+    code[i] =statement();
+    i++;
    }
+  //fprintf(stderr,"i= %d\n",i);  
 }
 
 Node *statement(){
   Node *n;
 
-  if(token->kind==TK_RETURN){
-    //fprintf(stderr,"gen return\n");
-    token = token->next;
-    n = new_node(ND_RETURN,expr(),NULL);
+  if(token->kind==TK_KEYWORD){
+
+    if (equal_token(token,"return")){
+
+      token = token->next;
+      n = new_node(ND_RETURN,expr(),NULL);
+
+    }else if(equal_token(token,"if")) {
+      
+      token = token->next;
+      n = new_node(ND_IF,NULL,NULL);
+      n->label_num = label_cnt;
+      label_cnt++;
+      if(consume("(")){
+	n->cond = expr();	
+	expect(")");
+      }
+      n->then = statement();
+      	
+
+      if (equal_token(token,"else")){
+	token = token->next;	
+	n->els = statement();
+      }
+
+
+      return n;
+    }else{
+      n=expr();      
+    }
   } else {
     n=expr();
   }
-
-  expect(";");  
+  expect(";");
   return n;
 }
 
@@ -345,7 +397,6 @@ Node *relational(){
     else
       return n;
   }
-  
 }
 
 Node *add(){
@@ -360,7 +411,6 @@ Node *add(){
     else
       return n;
   }
-  
 }
 
 Node *mul(){
@@ -379,6 +429,7 @@ Node *mul(){
   }
 }
 
+//数値などの正負の項
 Node *unary(){
 
   Node *n;

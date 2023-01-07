@@ -6,6 +6,10 @@ Token *token;// 現在着目しているトークン
 Node *code[NODENUM];
 LVar *locals;//ローカル変数のセット
 
+int label_cnt;
+
+
+
 
 int main(int argc, char **argv) {
 
@@ -19,9 +23,12 @@ int main(int argc, char **argv) {
 
   // トークナイズする
   user_input = argv[1];
-  //fprintf(stderr,"begin takenize\n");                          
+
   token = tokenize(user_input);
 
+  //lineToken(token);//Tokenの列挙（確認用）
+  
+  label_cnt=0;
   program();//ノードの集団を生成
 
   //アセンブリの出力

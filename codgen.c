@@ -1,5 +1,7 @@
 #include "9cc.h"
 
+
+
 void generate_assemble_header(){
 
   //プロローグ
@@ -42,6 +44,20 @@ void generate_assemble_statement(Node* current_node){
     printf("  pop rbp\n");
     printf("  ret\n");
     return;
+  case ND_IF:
+    generate_assemble_statement(current_node->cond);
+    printf("  pop rax\n");
+    printf("  cmp rax,0\n");
+    printf("  je .lelse%d\n",current_node->label_num);
+    generate_assemble_statement(current_node->then);
+    printf(".lelse%d:\n",current_node->label_num);
+    if(current_node->els){
+      generate_assemble_statement(current_node->els);      
+    }
+    printf(".lend%d:\n",current_node->label_num);    
+    return;    
+  case ND_FOR:
+  case ND_WHILE:
   case ND_NUM:
     printf("  push %d\n",current_node -> val );    
     return;

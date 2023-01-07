@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+
 #define NODENUM  100
 #define OFFSETVAL 8
 
@@ -17,9 +18,8 @@ void error_at(char *loc, char *fmt, ...);
 
 // トークンの種類
 typedef enum {
-  TK_RESERVED, // 記号
-  TK_RETURN,      //return  
-  TK_IDENT, //識別子
+  TK_KEYWORD,//特別な構文全般
+  TK_IDENT, //変数などの識別子
   TK_NUM,      // 整数
   TK_EOF,      // コードの終わり
 } TokenKind;
@@ -47,33 +47,35 @@ Token *tokenize(char *p);
 //Node
 // 抽象構文木のノードの種類
 typedef enum {
-  //四則演算子p
+  //キーワード
   ND_ADD, // +
   ND_SUB, // -
   ND_MUL, // *
   ND_DIV, // /
   ND_MOD, // %
-  
-  //比較演算子
+
   ND_EQ, // ==
   ND_NOTEQ, // !=
   ND_LLESS,// <
   ND_LLESSEQ,// <=
 
-  //ポインタ関係
+  ND_ASSIGN,//=
+
+  ND_RETURN,  //return  
+  ND_IF,  //if
+  ND_WHILE,  //if  
+  ND_FOR,  //if  
+  
+  ////pointer
   ND_POINTER, //&（ポインタ）
   ND_DERFER, //*（デリィファレンサ）
-
-  //代入演算子
-  ND_ASSIGN,//=
 
   //変数
   ND_LVAL,//ローカル
   
   //実値
-  ND_NUM, // 整数
-  
-  ND_RETURN//rertun
+  ND_NUM // 整数
+
   
 } NodeKind;
 
@@ -94,8 +96,14 @@ struct Node {
   Node *rhs;     // 右辺
   int val;       // kindがND_NUMの場合のみ使う
   int offset; //kindがND_VAL系の場合のみ扱う
+  Node *cond; //評価文
+  Node *then; //cond==True
+  Node *els;  //cond==False
+  int label_num;//ラベル
 };
 
+
+//Create Node(=parse) 
 Node *new_node(NodeKind kind, Node *lhs, Node *rhs);
 Node *new_node_num(int val);
 
@@ -115,4 +123,7 @@ void generate_assemble_footer();
 void generate_assemble_statement(Node* current_node);
 void generate_assemble_statement_lval(Node* current_node);
 
-
+//Analyze
+char *getTokenKind(int kind);
+char *getNodeKind(int kind);
+void lineToken(Token *tar);

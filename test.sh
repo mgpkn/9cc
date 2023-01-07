@@ -16,7 +16,6 @@ assert() {
   fi
 }
 
-
 assert 21 "5+20-4;"
 assert 41 "12 + 34 - 5;"
 assert 42 "6*7;"
@@ -55,5 +54,10 @@ assert 8 "return 8;"
 assert 20 "return (8*3-4);"
 assert 20 "hei=4;return (8*3-hei);"
 assert 13 "return7=3;return7+10;"
+assert 5 "if(1)return 5;"
+assert 13 "a=13;if(1)return a;"
+assert 8 "a=13;b=8;if(0)return 8;else return b;"
+assert 13 "a=13;b=8;if(a==b+5)return a;else return b;"
+assert 21 "a=13;b=8;if(a==b)return a;else return a+b;"
 
 echo OK
