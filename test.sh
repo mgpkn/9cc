@@ -59,5 +59,13 @@ assert 13 "a=13;if(1)return a;"
 assert 8 "a=13;b=8;if(0)return 8;else return b;"
 assert 13 "a=13;b=8;if(a==b+5)return a;else return b;"
 assert 21 "a=13;b=8;if(a==b)return a;else return a+b;"
+assert 10 "a=3;while(a<10)a=a+1;return a;"
+assert 3 "a=3;while(a<1)a=a+1;return a;"
+assert 33 "a=3;b=30;while(a<3)a=a+1;return a+b;"
+assert 16 "a=100;a=0;while(a<16)a=a+1;return a;"
+assert 16 "a=100;for(a=0;a<16;a=a+1)b=1;return a;"
+assert 255 "a=255;return a;"
+assert 69 "a=5;b=0;while(b<a)b=b+1;for(c=0;c<4;c=c+1)a=a+2;return a*b+c;"
+assert 117 "a=5;b=0;while(b<a)b=b+1;for(c=0;c<4;c=c+1)a=a+2;return a*(b+c);"
 
 echo OK

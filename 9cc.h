@@ -96,9 +96,11 @@ struct Node {
   Node *rhs;     // 右辺
   int val;       // kindがND_NUMの場合のみ使う
   int offset; //kindがND_VAL系の場合のみ扱う
-  Node *cond; //評価文
-  Node *then; //cond==True
-  Node *els;  //cond==False
+  Node *init; //初期化(for)
+  Node *cond; //条件
+  Node *inc; //後処理(for)
+  Node *then; //cond==Trueの制御
+  Node *els;  //cond==Falseの制御
   int label_num;//ラベル
 };
 

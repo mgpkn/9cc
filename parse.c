@@ -183,8 +183,20 @@ Token *tokenize(char *p) {
     }
 
     //while
-
+    estamate_len=5;
+    if (strncmp(p,"while",estamate_len)==0 && !is_alnum(*(p+estamate_len),true)){
+      cur = new_token(TK_KEYWORD,cur,p,estamate_len);
+      p += estamate_len;      
+      continue;
+    }
+    
     //for
+    estamate_len=3;
+    if (strncmp(p,"for",estamate_len)==0 && !is_alnum(*(p+estamate_len),true)){
+      cur = new_token(TK_KEYWORD,cur,p,estamate_len);
+      p += estamate_len;      
+      continue;
+    }
 
     //if
     estamate_len=2;
@@ -263,7 +275,6 @@ Node *new_node_ident(Token *t) {
     node = calloc(1, sizeof(Node));
     node->kind = ND_LVAL;
 
-
     //すでに宣言された変数かを確認する
     LVar *lvar = find_lvar(t);
     if (lvar){
@@ -307,7 +318,6 @@ void program(){
     code[i] =statement();
     i++;
    }
-  //fprintf(stderr,"i= %d\n",i);  
 }
 
 Node *statement(){
@@ -331,23 +341,63 @@ Node *statement(){
 	expect(")");
       }
       n->then = statement();
-      	
 
+      //else 
       if (equal_token(token,"else")){
 	token = token->next;	
 	n->els = statement();
       }
-
-
       return n;
+
+    }else if(equal_token(token,"while")){
+
+      token = token->next;
+
+      n = new_node(ND_WHILE,NULL,NULL);
+      n->label_num = label_cnt;
+      label_cnt++;
+      if(consume("(")){
+	n->cond = expr();	
+	expect(")");
+      }
+      n->then = statement();
+      return n;
+
+    }else if(equal_token(token,"for")){
+
+      token = token->next;
+
+      n = new_node(ND_FOR,NULL,NULL);
+      n->label_num = label_cnt;
+      label_cnt++;
+      if(consume("(")){
+	//init
+	if(!equal_token(token,";")) n->init = expr();
+	expect(";");
+	//condition
+	if(!equal_token(token,";")) n->cond = expr();
+	expect(";");	
+	//incriment
+	if(!equal_token(token,")")) n->inc = expr();
+	expect(")");
+      }
+      n->then = statement();
+      return n;
+
+      
     }else{
-      n=expr();      
+      n=expr();
+
     }
   } else {
     n=expr();
+
+    
   }
   expect(";");
   return n;
+
+  
 }
 
 

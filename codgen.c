@@ -55,9 +55,29 @@ void generate_assemble_statement(Node* current_node){
       generate_assemble_statement(current_node->els);      
     }
     printf(".lend%d:\n",current_node->label_num);    
-    return;    
-  case ND_FOR:
+    return;
   case ND_WHILE:
+    printf(".lbegin%d:\n",current_node->label_num);    
+    generate_assemble_statement(current_node->cond);
+    printf("  pop rax\n");
+    printf("  cmp rax,0\n");
+    printf("  je .lend%d\n",current_node->label_num);
+    generate_assemble_statement(current_node->then);
+    printf("  jmp .lbegin%d\n",current_node->label_num);    
+    printf(".lend%d:\n",current_node->label_num);    
+    return;
+  case ND_FOR:
+    generate_assemble_statement(current_node->init);    
+    printf(".lbegin%d:\n",current_node->label_num);    
+    generate_assemble_statement(current_node->cond);
+    printf("  pop rax\n");
+    printf("  cmp rax,0\n");
+    printf("  je .lend%d\n",current_node->label_num);
+    generate_assemble_statement(current_node->then);
+    generate_assemble_statement(current_node->inc);    
+    printf("  jmp .lbegin%d\n",current_node->label_num);    
+    printf(".lend%d:\n",current_node->label_num);    
+    return;    
   case ND_NUM:
     printf("  push %d\n",current_node -> val );    
     return;
