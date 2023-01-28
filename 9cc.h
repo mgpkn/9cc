@@ -47,6 +47,7 @@ Token *tokenize(char *p);
 //Node
 // 抽象構文木のノードの種類
 typedef enum {
+
   //キーワード
   ND_ADD, // +
   ND_SUB, // -
@@ -63,8 +64,10 @@ typedef enum {
 
   ND_RETURN,  //return  
   ND_IF,  //if
-  ND_WHILE,  //if  
-  ND_FOR,  //if  
+  ND_WHILE,  //while
+  ND_FOR,  //for
+
+  ND_BLOCK,//{}
   
   ////pointer
   ND_POINTER, //&（ポインタ）
@@ -101,7 +104,10 @@ struct Node {
   Node *inc; //後処理(for)
   Node *then; //cond==Trueの制御
   Node *els;  //cond==Falseの制御
+  Node *block_head;//入れ子となっている{}内のコード（先頭）
   int label_num;//ラベル
+  Node *next;//次のstatement
+
 };
 
 

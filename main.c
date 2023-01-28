@@ -26,7 +26,7 @@ int main(int argc, char **argv) {
 
   token = tokenize(user_input);
 
-  //lineToken(token);//Tokenの列挙（確認用）
+  //lineToken(token);//To debug
   
   label_cnt=0;
   program();//ノードの集団を生成

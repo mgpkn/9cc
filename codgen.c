@@ -36,6 +36,10 @@ void generate_assemble_statement_lval(Node* current_node){
 
 void generate_assemble_statement(Node* current_node){
 
+  Node *n;
+  
+  if(!current_node) return;
+  
   switch(current_node->kind){
   case ND_RETURN:
     generate_assemble_statement(current_node->lhs);
@@ -95,6 +99,12 @@ void generate_assemble_statement(Node* current_node){
     printf("  mov [rax],rdi\n");        
     printf("  push [rax]\n");            
     return;
+  case ND_BLOCK:
+    n = current_node->block_head;
+    while(n){
+      generate_assemble_statement(n);
+      n=n->next;
+    }
   }
   
   generate_assemble_statement(current_node->lhs);

@@ -45,13 +45,15 @@ char *getNodeKind(int kind){
   case 13:    
     return "ND_FOR";
   case 14:
-    return "ND_POINTER";
+    return "ND_BLOCK";
   case 15:    
-    return "ND_DERFER";
+    return "ND_POINTER";
   case 16:
-    return "ND_LVAL";
+    return "ND_DERFER";
   case 17:  
-    return "ND_NUM";
+    return "ND_LVAL";
+  case 18:
+    return "ND_NUM";    
   }
 
 }

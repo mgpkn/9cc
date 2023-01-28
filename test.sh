@@ -17,6 +17,7 @@ assert() {
 }
 
 assert 21 "5+20-4;"
+assert 21 "5+20-4;"
 assert 41 "12 + 34 - 5;"
 assert 42 "6*7;"
 assert 47 "5+6*7;"
@@ -67,5 +68,9 @@ assert 16 "a=100;for(a=0;a<16;a=a+1)b=1;return a;"
 assert 255 "a=255;return a;"
 assert 69 "a=5;b=0;while(b<a)b=b+1;for(c=0;c<4;c=c+1)a=a+2;return a*b+c;"
 assert 117 "a=5;b=0;while(b<a)b=b+1;for(c=0;c<4;c=c+1)a=a+2;return a*(b+c);"
-
+assert 10 "a=3;for(;a<10;)a=a+1;return a;"
+COUT
+assert 225 "a=0;b=0;c=0;while(a<5){a=a+1;b=b+2;c=c+3;}return (a+b)*c;"
+assert 38 "a=0;b=0;c=0;d=0;while(a<5){a=a+1;b=b+2;c=c+3;}if(a<b){d=4;d=d*2;}return a+b+c+d;"
+assert 30 "a=0;b=0;c=0;d=0;while(a<5){a=a+1;b=b+2;c=c+3;}if(a>b){d=4;d=d*2;}return a+b+c+d;"
 echo OK

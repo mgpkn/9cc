@@ -164,7 +164,8 @@ Token *tokenize(char *p) {
     if (*p == '+' || *p == '-' ||
 	*p == '*' || *p == '/' || *p == '%'||
         *p == '(' || *p == ')' ||
-	*p == '<' || *p == '>'||
+        *p == '{' || *p == '}' ||	
+	*p == '<' || *p == '>' ||
         *p == '=' ||
 	*p == ';') 
       {
@@ -312,6 +313,7 @@ Node *unary();
 Node *primary(); 
 
 extern Node *code[NODENUM];  
+
 void program(){
   int i=0;
   while(!at_eof()){
@@ -322,10 +324,26 @@ void program(){
 
 Node *statement(){
   Node *n;
+  Node *n_block_current;    
 
   if(token->kind==TK_KEYWORD){
 
-    if (equal_token(token,"return")){
+    if(equal_token(token,"{")){
+      consume("{");
+      n = new_node(ND_BLOCK,NULL,NULL);      
+
+      while(!consume("}")){
+	if(n->block_head){
+	  n_block_current->next = statement();
+	  n_block_current = n_block_current->next;
+	}else {
+	  n->block_head = statement();
+	  n_block_current = n->block_head;	  
+	}
+      }
+      return n;
+
+    }else if (equal_token(token,"return")){
 
       token = token->next;
       n = new_node(ND_RETURN,expr(),NULL);
@@ -383,16 +401,14 @@ Node *statement(){
       }
       n->then = statement();
       return n;
-
       
     }else{
-      n=expr();
 
+       n=expr();
     }
+
   } else {
     n=expr();
-
-    
   }
   expect(";");
   return n;

@@ -1,10 +1,11 @@
 ```
 program = statement*
 statement = expr ";"
+	  |"{" statement "}")
 	  | "return " expr ";"
-	  | "if" "(" expr ")" statement ("else" statement
-	  | "while" "(" expr ")" statement
-	  | "for" "(" expr? ";" expr? ";" expr? ";" ")" statement 	  
+	  | "if" "(" expr ")" statement  ("else" statement
+	  | "while" "(" expr ")"  statement
+	  | "for" "(" expr? ";" expr? ";" expr? ";" ")"  statement
 expr = assgin
 assign = equality ("=" assign )?
 equality = relational ("==" relational |"!=" relational )*
