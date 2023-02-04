@@ -131,6 +131,10 @@ void generate_assemble_footer();
 void generate_assemble_statement(Node* current_node);
 void generate_assemble_statement_lval(Node* current_node);
 
+//consume
+bool consume(char *op);
+bool consume_number(char *op);
+
 //Analyze
 char *getTokenKind(int kind);
 char *getNodeKind(int kind);

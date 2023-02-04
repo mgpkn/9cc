@@ -1,1 +1,0 @@
-ec2-user@ip-10-0-0-66.ap-northeast-1.compute.internal.4311:1665193623
