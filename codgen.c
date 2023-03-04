@@ -85,6 +85,10 @@ void generate_assemble_statement(Node* current_node){
   case ND_NUM:
     printf("  push %d\n",current_node -> val );    
     return;
+  case ND_FUNC:
+    printf("  call %s\n",current_node->ident_name);        
+    printf("  push rax\n");            
+    return;
   case ND_LVAL:
     generate_assemble_statement_lval(current_node);
     printf("  pop rax\n");
@@ -105,6 +109,8 @@ void generate_assemble_statement(Node* current_node){
       generate_assemble_statement(n);
       n=n->next;
     }
+  default:
+    break;
   }
   
   generate_assemble_statement(current_node->lhs);
@@ -151,10 +157,12 @@ void generate_assemble_statement(Node* current_node){
     printf("  cmp rax,rdi\n");    
     printf("  setle al\n");
     printf("  movzb rax,al\n");            
-    break;            
+    break;
+  default:
+    break;
+    
   }
   printf("  push rax\n");
-  
 }
 
 

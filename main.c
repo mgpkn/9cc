@@ -1,22 +1,21 @@
 #include "9cc.h"
 
-char *user_input;//main関数の引数
-Token *token;// 現在着目しているトークン
+char *user_input; // main関数の引数
+Token *token;     // 現在着目しているトークン
 
 Node *code[NODENUM];
-LVar *locals;//ローカル変数のセット
+LVar *locals; // ローカル変数のセット
 
 int label_cnt;
 
+int main(int argc, char **argv)
+{
 
-
-
-int main(int argc, char **argv) {
-
-  Token head;
+  // Token head;
   int i;
-  
-  if (argc != 2) {
+
+  if (argc != 2)
+  {
     error("引数の個数が正しくありません");
     return 1;
   }
@@ -26,23 +25,23 @@ int main(int argc, char **argv) {
 
   token = tokenize(user_input);
 
-  //lineToken(token);//To debug
-  
-  label_cnt=0;
-  program();//ノードの集団を生成
+  // lineToken(token);//To debug
 
-  //アセンブリの出力
-  generate_assemble_header();  
-  for(i=0;code[i];i++){
+  label_cnt = 0;
+  program(); // ノードの集団を生成
+
+  // アセンブリの出力
+  generate_assemble_header();
+  for (i = 0; code[i]; i++)
+  {
+
     generate_assemble_statement(code[i]);
 
     // 式の評価結果としてスタックに一つの値が残っている
     // はずなので、スタックが溢れないようにポップしておく
-    printf("  pop rax\n");  
-    
+    printf("  pop rax\n");
   }
-  generate_assemble_footer();  
+  generate_assemble_footer();
 
   return 0;
-
 }

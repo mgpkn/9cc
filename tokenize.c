@@ -1,4 +1,5 @@
 #include "9cc.h"
+#include <string.h>
 
 extern Token *token;// 現在着目しているトークン
 
@@ -42,10 +43,10 @@ int expect_number() {
   return val;
 }
 
-Token *expect_ident() {
+Token *fetch_current_token(){
   if (token->kind != TK_IDENT)  
     error_at(token->str,"変数ではありません");
-  Token *t = token;
+      Token *t = token;
   token = token->next;
   return t;
 }

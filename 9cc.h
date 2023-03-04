@@ -5,10 +5,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-
 #define NODENUM  100
-#define OFFSETVAL 8
-
+#define OFFSETSIZE 8
+#define FUNC_PRAM_NUM 6
 
 //CallError
 void error(char *fmt, ...);
@@ -59,14 +58,11 @@ typedef enum {
   ND_NOTEQ, // !=
   ND_LLESS,// <
   ND_LLESSEQ,// <=
-
   ND_ASSIGN,//=
-
   ND_RETURN,  //return  
   ND_IF,  //if
   ND_WHILE,  //while
   ND_FOR,  //for
-
   ND_BLOCK,//{}
   
   ////pointer
@@ -75,7 +71,10 @@ typedef enum {
 
   //変数
   ND_LVAL,//ローカル
-  
+
+  //関数
+  ND_FUNC,//関数  
+
   //実値
   ND_NUM // 整数
 
@@ -97,17 +96,17 @@ struct Node {
   NodeKind kind; // ノードの型
   Node *lhs;     // 左辺
   Node *rhs;     // 右辺
+  char *ident_name; //識別子名
   int val;       // kindがND_NUMの場合のみ使う
   int offset; //kindがND_VAL系の場合のみ扱う
   Node *init; //初期化(for)
-  Node *cond; //条件
+  Node *cond; //条件(if,for,while)
   Node *inc; //後処理(for)
   Node *then; //cond==Trueの制御
   Node *els;  //cond==Falseの制御
   Node *block_head;//入れ子となっている{}内のコード（先頭）
   int label_num;//ラベル
   Node *next;//次のstatement
-
 };
 
 
@@ -124,6 +123,11 @@ Node *add();
 Node *mul(); 
 Node *unary();
 Node *primary(); 
+
+
+//about token
+bool equal_token(Token *tk,char *op);
+Token *fetch_current_token();
 
 //GenerateCode
 void generate_assemble_header();

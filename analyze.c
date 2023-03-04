@@ -1,5 +1,6 @@
 #include "9cc.h"
 
+
 char *getTokenKind(int kind){
   switch(kind){
   case 0:
@@ -10,6 +11,8 @@ char *getTokenKind(int kind){
     return "TK_NUM";
   case 3:
     return "TK_EOF";
+  default:
+    return "";
   }
 }
 
@@ -52,10 +55,14 @@ char *getNodeKind(int kind){
     return "ND_DERFER";
   case 17:  
     return "ND_LVAL";
-  case 18:
-    return "ND_NUM";    
-  }
+  case 18:  
+    return "ND_FUNC";
+  case 19:
+    return "ND_NUM";  
+  default:
+    return "";
 
+  }
 }
 
 void lineToken(Token *tar){

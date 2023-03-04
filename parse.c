@@ -1,4 +1,5 @@
 #include "9cc.h"
+#include <string.h>
 
 extern Token *token;// 現在着目しているトークン
 
@@ -59,7 +60,7 @@ Node *new_node_num(int val) {
 }
 
 //変数ノードの作成
-Node *new_node_ident(Token *t) {
+Node *new_node_lval(Token *t) {
   Node *node =NULL;
   if(t){
     node = calloc(1, sizeof(Node));
@@ -77,18 +78,35 @@ Node *new_node_ident(Token *t) {
       lvar->name = t->str;
       lvar->len = t->len;
       if(locals){
-	lvar->offset = locals->offset+OFFSETVAL;
+        //frm 2nd onwards call
+      	lvar->offset = locals->offset+OFFSETSIZE;
       }else{
-	//1st declare
-	lvar->offset = OFFSETVAL;	
+	      //1st call
+	      lvar->offset = OFFSETSIZE;
       }
       locals = lvar;
+
+      //node->ident_name = calloc(1,sizeof(char)*(t->len));
+      node->ident_name = strndup(t->str,sizeof(char)*(size_t)(t->len));
       node->offset = lvar->offset;          
     }
+
   }
   return node;
 }
 
+//関数ノードの作成
+Node *new_node_function(Token *t){
+  Node *node;
+
+  if(t){
+    node = calloc(1, sizeof(Node));
+    node->kind = ND_FUNC;
+    node->ident_name = strndup(t->str,sizeof(char)*(t->len));
+  }
+
+  return node;
+}
 
 void program();
 Node *statement();
@@ -201,10 +219,8 @@ Node *statement(){
   }
   expect(";");
   return n;
-
-  
+ 
 }
-
 
 Node *expr(){
   Node *n = assign();
@@ -307,17 +323,31 @@ Node *unary(){
 
 Node *primary(){
 
+  Token *t; 
+  Node *n; 
+  
+
   if(consume("(")){
     Node *n = expr();
     expect(")");
     return n;
   }
 
-  if (token->kind == TK_IDENT )
-    return new_node_ident(expect_ident());
-  else
-    return new_node_num(expect_number());
+  if (token->kind == TK_IDENT){
 
+    t =  fetch_current_token();
+    if (consume("(")){
+      n = new_node_function(t);
+      //todo パラメータ実装
+      expect(")");
+    } else {
+      return new_node_lval(t);
+    }
+  }    
+  else 
+    n = new_node_num(expect_number());
+
+  return n;
 }
 
   
