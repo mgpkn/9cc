@@ -75,5 +75,8 @@ assert 38 "a=0;b=0;c=0;d=0;while(a<5){a=a+1;b=b+2;c=c+3;}if(a<b){d=4;d=d*2;}retu
 assert 30 "a=0;b=0;c=0;d=0;while(a<5){a=a+1;b=b+2;c=c+3;}if(a>b){d=4;d=d*2;}return a+b+c+d;"
 assert 4 "return foo();"
 assert 8 "return foo()*baa();"
+assert 4 "return foo(foo());"
+assert 4 "return foo(a,b,4,5);"
+assert 8 "return foo(a,b,4,baa(),(baa()*3)+(3+1))+baa(d,d,d)+baa();"
 #COUT
 echo OK

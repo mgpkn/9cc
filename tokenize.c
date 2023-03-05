@@ -43,6 +43,7 @@ int expect_number() {
   return val;
 }
 
+
 Token *fetch_current_token(){
   if (token->kind != TK_IDENT)  
     error_at(token->str,"変数ではありません");
@@ -124,13 +125,10 @@ Token *tokenize(char *p) {
 
     //1文字の演算子のトークナイズ
     estamate_len=1;
-    if (*p == '+' || *p == '-' ||
-	*p == '*' || *p == '/' || *p == '%'||
-        *p == '(' || *p == ')' ||
-        *p == '{' || *p == '}' ||	
-	*p == '<' || *p == '>' ||
-        *p == '=' ||
-	*p == ';') 
+    if (*p == '+' || *p == '-' ||	*p == '*' || *p == '/' || *p == '%'||
+        *p == '(' || *p == ')' || *p == '{' || *p == '}' ||	
+	      *p == '<' || *p == '>' || *p == '=' ||
+	      *p == ';'|| *p==',') 
       {
       cur = new_token(TK_KEYWORD,cur,p,1);
       p += estamate_len;      
