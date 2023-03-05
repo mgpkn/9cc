@@ -78,5 +78,8 @@ assert 8 "return foo()*baa();"
 assert 4 "return foo(foo());"
 assert 4 "return foo(a,b,4,5);"
 assert 8 "return foo(a,b,4,baa(),(baa()*3)+(3+1))+baa(d,d,d)+baa();"
+assert 4 "return foo(1,2,3,4,5,6);"
+assert 4 "return foo(1,2,3,4,5,6,7);"
+
 #COUT
 echo OK
