@@ -1,61 +1,6 @@
 #include "9cc.h"
 #include <string.h>
 
-extern Token *token;// 現在着目しているトークン
-
-
-
-// 次のトークンが期待している記号のときには、トークンを1つ読み進めて
-// 真を返す。それ以外の場合には偽を返す。
-bool consume(char *op) {
-  if (token->kind != TK_KEYWORD
-      || strlen(op) != token->len
-      ||  strncmp(token->str,op,strlen(op)) != 0)    
-    return false;
-  token = token->next;
-  return true;
-}
-
-bool consume_number(char *op) {
-  if (token->kind != TK_NUM)  
-    return false;
-  token = token->next;
-  return true;
-}
-
-// 次のトークンが期待している記号のときには、トークンを1つ読み進める。
-// それ以外の場合にはエラーを報告する。
-void expect(char *op) {
-  if (token->kind != TK_KEYWORD
-      || strlen(op) != token->len
-      ||  strncmp(token->str,op,strlen(op)) != 0)    
-    error_at(token->str,"'%s'ではありません", op);    
-  token = token->next;
-}
-
-// 次のトークンが数値の場合、トークンを1つ読み進めてその数値を返す。
-// それ以外の場合にはエラーを報告する。
-int expect_number() {
-  if (token->kind != TK_NUM)
-    error_at(token->str,"数ではありません");
-  int val = token->val;
-  token = token->next;
-  return val;
-}
-
-
-Token *fetch_current_token(){
-  if (token->kind != TK_IDENT)  
-    error_at(token->str,"変数ではありません");
-      Token *t = token;
-  token = token->next;
-  return t;
-}
-
-bool at_eof() {
-  return token->kind == TK_EOF;
-}
-
 // 新しいトークンを作成してcurに繋げる
 Token *new_token(TokenKind kind, Token *cur, char *str,int len) {
 
@@ -68,12 +13,6 @@ Token *new_token(TokenKind kind, Token *cur, char *str,int len) {
   cur->next = tok;
   
   return tok;
-}
-
-bool equal_token(Token *tk,char *op){
-
-  return (strncmp(tk->str,op,tk->len)==0 && tk->len>0);
-  //return (strncmp(tk->str,op,tk->len)==0 && op[tk->len]=='\0');
 }
 
 //アルファベットもしくは条件付きで数値かどうか？
@@ -180,12 +119,10 @@ Token *tokenize(char *p) {
     //変数として有効な文字の探索
     i=0;
     while(true){
-
       if(is_alnum(*(p+i),i>0)){
-	i++;
-	continue;
-	}
-
+      	i++;
+	      continue;
+    	}
       //変数のルールに該当しなかった場合はブレイク
       break;
     }

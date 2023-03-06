@@ -34,14 +34,7 @@ struct Token {
   char *str;      // トークン文字列
 };
 
-
-bool consume(char *op);
-void expect(char *op);
-int expect_number();
-bool at_eof();
-Token *new_token(TokenKind kind, Token *cur, char *str,int len); 
 Token *tokenize(char *p);
-
 
 //Node
 // 抽象構文木のノードの種類
@@ -124,11 +117,6 @@ Node *add();
 Node *mul(); 
 Node *unary();
 Node *primary(); 
-
-
-//about token
-bool equal_token(Token *tk,char *op);
-Token *fetch_current_token();
 
 //GenerateCode
 void generate_assemble_header();

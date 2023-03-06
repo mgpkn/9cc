@@ -32,6 +32,50 @@ void error_at(char *loc, char *fmt, ...)
   exit(1);
 }
 
+
+bool equal_token(Token *tk,char *op){
+  return (strncmp(tk->str,op,tk->len)==0 && tk->len>0);
+}
+
+
+// 次のトークンが期待している記号のときには、トークンを1つ読み進めて
+// 真を返す。それ以外の場合には偽を返す。
+bool consume(char *op) {
+  if (token->kind != TK_KEYWORD
+      || strlen(op) != token->len
+      ||  strncmp(token->str,op,strlen(op)) != 0)    
+    return false;
+  token = token->next;
+  return true;
+}
+
+bool consume_number(char *op) {
+  if (token->kind != TK_NUM)  
+    return false;
+  token = token->next;
+  return true;
+}
+
+// 次のトークンが期待している記号のときには、トークンを1つ読み進める。
+// それ以外の場合にはエラーを報告する。
+void expect(char *op) {
+  if (token->kind != TK_KEYWORD
+      || strlen(op) != token->len
+      ||  strncmp(token->str,op,strlen(op)) != 0)    
+    error_at(token->str,"'%s'ではありません", op);    
+  token = token->next;
+}
+
+// 次のトークンが数値の場合、トークンを1つ読み進めてその数値を返す。
+// それ以外の場合にはエラーを報告する。
+int expect_number() {
+  if (token->kind != TK_NUM)
+    error_at(token->str,"数ではありません");
+  int val = token->val;
+  token = token->next;
+  return val;
+}
+
 extern LVar *locals;
 
 LVar *find_lvar(Token *tok)
@@ -107,6 +151,7 @@ Node *new_node_lval(Token *t)
   return node;
 }
 
+
 // 関数ノードの作成
 Node *new_node_function(Token *t)
 {
@@ -131,6 +176,16 @@ Node *new_node_function(Token *t)
   return node;
 }
 
+
+Token *fetch_current_token(){
+  Token *t = token;  
+  if (token->kind != TK_IDENT)  
+    error_at(token->str,"変数ではありません");
+  token = token->next;
+  return t;
+}
+
+
 void program();
 Node *statement();
 Node *assign();
@@ -143,6 +198,10 @@ Node *unary();
 Node *primary();
 
 extern Node *code[NODENUM];
+
+bool at_eof() {
+  return token->kind == TK_EOF;
+}
 
 void program()
 {
