@@ -1,17 +1,18 @@
 #include "9cc.h"
 
 char *user_input; // main関数の引数
-Token *token;     // 現在着目しているトークン
+
 
 Node *code[NODENUM];
 LVar *locals; // ローカル変数のセット
 
 int label_cnt;
+Token *token;     // 現在着目しているトークン
 
 int main(int argc, char **argv)
 {
 
-  // Token head;
+
   int i;
 
   if (argc != 2)
