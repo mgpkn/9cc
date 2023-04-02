@@ -108,25 +108,13 @@ struct Node {
 Node *new_node(NodeKind kind, Node *lhs, Node *rhs);
 Node *new_node_num(int val);
 
-void program();
-Node *statement();
-Node *expr();
-Node *equality();
-Node *relational();
-Node *add(); 
-Node *mul(); 
-Node *unary();
-Node *primary(); 
+void parse(Token *token);
 
 //GenerateCode
 void generate_assemble_header();
 void generate_assemble_footer();
 void generate_assemble_statement(Node* current_node);
 void generate_assemble_statement_lval(Node* current_node);
-
-//consume
-bool consume(char *op);
-bool consume_number(char *op);
 
 //Analyze
 char *getTokenKind(int kind);

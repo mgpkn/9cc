@@ -2,16 +2,14 @@
 
 char *user_input; // main関数の引数
 
-
 Node *code[NODENUM];
 LVar *locals; // ローカル変数のセット
 
 int label_cnt;
-Token *token;     // 現在着目しているトークン
+//Token *token;     // 現在着目しているトークン
 
 int main(int argc, char **argv)
 {
-
 
   int i;
 
@@ -22,15 +20,13 @@ int main(int argc, char **argv)
   }
 
   // トークナイズする
-  user_input = argv[1];
+  user_input= argv[1];
 
-  token = tokenize(user_input);
-
-  // lineToken(token);//To debug
+  Token *tok = tokenize(argv[1]);
 
   label_cnt = 0;
-  program(); // ノードの集団を生成
-
+  parse(tok);// ノードの集団を生成
+  
   // アセンブリの出力
   generate_assemble_header();
   for (i = 0; code[i]; i++)

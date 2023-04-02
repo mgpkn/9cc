@@ -1,9 +1,9 @@
 ```
 program = statement*
 statement = expr ";"
-	  |"{" statement "}")
+	  |"{" statement "}"
 	  | "return " expr ";"
-	  | "if" "(" expr ")" statement  ("else" statement
+	  | "if" "(" expr ")" statement "else" statement
 	  | "while" "(" expr ")"  statement
 	  | "for" "(" expr? ";" expr? ";" expr? ";" ")"  statement
 expr = assgin

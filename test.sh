@@ -16,12 +16,13 @@ assert() {
   fi
 }
 
-#<<COUT
-assert 21 "5+20-4;"
+
+assert 25 "{return (5+20);}"
+assert 1 "{return 35+65==100;}"
 assert 21 "5+20-4;"
 assert 41 "12 + 34 - 5;"
 assert 42 "6*7;"
-assert 47 "5+6*7;"
+assert 45 "5+6*7-2;"
 assert 15 "5*(9-6);"
 assert 2 "6/3;"
 assert 4 "(3+5)/2;"
@@ -80,6 +81,4 @@ assert 4 "return foo(a,b,4,5);"
 assert 8 "return foo(a,b,4,baa(),(baa()*3)+(3+1))+baa(d,d,d)+baa();"
 assert 4 "return foo(1,2,3,4,5,6);"
 # assert 4 "return foo(1,2,3,4,5,6,7);" raise error pettern
-
-#COUT
 echo OK
