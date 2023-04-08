@@ -2,16 +2,12 @@
 
 char *user_input; // main関数の引数
 
-Node *code[NODENUM];
 LVar *locals; // ローカル変数のセット
-
-int label_cnt;
-//Token *token;     // 現在着目しているトークン
 
 int main(int argc, char **argv)
 {
 
-  int i;
+  Node **code;
 
   if (argc != 2)
   {
@@ -24,21 +20,11 @@ int main(int argc, char **argv)
 
   Token *tok = tokenize(argv[1]);
 
-  label_cnt = 0;
-  parse(tok);// ノードの集団を生成
+  //ノードの集団を生成  
+  code = parse(tok);
   
-  // アセンブリの出力
-  generate_assemble_header();
-  for (i = 0; code[i]; i++)
-  {
-
-    generate_assemble_statement(code[i]);
-
-    // 式の評価結果としてスタックに一つの値が残っている
-    // はずなので、スタックが溢れないようにポップしておく
-    printf("  pop rax\n");
-  }
-  generate_assemble_footer();
-
+  //アセンブリの出力
+  codegen(code);
+  
   return 0;
 }

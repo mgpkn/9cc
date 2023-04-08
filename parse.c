@@ -2,7 +2,7 @@
 #include <string.h>
 #include "9cc.h"
 
-void program(Token **rest,Token *tok);
+Node **program(Token **rest,Token *tok);
 Node *statement(Token **rest,Token *tok);
 Node *assign(Token **rest,Token *tok);
 Node *expr(Token **rest,Token *tok);
@@ -13,10 +13,8 @@ Node *mul(Token **rest,Token *tok);
 Node *unary(Token **rest,Token *tok);
 Node *primary(Token **rest,Token *tok);
 
-//extern Token *token; // 現在着目しているトークン
-
 extern char *user_input; // main関数の引数
-extern int label_cnt;
+int label_cnt;
 
 // エラーを報告するための関数
 // printfと同じ引数を取る
@@ -193,18 +191,21 @@ Node *new_node_function(Token **rest,Token *tok)
   return node;
 }
 
-extern Node *code[NODENUM];
+//extern Node *code[NODENUM];
 
 bool at_eof(Token *tok) {
   return tok->kind == TK_EOF;
 }
 
-void parse(Token *tok){
-  program(&tok,tok);
+Node **parse(Token *tok){
+
+  label_cnt = 0;
+  return program(&tok,tok);
 }
 
-void program(Token **rest,Token *tok)
+Node **program(Token **rest,Token *tok)
 {
+  Node **code = calloc(NODENUM, sizeof(Node));
   int i = 0;
   while (!at_eof(tok))
   {
@@ -212,6 +213,7 @@ void program(Token **rest,Token *tok)
     i++;
   }
   *rest=tok;
+  return code;
 }
 
 Node *statement(Token **rest,Token *tok)

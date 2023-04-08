@@ -1,30 +1,5 @@
 #include "9cc.h"
 
-
-
-void generate_assemble_header(){
-
-  //プロローグ
-  printf(".intel_syntax noprefix\n");
-  printf(".globl main\n");
-  printf("main:\n");
-  
-  //変数領域の確保。（今は26個で固定）
-  printf("  push rbp\n");
-  printf("  mov rbp, rsp\n");
-  printf("  sub rsp, 208\n");  
-}
-
-  
-void generate_assemble_footer(){
-
-  //エピローグ
-  printf("  mov rsp, rbp\n");
-  printf("  pop rbp\n");
-  printf("  ret\n");
-  return;
-}
-
 void generate_assemble_statement_lval(Node* current_node){
   
   if(current_node->kind !=ND_LVAL)
@@ -33,6 +8,7 @@ void generate_assemble_statement_lval(Node* current_node){
   printf("  sub rax,%d\n",current_node->offset);
   printf("  push rax\n");  
 }
+
 
 void generate_assemble_statement(Node* current_node){
 
@@ -165,8 +141,32 @@ void generate_assemble_statement(Node* current_node){
   printf("  push rax\n");
 }
 
+void codegen(Node **code){
 
+  int i =0;
 
-
-
+  //プロローグ
+  printf(".intel_syntax noprefix\n");
+  printf(".globl main\n");
+  printf("main:\n");
   
+  //変数領域の確保。（今は26個で固定）
+  printf("  push rbp\n");
+  printf("  mov rbp, rsp\n");
+  printf("  sub rsp, 208\n");  
+
+  for (i = 0; code[i]; i++)
+  {
+    generate_assemble_statement(code[i]);
+    // 式の評価結果としてスタックに一つの値が残っているはずなので、スタックが溢れないようにポップしておく
+    printf("  pop rax\n");
+  }
+
+  //エピローグ
+  printf("  mov rsp, rbp\n");
+  printf("  pop rbp\n");
+  printf("  ret\n");
+  return;
+
+}
+

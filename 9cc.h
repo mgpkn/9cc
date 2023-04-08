@@ -13,7 +13,6 @@
 void error(char *fmt, ...);
 void error_at(char *loc, char *fmt, ...);
 
-//Token
 
 // トークンの種類
 typedef enum {
@@ -108,13 +107,10 @@ struct Node {
 Node *new_node(NodeKind kind, Node *lhs, Node *rhs);
 Node *new_node_num(int val);
 
-void parse(Token *token);
+Node **parse(Token *token);
 
-//GenerateCode
-void generate_assemble_header();
-void generate_assemble_footer();
-void generate_assemble_statement(Node* current_node);
-void generate_assemble_statement_lval(Node* current_node);
+//codegen
+void codegen(Node **code);
 
 //Analyze
 char *getTokenKind(int kind);
