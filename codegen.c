@@ -1,6 +1,6 @@
 #include "9cc.h"
 
-void generate_assemble_statement_lval(Node* current_node){
+void gennode_lval(Node* current_node){
   
   if(current_node->kind !=ND_LVAL)
     error("代入の左辺値が変数ではありません。");
@@ -10,7 +10,7 @@ void generate_assemble_statement_lval(Node* current_node){
 }
 
 
-void generate_assemble_statement(Node* current_node){
+void gennode(Node* current_node){
 
   Node *n;
   
@@ -18,43 +18,43 @@ void generate_assemble_statement(Node* current_node){
   
   switch(current_node->kind){
   case ND_RETURN:
-    generate_assemble_statement(current_node->lhs);
+    gennode(current_node->lhs);
     printf("  pop rax\n");
     printf("  mov rsp, rbp\n");
     printf("  pop rbp\n");
     printf("  ret\n");
     return;
   case ND_IF:
-    generate_assemble_statement(current_node->cond);
+    gennode(current_node->cond);
     printf("  pop rax\n");
     printf("  cmp rax,0\n");
     printf("  je .lelse%d\n",current_node->label_num);
-    generate_assemble_statement(current_node->then);
+    gennode(current_node->then);
     printf(".lelse%d:\n",current_node->label_num);
     if(current_node->els){
-      generate_assemble_statement(current_node->els);      
+      gennode(current_node->els);      
     }
     printf(".lend%d:\n",current_node->label_num);    
     return;
   case ND_WHILE:
     printf(".lbegin%d:\n",current_node->label_num);    
-    generate_assemble_statement(current_node->cond);
+    gennode(current_node->cond);
     printf("  pop rax\n");
     printf("  cmp rax,0\n");
     printf("  je .lend%d\n",current_node->label_num);
-    generate_assemble_statement(current_node->then);
+    gennode(current_node->then);
     printf("  jmp .lbegin%d\n",current_node->label_num);    
     printf(".lend%d:\n",current_node->label_num);    
     return;
   case ND_FOR:
-    generate_assemble_statement(current_node->init);    
+    gennode(current_node->init);    
     printf(".lbegin%d:\n",current_node->label_num);    
-    generate_assemble_statement(current_node->cond);
+    gennode(current_node->cond);
     printf("  pop rax\n");
     printf("  cmp rax,0\n");
     printf("  je .lend%d\n",current_node->label_num);
-    generate_assemble_statement(current_node->then);
-    generate_assemble_statement(current_node->inc);    
+    gennode(current_node->then);
+    gennode(current_node->inc);    
     printf("  jmp .lbegin%d\n",current_node->label_num);    
     printf(".lend%d:\n",current_node->label_num);    
     return;    
@@ -66,14 +66,14 @@ void generate_assemble_statement(Node* current_node){
     printf("  push rax\n");            
     return;
   case ND_LVAL:
-    generate_assemble_statement_lval(current_node);
+    gennode_lval(current_node);
     printf("  pop rax\n");
     printf("  mov rax,[rax]\n");
     printf("  push rax\n");        
     return;
   case ND_ASSIGN:
-    generate_assemble_statement_lval(current_node->lhs);
-    generate_assemble_statement(current_node->rhs);
+    gennode_lval(current_node->lhs);
+    gennode(current_node->rhs);
     printf("  pop rdi\n");
     printf("  pop rax\n");
     printf("  mov [rax],rdi\n");        
@@ -82,15 +82,15 @@ void generate_assemble_statement(Node* current_node){
   case ND_BLOCK:
     n = current_node->block_head;
     while(n){
-      generate_assemble_statement(n);
+      gennode(n);
       n=n->next;
     }
   default:
     break;
   }
   
-  generate_assemble_statement(current_node->lhs);
-  generate_assemble_statement(current_node->rhs);    
+  gennode(current_node->lhs);
+  gennode(current_node->rhs);    
 
   printf("  pop rdi\n");
   printf("  pop rax\n");
@@ -157,9 +157,7 @@ void codegen(Node **code){
 
   for (i = 0; code[i]; i++)
   {
-    generate_assemble_statement(code[i]);
-    // 式の評価結果としてスタックに一つの値が残っているはずなので、スタックが溢れないようにポップしておく
-    printf("  pop rax\n");
+    gennode(code[i]);
   }
 
   //エピローグ

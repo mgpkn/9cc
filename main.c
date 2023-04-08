@@ -2,11 +2,8 @@
 
 char *user_input; // main関数の引数
 
-LVar *locals; // ローカル変数のセット
-
 int main(int argc, char **argv)
 {
-
   Node **code;
 
   if (argc != 2)
@@ -15,9 +12,9 @@ int main(int argc, char **argv)
     return 1;
   }
 
-  // トークナイズする
   user_input= argv[1];
 
+  // トークナイズする
   Token *tok = tokenize(argv[1]);
 
   //ノードの集団を生成  

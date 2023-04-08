@@ -14,6 +14,7 @@ Node *unary(Token **rest,Token *tok);
 Node *primary(Token **rest,Token *tok);
 
 extern char *user_input; // main関数の引数
+LVar *locals;
 int label_cnt;
 
 // エラーを報告するための関数
@@ -85,7 +86,7 @@ int expect_number(Token **rest,Token *tok) {
   return val;
 }
 
-extern LVar *locals;
+
 
 LVar *find_lvar(Token *tok)
 {

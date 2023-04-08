@@ -102,17 +102,8 @@ struct Node {
   Node *next;//次のstatement
 };
 
-
-//Create Node(=parse) 
-Node *new_node(NodeKind kind, Node *lhs, Node *rhs);
-Node *new_node_num(int val);
-
+//parse
 Node **parse(Token *token);
 
 //codegen
 void codegen(Node **code);
-
-//Analyze
-char *getTokenKind(int kind);
-char *getNodeKind(int kind);
-void lineToken(Token *tar);
