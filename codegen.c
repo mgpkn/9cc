@@ -9,7 +9,6 @@ void gennode_lval(Node* current_node){
   printf("  push rax\n");  
 }
 
-
 void gennode(Node* current_node){
 
   Node *n;
@@ -141,9 +140,9 @@ void gennode(Node* current_node){
   printf("  push rax\n");
 }
 
-void codegen(Node **code){
+void codegen(Node *code){
 
-  int i =0;
+  Node *current_code=code;
 
   //プロローグ
   printf(".intel_syntax noprefix\n");
@@ -155,9 +154,10 @@ void codegen(Node **code){
   printf("  mov rbp, rsp\n");
   printf("  sub rsp, 208\n");  
 
-  for (i = 0; code[i]; i++)
+  while(current_code)
   {
-    gennode(code[i]);
+    gennode(current_code);
+    current_code = current_code->next;
   }
 
   //エピローグ

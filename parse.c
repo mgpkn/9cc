@@ -2,7 +2,7 @@
 #include <string.h>
 #include "9cc.h"
 
-Node **program(Token **rest,Token *tok);
+Node *program(Token **rest,Token *tok);
 Node *statement(Token **rest,Token *tok);
 Node *assign(Token **rest,Token *tok);
 Node *expr(Token **rest,Token *tok);
@@ -192,29 +192,34 @@ Node *new_node_function(Token **rest,Token *tok)
   return node;
 }
 
-//extern Node *code[NODENUM];
-
 bool at_eof(Token *tok) {
   return tok->kind == TK_EOF;
 }
 
-Node **parse(Token *tok){
+Node *parse(Token *tok){
 
   label_cnt = 0;
   return program(&tok,tok);
 }
 
-Node **program(Token **rest,Token *tok)
+Node *program(Token **rest,Token *tok)
 {
-  Node **code = calloc(NODENUM, sizeof(Node));
-  int i = 0;
+  Node *nd;
+  Node *head;
+
   while (!at_eof(tok))
   {
-    code[i] = statement(&tok,tok);
-    i++;
+    if(head){
+      nd->next = statement(&tok,tok);
+      nd = nd->next;
+    } 
+    else {
+      nd = statement(&tok,tok);
+      head = nd;      
+    }     
   }
   *rest=tok;
-  return code;
+  return head;
 }
 
 Node *statement(Token **rest,Token *tok)

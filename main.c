@@ -4,7 +4,7 @@ char *user_input; // main関数の引数
 
 int main(int argc, char **argv)
 {
-  Node **code;
+  Node *code;
 
   if (argc != 2)
   {

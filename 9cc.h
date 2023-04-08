@@ -103,7 +103,7 @@ struct Node {
 };
 
 //parse
-Node **parse(Token *token);
+Node *parse(Token *token);
 
 //codegen
-void codegen(Node **code);
+void codegen(Node *code);
