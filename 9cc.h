@@ -73,14 +73,6 @@ typedef enum {
   
 } NodeKind;
 
-//local variable
-typedef struct LVar LVar;
-struct LVar {
-  LVar *next; //次の変数（最後ならnull）
-  char *name;//変数名
-  int len;       // 変数名の長さ
-  int offset; //RBPからのオフセット
-};
 
 // 抽象構文木のノードの型
 typedef struct Node Node;
@@ -101,6 +93,27 @@ struct Node {
   int label_num;//ラベル
   Node *next;//次のstatement
 };
+
+typedef struct Ident Ident;
+struct Ident{
+
+  bool is_function;
+
+  //common
+  char *name;
+  int name_len;//変数名の長さ  
+  Ident *next; //next ident
+
+  //for variable
+  int offset; //RBPからのオフセット
+
+  //for function
+  Node *param;
+  Node *body;
+  Ident *localval;   
+
+};
+
 
 //parse
 Node *parse(Token *token);

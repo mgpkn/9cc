@@ -16,8 +16,11 @@ assert() {
   fi
 }
 
-
+#<<COUT
 assert 25 "{return (5+20);}"
+assert 25 "{};;;;return (5+20);"
+assert 25 "{}return (5+20);"
+assert 3 "{return 0 - -3;}"
 assert 1 "{return 35+65==100;}"
 assert 21 "return 5+20-4;"
 assert 41 "return 12 + 34 - 5;"
@@ -80,5 +83,6 @@ assert 4 "return foo(foo());"
 assert 4 "return foo(a,b,4,5);"
 assert 8 "return foo(a,b,4,baa(),(baa()*3)+(3+1))+baa(d,d,d)+baa();"
 assert 4 "return foo(1,2,3,4,5,6);"
-# assert 4 "return foo(1,2,3,4,5,6,7);" raise error pettern
+#assert 4 "return foo(1,2,3,4,5,6,7);" #raise error pettern
+#COUT
 echo OK

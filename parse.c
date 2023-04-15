@@ -14,7 +14,7 @@ Node *unary(Token **rest,Token *tok);
 Node *primary(Token **rest,Token *tok);
 
 extern char *user_input; // main関数の引数
-LVar *locals;
+Ident *locals;
 int label_cnt;
 
 // エラーを報告するための関数
@@ -88,12 +88,12 @@ int expect_number(Token **rest,Token *tok) {
 
 
 
-LVar *find_lvar(Token *tok)
+Ident *find_lvar(Token *tok)
 {
 
-  for (LVar *v = locals; v; v = v->next)
+  for (Ident *v = locals; v; v = v->next)
   {
-    if (tok->len == v->len && strncmp(tok->str, v->name, tok->len) == 0)
+    if (tok->len == v->name_len && strncmp(tok->str, v->name, tok->len) == 0)
       return v;
   }
 
@@ -129,7 +129,7 @@ Node *new_node_lval(Token **rest,Token *tok)
     node->kind = ND_LVAL;
 
     // すでに宣言された変数かを確認する
-    LVar *lvar = find_lvar(tok);
+    Ident *lvar = find_lvar(tok);
     if (lvar)
     {
       // 宣言済ならその変数のオフセットを返却。
@@ -138,10 +138,10 @@ Node *new_node_lval(Token **rest,Token *tok)
     else
     {
       // なければlocalsに追加
-      lvar = calloc(1, sizeof(LVar));
+      lvar = calloc(1, sizeof(Ident));
       lvar->next = locals;
       lvar->name = tok->str;
-      lvar->len = tok->len;
+      lvar->name_len = tok->len;
       if (locals)
       {
         // frm 2nd onwards call
@@ -196,11 +196,32 @@ bool at_eof(Token *tok) {
   return tok->kind == TK_EOF;
 }
 
+
+//parse = function?
 Node *parse(Token *tok){
 
   label_cnt = 0;
-  return program(&tok,tok);
+  return program(&tok,tok);  
 }
+  /*
+  Func *fn;  
+  Func *head;    
+  while (!at_eof(tok))
+  {
+    if(head){
+      fn->next = function(&tok,tok);
+      fn = fn->next;
+    }
+    else {
+      fn = function(&tok,tok);
+      head = fn;
+    }
+  }
+  return head;  
+*/
+
+
+//function = ident "(" (expr("," expr)?)? ")" "{" statment? "}"
 
 Node *program(Token **rest,Token *tok)
 {
@@ -222,6 +243,14 @@ Node *program(Token **rest,Token *tok)
   return head;
 }
 
+/*
+statement = expr? ";"
+		|"{" statement "}"
+		| "return " expr ";"
+		| "if" "(" expr ")" statement "else" statement
+		| "while" "(" expr ")"  statement
+		| "for" "(" expr? ";" expr? ";" expr? ";" ")"  statement
+*/    
 Node *statement(Token **rest,Token *tok)
 {
   Node *n;
@@ -229,6 +258,13 @@ Node *statement(Token **rest,Token *tok)
 
   if (tok->kind == TK_KEYWORD)
   {
+
+    if (equal_token(tok, ";"))
+    {
+      consume(&tok,tok,";");
+      *rest = tok;      
+      return new_node(ND_BLOCK, NULL, NULL);
+    }
 
     if (equal_token(tok, "{"))
     {
@@ -338,6 +374,8 @@ Node *statement(Token **rest,Token *tok)
   return n;
 }
 
+
+//expr = assgin
 Node *expr(Token **rest,Token *tok)
 {
   Node *n = assign(&tok,tok);
@@ -345,6 +383,7 @@ Node *expr(Token **rest,Token *tok)
   return n;
 }
 
+//assign = equality ("=" assign )?
 Node *assign(Token **rest,Token *tok)
 {
   Node *n = equality(&tok,tok);
@@ -355,6 +394,7 @@ Node *assign(Token **rest,Token *tok)
   return n;
 }
 
+//equality = relational ("==" relational |"!=" relational )*
 Node *equality(Token **rest,Token *tok)
 {
 
@@ -376,6 +416,7 @@ Node *equality(Token **rest,Token *tok)
 
 }
 
+//relational = add (">" add | "<" add | ">=" add | "<=" add)*
 Node *relational(Token **rest,Token *tok)
 {
   Node *n = add(&tok,tok);
@@ -398,6 +439,7 @@ Node *relational(Token **rest,Token *tok)
   }
 }
 
+//add = mul ("+" mul | "-" mul)*
 Node *add(Token **rest,Token *tok)
 {
 
@@ -416,6 +458,7 @@ Node *add(Token **rest,Token *tok)
   }
 }
 
+//mul = unary ("*" unary|"/" unary|"%" unary)*
 Node *mul(Token **rest,Token *tok)
 {
   Node *n = unary(&tok,tok);
@@ -435,7 +478,10 @@ Node *mul(Token **rest,Token *tok)
   }
 }
 
-// 数値などの正負の項
+/* 
+数値などの正負の項
+unary = ("+"|"-")? primary
+*/
 Node *unary(Token **rest,Token *tok)
 {
   Node *n;
@@ -457,6 +503,11 @@ Node *unary(Token **rest,Token *tok)
   return n;
 }
 
+/*
+primary = "(" expr ")"
+		|ident("(" (expr("," expr)?)? ")")?
+		|num
+*/
 Node *primary(Token **rest,Token *tok)
 {
   Node *n;
