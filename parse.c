@@ -141,6 +141,7 @@ Node *new_node_lval(Token **rest,Token *tok)
       lvar = calloc(1, sizeof(Ident));
       lvar->next = locals;
       lvar->name = tok->str;
+      lvar->is_function = false;
       lvar->name_len = tok->len;
       if (locals)
       {
