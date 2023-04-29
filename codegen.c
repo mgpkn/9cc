@@ -27,35 +27,35 @@ void gennode(Node* current_node){
     gennode(current_node->cond);
     printf("  pop rax\n");
     printf("  cmp rax,0\n");
-    printf("  je .lelse%d\n",current_node->label_num);
+    printf("  je .Lelse%d\n",current_node->label_num);
     gennode(current_node->then);
-    printf(".lelse%d:\n",current_node->label_num);
+    printf(".Lelse%d:\n",current_node->label_num);
     if(current_node->els){
       gennode(current_node->els);      
     }
-    printf(".lend%d:\n",current_node->label_num);    
+    printf(".Lend%d:\n",current_node->label_num);    
     return;
   case ND_WHILE:
-    printf(".lbegin%d:\n",current_node->label_num);    
+    printf(".Lbegin%d:\n",current_node->label_num);    
     gennode(current_node->cond);
     printf("  pop rax\n");
     printf("  cmp rax,0\n");
-    printf("  je .lend%d\n",current_node->label_num);
+    printf("  je .Lend%d\n",current_node->label_num);
     gennode(current_node->then);
-    printf("  jmp .lbegin%d\n",current_node->label_num);    
-    printf(".lend%d:\n",current_node->label_num);    
+    printf("  jmp .Lbegin%d\n",current_node->label_num);    
+    printf(".Lend%d:\n",current_node->label_num);    
     return;
   case ND_FOR:
     gennode(current_node->init);    
-    printf(".lbegin%d:\n",current_node->label_num);    
+    printf(".Lbegin%d:\n",current_node->label_num);    
     gennode(current_node->cond);
     printf("  pop rax\n");
     printf("  cmp rax,0\n");
-    printf("  je .lend%d\n",current_node->label_num);
+    printf("  je .Lend%d\n",current_node->label_num);
     gennode(current_node->then);
     gennode(current_node->inc);    
-    printf("  jmp .lbegin%d\n",current_node->label_num);    
-    printf(".lend%d:\n",current_node->label_num);    
+    printf("  jmp .Lbegin%d\n",current_node->label_num);    
+    printf(".Lend%d:\n",current_node->label_num);    
     return;    
   case ND_NUM:
     printf("  push %d\n",current_node -> val );    
@@ -140,30 +140,46 @@ void gennode(Node* current_node){
   printf("  push rax\n");
 }
 
-void codegen(Node *code){
+void codegen(Ident *func_list){
 
-  Node *current_code=code;
-
+  Ident *cur_func=func_list;
+  Node *cur_code;  
+  
   //プロローグ
   printf(".intel_syntax noprefix\n");
-  printf(".globl main\n");
-  printf("main:\n");
-  
-  //変数領域の確保。（今は26個で固定）
-  printf("  push rbp\n");
-  printf("  mov rbp, rsp\n");
-  printf("  sub rsp, 208\n");  
+  printf(".globl ");
+  while(cur_func){
+    printf("%s",cur_func->name);
+    cur_func=cur_func->next;
+    if(cur_func) printf(",");
+  }
+  printf("\n");  
 
-  while(current_code)
-  {
-    gennode(current_code);
-    current_code = current_code->next;
+  cur_func=func_list;
+  while(cur_func){
+
+    //関数名のラベルを作成
+    printf("%s:\n",cur_func->name);
+
+    //変数領域の確保。（今は26個で固定）
+    printf("  push rbp\n");
+    printf("  mov rbp, rsp\n");
+    printf("  sub rsp, 208\n");  
+
+    cur_code=cur_func->body;  
+    while(cur_code)
+    {
+      gennode(cur_code);
+      cur_code = cur_code->next;
+    }
+
+    //エピローグ    
+    printf("  mov rsp, rbp\n");
+    printf("  pop rbp\n");
+    printf("  ret\n");
+    cur_func=cur_func->next;    
   }
 
-  //エピローグ
-  printf("  mov rsp, rbp\n");
-  printf("  pop rbp\n");
-  printf("  ret\n");
   return;
 
 }

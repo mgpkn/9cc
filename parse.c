@@ -2,16 +2,16 @@
 #include <string.h>
 #include "9cc.h"
 
-Node *program(Token **rest,Token *tok);
-Node *statement(Token **rest,Token *tok);
-Node *assign(Token **rest,Token *tok);
-Node *expr(Token **rest,Token *tok);
-Node *equality(Token **rest,Token *tok);
-Node *relational(Token **rest,Token *tok);
-Node *add(Token **rest,Token *tok);
-Node *mul(Token **rest,Token *tok);
-Node *unary(Token **rest,Token *tok);
-Node *primary(Token **rest,Token *tok);
+Ident *function(Token **rest, Token *tok);
+Node *statement(Token **rest, Token *tok);
+Node *assign(Token **rest, Token *tok);
+Node *expr(Token **rest, Token *tok);
+Node *equality(Token **rest, Token *tok);
+Node *relational(Token **rest, Token *tok);
+Node *add(Token **rest, Token *tok);
+Node *mul(Token **rest, Token *tok);
+Node *unary(Token **rest, Token *tok);
+Node *primary(Token **rest, Token *tok);
 
 extern char *user_input; // main関数の引数
 Ident *locals;
@@ -43,24 +43,24 @@ void error_at(char *loc, char *fmt, ...)
   exit(1);
 }
 
-
-bool equal_token(Token *tok,char *op){
-  return (strncmp(tok->str,op,tok->len)==0 && tok->len>0);
+bool equal_token(Token *tok, char *op)
+{
+  return (strncmp(tok->str, op, tok->len) == 0 && tok->len > 0);
 }
 
 // 次のトークンが期待している記号のときには、トークンを1つ読み進めて
 // 真を返す。それ以外の場合には偽を返す。
-bool consume(Token **rest,Token *tok,char *op) {
-  if (tok->kind != TK_KEYWORD
-      || strlen(op) != tok->len
-      ||  strncmp(tok->str,op,strlen(op)) != 0)    
+bool consume(Token **rest, Token *tok, char *op)
+{
+  if (tok->kind != TK_KEYWORD || strlen(op) != tok->len || strncmp(tok->str, op, strlen(op)) != 0)
     return false;
   *rest = tok->next;
   return true;
 }
 
-bool consume_number(Token **rest,Token *tok,char *op) {
-  if (tok->kind != TK_NUM)  
+bool consume_number(Token **rest, Token *tok, char *op)
+{
+  if (tok->kind != TK_NUM)
     return false;
   *rest = tok->next;
   return true;
@@ -68,25 +68,23 @@ bool consume_number(Token **rest,Token *tok,char *op) {
 
 // 次のトークンが期待している記号のときには、トークンを1つ読み進める。
 // それ以外の場合にはエラーを報告する。
-void expect(Token **rest,Token *tok,char *op) {
-  if (tok->kind != TK_KEYWORD
-      || strlen(op) != tok->len
-      ||  strncmp(tok->str,op,strlen(op)) != 0)    
-    error_at(tok->str,"'%s'ではありません", op);    
+void expect(Token **rest, Token *tok, char *op)
+{
+  if (tok->kind != TK_KEYWORD || strlen(op) != tok->len || strncmp(tok->str, op, strlen(op)) != 0)
+    error_at(tok->str, "'%s'ではありません", op);
   *rest = tok->next;
 }
 
 // 次のトークンが数値の場合、トークンを1つ読み進めてその数値を返す。
 // それ以外の場合にはエラーを報告する。
-int expect_number(Token **rest,Token *tok) {
+int expect_number(Token **rest, Token *tok)
+{
   if (tok->kind != TK_NUM)
-    error_at(tok->str,"数ではありません");
+    error_at(tok->str, "数ではありません");
   int val = tok->val;
   *rest = tok->next;
   return val;
 }
-
-
 
 Ident *find_lvar(Token *tok)
 {
@@ -120,7 +118,7 @@ Node *new_node_num(int val)
 }
 
 // 変数ノードの作成
-Node *new_node_lval(Token **rest,Token *tok)
+Node *new_node_lval(Token **rest, Token *tok)
 {
   Node *node = NULL;
   if (tok)
@@ -139,9 +137,9 @@ Node *new_node_lval(Token **rest,Token *tok)
     {
       // なければlocalsに追加
       lvar = calloc(1, sizeof(Ident));
+      lvar->is_function = false;
       lvar->next = locals;
       lvar->name = tok->str;
-      lvar->is_function = false;
       lvar->name_len = tok->len;
       if (locals)
       {
@@ -163,96 +161,140 @@ Node *new_node_lval(Token **rest,Token *tok)
   return node;
 }
 
-
 // 関数ノードの作成
-Node *new_node_function(Token **rest,Token *tok)
+Node *new_node_function(Token **rest, Token *tok)
 {
   Node *node;
-  int i=0;
+  int i = 0;
 
   node = calloc(1, sizeof(Node));
   node->kind = ND_FUNC;
   node->ident_name = strndup(tok->str, sizeof(char) * (tok->len));
-  tok=tok->next;
-  expect(&tok,tok,"(");
-  if(consume(&tok,tok,")")){
+  tok = tok->next;
+  expect(&tok, tok, "(");
+  if (consume(&tok, tok, ")"))
+  {
     *rest = tok;
-    return node; //引数がなければ即return;
-  } 
+    return node; // 引数がなければ即return;
+  }
 
-  while(true){
-    if(i>=FUNC_PRAM_NUM){
-      error("引数は%d個までです。",FUNC_PRAM_NUM);
+  while (true)
+  {
+    if (i >= FUNC_PRAM_NUM)
+    {
+      error("引数は%d個までです。", FUNC_PRAM_NUM);
     }
-    node->func_param[i] = expr(&tok,tok);
-    if(!consume(&tok,tok,",")) break;
+    node->func_param[i] = expr(&tok, tok);
+    if (!consume(&tok, tok, ","))
+      break;
     i++;
   }
-  expect(&tok,tok,")");
+  expect(&tok, tok, ")");
   *rest = tok;
   return node;
 }
 
-bool at_eof(Token *tok) {
+bool at_eof(Token *tok)
+{
   return tok->kind == TK_EOF;
 }
 
-
-//parse = function?
-Node *parse(Token *tok){
+// parse = function?
+Ident *parse(Token *tok)
+{
 
   label_cnt = 0;
-  return program(&tok,tok);  
+  Ident *head_fn=NULL, *cur_fn=NULL;
+  while (!at_eof(tok))
+  {
+    if (head_fn)
+    {
+      cur_fn->next = function(&tok, tok);
+      cur_fn = cur_fn->next;
+    }
+    else
+    {
+      head_fn = function(&tok, tok);
+      cur_fn = head_fn;
+    }
+  }
+  return head_fn;
 }
-  /*
-  Func *fn;  
-  Func *head;    
-  while (!at_eof(tok))
-  {
-    if(head){
-      fn->next = function(&tok,tok);
-      fn = fn->next;
-    }
-    else {
-      fn = function(&tok,tok);
-      head = fn;
-    }
-  }
-  return head;  
-*/
 
+// function = ident "(" (expr("," expr)?)? ")" "{" statment? "}"
 
-//function = ident "(" (expr("," expr)?)? ")" "{" statment? "}"
-
-Node *program(Token **rest,Token *tok)
+Ident *function(Token **rest, Token *tok)
 {
-  Node *nd;
-  Node *head;
 
-  while (!at_eof(tok))
+  Ident *fn;
+  Node *head_param=NULL, *cur_param=NULL,*head_body=NULL, *cur_body=NULL;
+
+  // function_name
+  if (tok->kind != TK_IDENT)
   {
-    if(head){
-      nd->next = statement(&tok,tok);
-      nd = nd->next;
-    } 
-    else {
-      nd = statement(&tok,tok);
-      head = nd;      
-    }     
+    error_at(tok->str, "関数名が不正です。");
   }
-  *rest=tok;
-  return head;
+  fn = calloc(1, sizeof(Ident));
+  fn->is_function = true;
+  fn->name = strndup(tok->str, sizeof(char) * (tok->len));
+  fn->name_len = tok->len;
+  tok=tok->next;
+
+  // params
+  expect(&tok, tok, "(");
+  while (true)
+  {
+    if (equal_token(tok, ")"))
+      break;
+    if (head_param)
+    {
+      cur_param->next = expr(&tok, tok);
+      cur_param = cur_param->next;
+    }
+    else
+    {
+      head_param = expr(&tok, tok);
+      cur_param = head_param;
+    }
+    if (!consume(&tok, tok, ","))
+      break;
+  }
+  consume(&tok, tok, ")");
+  fn->param=head_param;
+
+  // body
+  expect(&tok, tok, "{");
+  while (true)
+  {
+    if (equal_token(tok, "}"))
+      break;
+    if (head_body)
+    {
+      cur_body->next = statement(&tok, tok);
+      cur_body = cur_body->next;
+    }
+    else
+    {
+      head_body = statement(&tok, tok);
+      cur_body = head_body;
+    }
+  }
+  consume(&tok, tok, "}");  
+  fn->body = head_body;
+
+  *rest = tok;
+  return fn;
 }
 
 /*
 statement = expr? ";"
-		|"{" statement "}"
-		| "return " expr ";"
-		| "if" "(" expr ")" statement "else" statement
-		| "while" "(" expr ")"  statement
-		| "for" "(" expr? ";" expr? ";" expr? ";" ")"  statement
-*/    
-Node *statement(Token **rest,Token *tok)
+    |"{" statement "}"
+    | "return " expr ";"
+    | "if" "(" expr ")" statement "else" statement
+    | "while" "(" expr ")"  statement
+    | "for" "(" expr? ";" expr? ";" expr? ";" ")"  statement
+*/
+Node *statement(Token **rest, Token *tok)
 {
   Node *n;
   Node *n_block_current;
@@ -262,36 +304,36 @@ Node *statement(Token **rest,Token *tok)
 
     if (equal_token(tok, ";"))
     {
-      consume(&tok,tok,";");
-      *rest = tok;      
+      consume(&tok, tok, ";");
+      *rest = tok;
       return new_node(ND_BLOCK, NULL, NULL);
     }
 
     if (equal_token(tok, "{"))
     {
-      consume(&tok,tok,"{");
+      consume(&tok, tok, "{");
       n = new_node(ND_BLOCK, NULL, NULL);
 
-      while (!consume(&tok,tok,"}"))
+      while (!consume(&tok, tok, "}"))
       {
         if (n->block_head)
         {
-          n_block_current->next = statement(&tok,tok);
+          n_block_current->next = statement(&tok, tok);
           n_block_current = n_block_current->next;
         }
         else
         {
-          n->block_head = statement(&tok,tok);
+          n->block_head = statement(&tok, tok);
           n_block_current = n->block_head;
         }
       }
-      *rest = tok;      
+      *rest = tok;
       return n;
     }
     else if (equal_token(tok, "return"))
     {
       tok = tok->next;
-      n = new_node(ND_RETURN, expr(&tok,tok), NULL);
+      n = new_node(ND_RETURN, expr(&tok, tok), NULL);
     }
     else if (equal_token(tok, "if"))
     {
@@ -300,18 +342,18 @@ Node *statement(Token **rest,Token *tok)
       n = new_node(ND_IF, NULL, NULL);
       n->label_num = label_cnt;
       label_cnt++;
-      if (consume(&tok,tok,"("))
+      if (consume(&tok, tok, "("))
       {
-        n->cond = expr(&tok,tok);
-        expect(&tok,tok,")");
+        n->cond = expr(&tok, tok);
+        expect(&tok, tok, ")");
       }
-      n->then = statement(&tok,tok);
+      n->then = statement(&tok, tok);
 
       // else
       if (equal_token(tok, "else"))
       {
         tok = tok->next;
-        n->els = statement(&tok,tok);
+        n->els = statement(&tok, tok);
       }
 
       *rest = tok;
@@ -324,14 +366,14 @@ Node *statement(Token **rest,Token *tok)
       n = new_node(ND_WHILE, NULL, NULL);
       n->label_num = label_cnt;
       label_cnt++;
-      if (consume(&tok,tok,"("))
+      if (consume(&tok, tok, "("))
       {
-        n->cond = expr(&tok,tok);
-        expect(&tok,tok,")");
+        n->cond = expr(&tok, tok);
+        expect(&tok, tok, ")");
       }
-      n->then = statement(&tok,tok);
+      n->then = statement(&tok, tok);
 
-      *rest = tok;                      
+      *rest = tok;
       return n;
     }
     else if (equal_token(tok, "for"))
@@ -342,163 +384,169 @@ Node *statement(Token **rest,Token *tok)
       n = new_node(ND_FOR, NULL, NULL);
       n->label_num = label_cnt;
       label_cnt++;
-      if (consume(&tok,tok,"("))
+      if (consume(&tok, tok, "("))
       {
         // init
         if (!equal_token(tok, ";"))
-          n->init = expr(&tok,tok);
-        expect(&tok,tok,";");
+          n->init = expr(&tok, tok);
+        expect(&tok, tok, ";");
         // condition
         if (!equal_token(tok, ";"))
-          n->cond = expr(&tok,tok);
-        expect(&tok,tok,";");
+          n->cond = expr(&tok, tok);
+        expect(&tok, tok, ";");
         // incriment
         if (!equal_token(tok, ")"))
-          n->inc = expr(&tok,tok);
-        expect(&tok,tok,")");
+          n->inc = expr(&tok, tok);
+        expect(&tok, tok, ")");
       }
-      n->then = statement(&tok,tok);
-      *rest = tok;                
+      n->then = statement(&tok, tok);
+      *rest = tok;
       return n;
     }
     else
     {
-      n = expr(&tok,tok);
+      n = expr(&tok, tok);
     }
   }
   else
   {
-    n = expr(&tok,tok);
+    n = expr(&tok, tok);
   }
-  expect(&tok,tok,";");
-  *rest = tok;            
+  expect(&tok, tok, ";");
+  *rest = tok;
   return n;
 }
 
-
-//expr = assgin
-Node *expr(Token **rest,Token *tok)
+// expr = assgin
+Node *expr(Token **rest, Token *tok)
 {
-  Node *n = assign(&tok,tok);
-  *rest = tok;          
+  Node *n = assign(&tok, tok);
+  *rest = tok;
   return n;
 }
 
-//assign = equality ("=" assign )?
-Node *assign(Token **rest,Token *tok)
+// assign = equality ("=" assign )?
+Node *assign(Token **rest, Token *tok)
 {
-  Node *n = equality(&tok,tok);
-  if (consume(&tok,tok,"="))
-    n = new_node(ND_ASSIGN, n, assign(&tok,tok));
+  Node *n = equality(&tok, tok);
+  if (consume(&tok, tok, "="))
+    n = new_node(ND_ASSIGN, n, assign(&tok, tok));
 
-  *rest = tok;        
+  *rest = tok;
   return n;
 }
 
-//equality = relational ("==" relational |"!=" relational )*
-Node *equality(Token **rest,Token *tok)
+// equality = relational ("==" relational |"!=" relational )*
+Node *equality(Token **rest, Token *tok)
 {
 
-  Node *n = relational(&tok,tok);
+  Node *n = relational(&tok, tok);
 
   for (;;)
   {
-    if (consume(&tok,tok,"==")){
-      n = new_node(ND_EQ, n, relational(&tok,tok));
-    }      
-    else if (consume(&tok,tok,"!=")){
-      n = new_node(ND_NOTEQ, n, relational(&tok,tok));
-    }      
-    else {
-      *rest = tok;                              
-      return n;      
-    }      
+    if (consume(&tok, tok, "=="))
+    {
+      n = new_node(ND_EQ, n, relational(&tok, tok));
+    }
+    else if (consume(&tok, tok, "!="))
+    {
+      n = new_node(ND_NOTEQ, n, relational(&tok, tok));
+    }
+    else
+    {
+      *rest = tok;
+      return n;
+    }
   }
-
 }
 
-//relational = add (">" add | "<" add | ">=" add | "<=" add)*
-Node *relational(Token **rest,Token *tok)
+// relational = add (">" add | "<" add | ">=" add | "<=" add)*
+Node *relational(Token **rest, Token *tok)
 {
-  Node *n = add(&tok,tok);
+  Node *n = add(&tok, tok);
 
   for (;;)
   {
     //>および>=不等号が逆の場合は左右のノード自体を逆に生成する
-    if (consume(&tok,tok,"<="))
-      n = new_node(ND_LLESSEQ, n, add(&tok,tok));
-    else if (consume(&tok,tok,">="))
-      n = new_node(ND_LLESSEQ, add(&tok,tok), n);
-    else if (consume(&tok,tok,"<"))
-      n = new_node(ND_LLESS, n, add(&tok,tok));
-    else if (consume(&tok,tok,">"))
-      n = new_node(ND_LLESS, add(&tok,tok), n);
-    else {
-      *rest = tok;        
-      return n;
-    }      
-  }
-}
-
-//add = mul ("+" mul | "-" mul)*
-Node *add(Token **rest,Token *tok)
-{
-
-  Node *n = mul(&tok,tok);
-
-  for (;;)
-  {
-    if (consume(&tok,tok,"+"))
-      n = new_node(ND_ADD, n, mul(&tok,tok));
-    else if (consume(&tok,tok,"-"))
-      n = new_node(ND_SUB, n, mul(&tok,tok));
-    else {
-      *rest = tok;        
-      return n;
-    }      
-  }
-}
-
-//mul = unary ("*" unary|"/" unary|"%" unary)*
-Node *mul(Token **rest,Token *tok)
-{
-  Node *n = unary(&tok,tok);
-
-  for (;;)
-  {
-    if (consume(&tok,tok,"*"))
-      n = new_node(ND_MUL, n, unary(&tok,tok));
-    else if (consume(&tok,tok,"/"))
-      n = new_node(ND_DIV, n, unary(&tok,tok));
-    else if (consume(&tok,tok,"%"))
-      n = new_node(ND_MOD, n, unary(&tok,tok));
-    else {
-      *rest = tok;    
+    if (consume(&tok, tok, "<="))
+      n = new_node(ND_LLESSEQ, n, add(&tok, tok));
+    else if (consume(&tok, tok, ">="))
+      n = new_node(ND_LLESSEQ, add(&tok, tok), n);
+    else if (consume(&tok, tok, "<"))
+      n = new_node(ND_LLESS, n, add(&tok, tok));
+    else if (consume(&tok, tok, ">"))
+      n = new_node(ND_LLESS, add(&tok, tok), n);
+    else
+    {
+      *rest = tok;
       return n;
     }
   }
 }
 
-/* 
+// add = mul ("+" mul | "-" mul)*
+Node *add(Token **rest, Token *tok)
+{
+
+  Node *n = mul(&tok, tok);
+
+  for (;;)
+  {
+    if (consume(&tok, tok, "+"))
+      n = new_node(ND_ADD, n, mul(&tok, tok));
+    else if (consume(&tok, tok, "-"))
+      n = new_node(ND_SUB, n, mul(&tok, tok));
+    else
+    {
+      *rest = tok;
+      return n;
+    }
+  }
+}
+
+// mul = unary ("*" unary|"/" unary|"%" unary)*
+Node *mul(Token **rest, Token *tok)
+{
+  Node *n = unary(&tok, tok);
+
+  for (;;)
+  {
+    if (consume(&tok, tok, "*"))
+      n = new_node(ND_MUL, n, unary(&tok, tok));
+    else if (consume(&tok, tok, "/"))
+      n = new_node(ND_DIV, n, unary(&tok, tok));
+    else if (consume(&tok, tok, "%"))
+      n = new_node(ND_MOD, n, unary(&tok, tok));
+    else
+    {
+      *rest = tok;
+      return n;
+    }
+  }
+}
+
+/*
 数値などの正負の項
 unary = ("+"|"-")? primary
 */
-Node *unary(Token **rest,Token *tok)
+Node *unary(Token **rest, Token *tok)
 {
   Node *n;
 
-  if (consume(&tok,tok,"+"))
-    n = primary(&tok,tok);
-  else if (consume(&tok,tok,"-"))
-    n = new_node(ND_SUB, new_node_num(0), primary(&tok,tok));
-  else if (consume(&tok,tok,"&")){
+  if (consume(&tok, tok, "+"))
+    n = primary(&tok, tok);
+  else if (consume(&tok, tok, "-"))
+    n = new_node(ND_SUB, new_node_num(0), primary(&tok, tok));
+  else if (consume(&tok, tok, "&"))
+  {
     // todo:ポインタのアドレス
   }
-  else if (consume(&tok,tok,"*")){
+  else if (consume(&tok, tok, "*"))
+  {
     // todo:ポインタのデリファレンサ
   }
   else
-    n = primary(&tok,tok);
+    n = primary(&tok, tok);
 
   *rest = tok;
   return n;
@@ -506,31 +554,32 @@ Node *unary(Token **rest,Token *tok)
 
 /*
 primary = "(" expr ")"
-		|ident("(" (expr("," expr)?)? ")")?
-		|num
+    |ident("(" (expr("," expr)?)? ")")?
+    |num
 */
-Node *primary(Token **rest,Token *tok)
+Node *primary(Token **rest, Token *tok)
 {
   Node *n;
 
-  if (consume(&tok,tok,"("))
+  if (consume(&tok, tok, "("))
   {
-    Node *n = expr(&tok,tok);
-    expect(&tok,tok,")");
-    *rest = tok;    
+    Node *n = expr(&tok, tok);
+    expect(&tok, tok, ")");
+    *rest = tok;
     return n;
   }
 
   if (tok->kind == TK_IDENT)
   {
-    if (equal_token(tok->next,"("))
-      n = new_node_function(&tok,tok);
-    else {
-      n = new_node_lval(&tok,tok);
+    if (equal_token(tok->next, "("))
+      n = new_node_function(&tok, tok);
+    else
+    {
+      n = new_node_lval(&tok, tok);
     }
   }
   else
-    n = new_node_num(expect_number(&tok,tok));
+    n = new_node_num(expect_number(&tok, tok));
 
   *rest = tok;
   return n;

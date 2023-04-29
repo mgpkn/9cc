@@ -4,7 +4,7 @@ char *user_input; // main関数の引数
 
 int main(int argc, char **argv)
 {
-  Node *code;
+  Ident *func_list;
 
   if (argc != 2)
   {
@@ -18,10 +18,10 @@ int main(int argc, char **argv)
   Token *tok = tokenize(argv[1]);
 
   //ノードの集団を生成  
-  code = parse(tok);
+  func_list = parse(tok);
   
   //アセンブリの出力
-  codegen(code);
+  codegen(func_list);
   
   return 0;
 }

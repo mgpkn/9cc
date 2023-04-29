@@ -17,7 +17,7 @@ void error_at(char *loc, char *fmt, ...);
 // トークンの種類
 typedef enum {
   TK_KEYWORD,//特別な構文全般
-  TK_IDENT, //変数などの識別子
+  TK_IDENT, //変数、関数などの識別子
   TK_NUM,      // 整数
   TK_EOF,      // コードの終わり
 } TokenKind;
@@ -116,7 +116,7 @@ struct Ident{
 
 
 //parse
-Node *parse(Token *token);
+Ident *parse(Token *token);
 
 //codegen
-void codegen(Node *code);
+void codegen(Ident *func_list);
