@@ -142,8 +142,9 @@ void gennode(Node* current_node){
 
 void codegen(Ident *func_list){
 
-  Ident *cur_func=func_list;
+  Ident *cur_func=func_list,*cur_localval=NULL;
   Node *cur_code;  
+  int total_offset;
   
   //プロローグ
   printf(".intel_syntax noprefix\n");
@@ -161,11 +162,18 @@ void codegen(Ident *func_list){
     //関数名のラベルを作成
     printf("%s:\n",cur_func->name);
 
-    //変数領域の確保。（今は26個で固定）
+    //変数領域の確保。
     printf("  push rbp\n");
     printf("  mov rbp, rsp\n");
-    printf("  sub rsp, 208\n");  
+    total_offset=0;
+    cur_localval = cur_func->localval;
+    while(cur_localval){
+      total_offset += 8;
+      cur_localval=cur_localval->next;
+    }
+    printf("  sub rsp, %d\n",total_offset);  
 
+    //関数の本文を記述。
     cur_code=cur_func->body;  
     while(cur_code)
     {

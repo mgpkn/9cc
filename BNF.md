@@ -1,6 +1,6 @@
 ```
 parse = function?
-function = ident "(" (expr("," expr)?)? ")" "{" statment? "}"
+function = ident "(" (ident("," ident)?)? ")" "{" statment? "}"
 statement = expr? ";"
 		|"{" statement "}"
 		| "return " expr ";"
