@@ -1,8 +1,8 @@
 #include "9cc.h"
 
-void gennode_lval(Node* current_node){
+void gennode_lvar(Node* current_node){
   
-  if(current_node->kind !=ND_LVAL)
+  if(current_node->kind !=ND_LVAR)
     error("代入の左辺値が変数ではありません。");
   printf("  mov rax,rbp\n");
   printf("  sub rax,%d\n",current_node->offset);
@@ -64,14 +64,14 @@ void gennode(Node* current_node){
     printf("  call %s\n",current_node->ident_name);        
     printf("  push rax\n");            
     return;
-  case ND_LVAL:
-    gennode_lval(current_node);
+  case ND_LVAR:
+    gennode_lvar(current_node);
     printf("  pop rax\n");
     printf("  mov rax,[rax]\n");
     printf("  push rax\n");        
     return;
   case ND_ASSIGN:
-    gennode_lval(current_node->lhs);
+    gennode_lvar(current_node->lhs);
     gennode(current_node->rhs);
     printf("  pop rdi\n");
     printf("  pop rax\n");
@@ -142,7 +142,7 @@ void gennode(Node* current_node){
 
 void codegen(Ident *func_list){
 
-  Ident *cur_func=func_list,*cur_localval=NULL;
+  Ident *cur_func=func_list,*cur_localvar=NULL;
   Node *cur_code;  
   int total_offset;
   
@@ -166,10 +166,10 @@ void codegen(Ident *func_list){
     printf("  push rbp\n");
     printf("  mov rbp, rsp\n");
     total_offset=0;
-    cur_localval = cur_func->localval;
-    while(cur_localval){
+    cur_localvar = cur_func->localvar;
+    while(cur_localvar){
       total_offset += 8;
-      cur_localval=cur_localval->next;
+      cur_localvar=cur_localvar->next;
     }
     printf("  sub rsp, %d\n",total_offset);  
 

@@ -3,15 +3,15 @@
 #include "9cc.h"
 
 Ident *function(Token **rest, Token *tok);
-Node *statement(Token **rest, Token *tok,Ident **lval_head);
-Node *expr(Token **rest, Token *tok,Ident **lval_head);
-Node *assign(Token **rest, Token *tok,Ident **lval_head);
-Node *equality(Token **rest, Token *tok,Ident **lval_head);
-Node *relational(Token **rest, Token *tok,Ident **lval_head);
-Node *add(Token **rest, Token *tok,Ident **lval_head);
-Node *mul(Token **rest, Token *tok,Ident **lval_head);
-Node *unary(Token **rest, Token *tok,Ident **lval_head);
-Node *primary(Token **rest, Token *tok,Ident **lval_head);
+Node *statement(Token **rest, Token *tok,Ident **lvar_head);
+Node *expr(Token **rest, Token *tok,Ident **lvar_head);
+Node *assign(Token **rest, Token *tok,Ident **lvar_head);
+Node *equality(Token **rest, Token *tok,Ident **lvar_head);
+Node *relational(Token **rest, Token *tok,Ident **lvar_head);
+Node *add(Token **rest, Token *tok,Ident **lvar_head);
+Node *mul(Token **rest, Token *tok,Ident **lvar_head);
+Node *unary(Token **rest, Token *tok,Ident **lvar_head);
+Node *primary(Token **rest, Token *tok,Ident **lvar_head);
 
 extern char *user_input; // main関数の引数
 int label_cnt;
@@ -85,9 +85,9 @@ int expect_number(Token **rest, Token *tok)
   return val;
 }
 
-Ident *find_lvar(Token *tok,Ident **lval_head)
+Ident *find_lvar(Token *tok,Ident **lvar_head)
 {
-  for (Ident *v = *lval_head; v; v = v->next)
+  for (Ident *v = *lvar_head; v; v = v->next)
   {
     if (tok->len == v->name_len && strncmp(tok->str, v->name, tok->len) == 0)
       return v;
@@ -95,10 +95,10 @@ Ident *find_lvar(Token *tok,Ident **lval_head)
   return NULL;
 }
 
-Ident *find_last_declare_val(Ident *lval_head)
+Ident *find_last_declare_val(Ident *lvar_head)
 {
-  if(!lval_head) return lval_head;
-  for (Ident *v = lval_head;; v = v->next)
+  if(!lvar_head) return lvar_head;
+  for (Ident *v = lvar_head;; v = v->next)
   {
       if(!v->next)return v;
   }
@@ -125,30 +125,30 @@ Node *new_node_num(int val)
 }
 
 // 変数ノードの作成
-Node *new_node_lval(Token **rest, Token *tok,Ident **lval_head)
+Node *new_node_lvar(Token **rest, Token *tok,Ident **lvar_head)
 {
   Node *node = NULL;
   if (tok)
   {
     node = calloc(1, sizeof(Node));
-    node->kind = ND_LVAL;
+    node->kind = ND_LVAR;
 
     // すでに宣言されたローカル変数かを確認する
-    Ident *lval = find_lvar(tok,lval_head);
-    if (!lval){
+    Ident *lvar = find_lvar(tok,lvar_head);
+    if (!lvar){
       // なければlocalsに追加
-      lval = calloc(1, sizeof(Ident));
-      lval->is_function = false;
-      lval->name = strndup(tok->str, sizeof(char) * (tok->len));
-      lval->name_len = tok->len;
-      if (*lval_head)
+      lvar = calloc(1, sizeof(Ident));
+      lvar->is_function = false;
+      lvar->name = strndup(tok->str, sizeof(char) * (tok->len));
+      lvar->name_len = tok->len;
+      if (*lvar_head)
       {
         //２回目以降の宣言の場合
-        for (Ident *v = *lval_head;; v = v->next)
+        for (Ident *v = *lvar_head;; v = v->next)
         {
           if(!v->next){
-            lval->offset = v->offset + OFFSETSIZE;
-            v->next = lval;
+            lvar->offset = v->offset + OFFSETSIZE;
+            v->next = lvar;
             break;
           }
         }
@@ -156,19 +156,19 @@ Node *new_node_lval(Token **rest, Token *tok,Ident **lval_head)
       else
       {
         //１回目の宣言の場合
-        lval->offset = OFFSETSIZE;
-        *lval_head = lval;        
+        lvar->offset = OFFSETSIZE;
+        *lvar_head = lvar;        
       }
-      node->ident_name = lval->name;
+      node->ident_name = lvar->name;
     }
-    node->offset = lval->offset;    
+    node->offset = lvar->offset;    
   }
   *rest = tok->next;
   return node;
 }
 
 // 関数ノードの作成
-Node *new_node_function(Token **rest, Token *tok,Ident **lval_head)
+Node *new_node_function(Token **rest, Token *tok,Ident **lvar_head)
 {
   Node *node;
   int i = 0;
@@ -190,7 +190,7 @@ Node *new_node_function(Token **rest, Token *tok,Ident **lval_head)
     {
       error("引数は%d個までです。", FUNC_PRAM_NUM);
     }
-    node->func_param[i] = expr(&tok, tok,lval_head);
+    node->func_param[i] = expr(&tok, tok,lvar_head);
     if (!consume(&tok, tok, ","))
       break;
     i++;
@@ -254,12 +254,12 @@ Ident *function(Token **rest, Token *tok)
       break;
     if (head_param)
     {
-      cur_param->next = expr(&tok, tok,&(fn->localval));
+      cur_param->next = expr(&tok, tok,&(fn->localvar));
       cur_param = cur_param->next;
     }
     else
     {
-      head_param = expr(&tok, tok,&(fn->localval));
+      head_param = expr(&tok, tok,&(fn->localvar));
       cur_param = head_param;
     }
     if (!consume(&tok, tok, ","))
@@ -276,12 +276,12 @@ Ident *function(Token **rest, Token *tok)
       break;
     if (head_body)
     {
-      cur_body->next = statement(&tok, tok,&(fn->localval));
+      cur_body->next = statement(&tok, tok,&(fn->localvar));
       cur_body = cur_body->next;
     }
     else
     {
-      head_body = statement(&tok, tok,&(fn->localval));
+      head_body = statement(&tok, tok,&(fn->localvar));
       cur_body = head_body;
     }
   }
@@ -300,7 +300,7 @@ statement = expr? ";"
     | "while" "(" expr ")"  statement
     | "for" "(" expr? ";" expr? ";" expr? ";" ")"  statement
 */
-Node *statement(Token **rest, Token *tok,Ident **lval_head)
+Node *statement(Token **rest, Token *tok,Ident **lvar_head)
 {
   Node *n;
   Node *n_block_current;
@@ -324,12 +324,12 @@ Node *statement(Token **rest, Token *tok,Ident **lval_head)
       {
         if (n->block_head)
         {
-          n_block_current->next = statement(&tok, tok,lval_head);
+          n_block_current->next = statement(&tok, tok,lvar_head);
           n_block_current = n_block_current->next;
         }
         else
         {
-          n->block_head = statement(&tok, tok,lval_head);
+          n->block_head = statement(&tok, tok,lvar_head);
           n_block_current = n->block_head;
         }
       }
@@ -339,7 +339,7 @@ Node *statement(Token **rest, Token *tok,Ident **lval_head)
     else if (equal_token(tok, "return"))
     {
       tok = tok->next;
-      n = new_node(ND_RETURN, expr(&tok, tok,lval_head), NULL);
+      n = new_node(ND_RETURN, expr(&tok, tok,lvar_head), NULL);
     }
     else if (equal_token(tok, "if"))
     {
@@ -350,16 +350,16 @@ Node *statement(Token **rest, Token *tok,Ident **lval_head)
       label_cnt++;
       if (consume(&tok, tok, "("))
       {
-        n->cond = expr(&tok, tok,lval_head);
+        n->cond = expr(&tok, tok,lvar_head);
         expect(&tok, tok, ")");
       }
-      n->then = statement(&tok, tok,lval_head);
+      n->then = statement(&tok, tok,lvar_head);
 
       // else
       if (equal_token(tok, "else"))
       {
         tok = tok->next;
-        n->els = statement(&tok, tok,lval_head);
+        n->els = statement(&tok, tok,lvar_head);
       }
 
       *rest = tok;
@@ -374,10 +374,10 @@ Node *statement(Token **rest, Token *tok,Ident **lval_head)
       label_cnt++;
       if (consume(&tok, tok, "("))
       {
-        n->cond = expr(&tok, tok,lval_head);
+        n->cond = expr(&tok, tok,lvar_head);
         expect(&tok, tok, ")");
       }
-      n->then = statement(&tok, tok,lval_head);
+      n->then = statement(&tok, tok,lvar_head);
 
       *rest = tok;
       return n;
@@ -394,29 +394,29 @@ Node *statement(Token **rest, Token *tok,Ident **lval_head)
       {
         // init
         if (!equal_token(tok, ";"))
-          n->init = expr(&tok, tok,lval_head);
+          n->init = expr(&tok, tok,lvar_head);
         expect(&tok, tok, ";");
         // condition
         if (!equal_token(tok, ";"))
-          n->cond = expr(&tok, tok,lval_head);
+          n->cond = expr(&tok, tok,lvar_head);
         expect(&tok, tok, ";");
         // incriment
         if (!equal_token(tok, ")"))
-          n->inc = expr(&tok, tok,lval_head);
+          n->inc = expr(&tok, tok,lvar_head);
         expect(&tok, tok, ")");
       }
-      n->then = statement(&tok, tok,lval_head);
+      n->then = statement(&tok, tok,lvar_head);
       *rest = tok;
       return n;
     }
     else
     {
-      n = expr(&tok, tok,lval_head);
+      n = expr(&tok, tok,lvar_head);
     }
   }
   else
   {
-    n = expr(&tok, tok,lval_head);
+    n = expr(&tok, tok,lvar_head);
   }
   expect(&tok, tok, ";");
   *rest = tok;
@@ -424,39 +424,39 @@ Node *statement(Token **rest, Token *tok,Ident **lval_head)
 }
 
 // expr = assgin
-Node *expr(Token **rest, Token *tok,Ident **lval_head)
+Node *expr(Token **rest, Token *tok,Ident **lvar_head)
 {
-  Node *n = assign(&tok, tok,lval_head);
+  Node *n = assign(&tok, tok,lvar_head);
   *rest = tok;
   return n;
 }
 
 // assign = equality ("=" assign )?
-Node *assign(Token **rest, Token *tok,Ident **lval_head)
+Node *assign(Token **rest, Token *tok,Ident **lvar_head)
 {
-  Node *n = equality(&tok, tok,lval_head);
+  Node *n = equality(&tok, tok,lvar_head);
   if (consume(&tok, tok, "="))
-    n = new_node(ND_ASSIGN, n, assign(&tok, tok,lval_head));
+    n = new_node(ND_ASSIGN, n, assign(&tok, tok,lvar_head));
 
   *rest = tok;
   return n;
 }
 
 // equality = relational ("==" relational |"!=" relational )*
-Node *equality(Token **rest, Token *tok,Ident **lval_head)
+Node *equality(Token **rest, Token *tok,Ident **lvar_head)
 {
 
-  Node *n = relational(&tok, tok,lval_head);
+  Node *n = relational(&tok, tok,lvar_head);
 
   for (;;)
   {
     if (consume(&tok, tok, "=="))
     {
-      n = new_node(ND_EQ, n, relational(&tok, tok,lval_head));
+      n = new_node(ND_EQ, n, relational(&tok, tok,lvar_head));
     }
     else if (consume(&tok, tok, "!="))
     {
-      n = new_node(ND_NOTEQ, n, relational(&tok, tok,lval_head));
+      n = new_node(ND_NOTEQ, n, relational(&tok, tok,lvar_head));
     }
     else
     {
@@ -467,21 +467,21 @@ Node *equality(Token **rest, Token *tok,Ident **lval_head)
 }
 
 // relational = add (">" add | "<" add | ">=" add | "<=" add)*
-Node *relational(Token **rest, Token *tok,Ident **lval_head)
+Node *relational(Token **rest, Token *tok,Ident **lvar_head)
 {
-  Node *n = add(&tok, tok,lval_head);
+  Node *n = add(&tok, tok,lvar_head);
 
   for (;;)
   {
     //>および>=不等号が逆の場合は左右のノード自体を逆に生成する
     if (consume(&tok, tok, "<="))
-      n = new_node(ND_LLESSEQ, n, add(&tok, tok,lval_head));
+      n = new_node(ND_LLESSEQ, n, add(&tok, tok,lvar_head));
     else if (consume(&tok, tok, ">="))
-      n = new_node(ND_LLESSEQ, add(&tok, tok,lval_head), n);
+      n = new_node(ND_LLESSEQ, add(&tok, tok,lvar_head), n);
     else if (consume(&tok, tok, "<"))
-      n = new_node(ND_LLESS, n, add(&tok, tok,lval_head));
+      n = new_node(ND_LLESS, n, add(&tok, tok,lvar_head));
     else if (consume(&tok, tok, ">"))
-      n = new_node(ND_LLESS, add(&tok, tok,lval_head), n);
+      n = new_node(ND_LLESS, add(&tok, tok,lvar_head), n);
     else
     {
       *rest = tok;
@@ -491,17 +491,17 @@ Node *relational(Token **rest, Token *tok,Ident **lval_head)
 }
 
 // add = mul ("+" mul | "-" mul)*
-Node *add(Token **rest, Token *tok,Ident **lval_head)
+Node *add(Token **rest, Token *tok,Ident **lvar_head)
 {
 
-  Node *n = mul(&tok, tok,lval_head);
+  Node *n = mul(&tok, tok,lvar_head);
 
   for (;;)
   {
     if (consume(&tok, tok, "+"))
-      n = new_node(ND_ADD, n, mul(&tok, tok,lval_head));
+      n = new_node(ND_ADD, n, mul(&tok, tok,lvar_head));
     else if (consume(&tok, tok, "-"))
-      n = new_node(ND_SUB, n, mul(&tok, tok,lval_head));
+      n = new_node(ND_SUB, n, mul(&tok, tok,lvar_head));
     else
     {
       *rest = tok;
@@ -511,18 +511,18 @@ Node *add(Token **rest, Token *tok,Ident **lval_head)
 }
 
 // mul = unary ("*" unary|"/" unary|"%" unary)*
-Node *mul(Token **rest, Token *tok,Ident **lval_head)
+Node *mul(Token **rest, Token *tok,Ident **lvar_head)
 {
-  Node *n = unary(&tok, tok,lval_head);
+  Node *n = unary(&tok, tok,lvar_head);
 
   for (;;)
   {
     if (consume(&tok, tok, "*"))
-      n = new_node(ND_MUL, n, unary(&tok, tok,lval_head));
+      n = new_node(ND_MUL, n, unary(&tok, tok,lvar_head));
     else if (consume(&tok, tok, "/"))
-      n = new_node(ND_DIV, n, unary(&tok, tok,lval_head));
+      n = new_node(ND_DIV, n, unary(&tok, tok,lvar_head));
     else if (consume(&tok, tok, "%"))
-      n = new_node(ND_MOD, n, unary(&tok, tok,lval_head));
+      n = new_node(ND_MOD, n, unary(&tok, tok,lvar_head));
     else
     {
       *rest = tok;
@@ -535,14 +535,14 @@ Node *mul(Token **rest, Token *tok,Ident **lval_head)
 数値などの正負の項
 unary = ("+"|"-")? primary
 */
-Node *unary(Token **rest, Token *tok,Ident **lval_head)
+Node *unary(Token **rest, Token *tok,Ident **lvar_head)
 {
   Node *n;
 
   if (consume(&tok, tok, "+"))
-    n = primary(&tok, tok,lval_head);
+    n = primary(&tok, tok,lvar_head);
   else if (consume(&tok, tok, "-"))
-    n = new_node(ND_SUB, new_node_num(0), primary(&tok, tok,lval_head));
+    n = new_node(ND_SUB, new_node_num(0), primary(&tok, tok,lvar_head));
   else if (consume(&tok, tok, "&"))
   {
     // todo:ポインタのアドレス
@@ -552,7 +552,7 @@ Node *unary(Token **rest, Token *tok,Ident **lval_head)
     // todo:ポインタのデリファレンサ
   }
   else
-    n = primary(&tok, tok,lval_head);
+    n = primary(&tok, tok,lvar_head);
 
   *rest = tok;
   return n;
@@ -563,13 +563,13 @@ primary = "(" expr ")"
     |ident("(" (expr("," expr)?)? ")")?
     |num
 */
-Node *primary(Token **rest, Token *tok,Ident **lval_head)
+Node *primary(Token **rest, Token *tok,Ident **lvar_head)
 {
   Node *n;
 
   if (consume(&tok, tok, "("))
   {
-    Node *n = expr(&tok, tok,lval_head);
+    Node *n = expr(&tok, tok,lvar_head);
     expect(&tok, tok, ")");
     *rest = tok;
     return n;
@@ -578,9 +578,9 @@ Node *primary(Token **rest, Token *tok,Ident **lval_head)
   if (tok->kind == TK_IDENT)
   {
     if (equal_token(tok->next, "("))
-      n = new_node_function(&tok, tok,lval_head);
+      n = new_node_function(&tok, tok,lvar_head);
     else
-      n = new_node_lval(&tok, tok,lval_head);
+      n = new_node_lvar(&tok, tok,lvar_head);
   }
   else
     n = new_node_num(expect_number(&tok, tok));

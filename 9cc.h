@@ -62,7 +62,7 @@ typedef enum {
   ND_DERFER, //*（デリィファレンサ）
 
   //変数
-  ND_LVAL,//ローカル
+  ND_LVAR,//ローカル
 
   //関数
   ND_FUNC,//関数  
@@ -110,7 +110,7 @@ struct Ident{
   //for function
   Node *param;
   Node *body;
-  Ident *localval;   
+  Ident *localvar;   
 
 };
 
