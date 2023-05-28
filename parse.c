@@ -17,7 +17,7 @@ extern char *user_input; // main関数の引数
 int label_cnt;
 
 // エラーを報告するための関数
-// printfと同じ引数を取る
+// printfと同じ引数を取る50
 void error(char *fmt, ...)
 {
   va_list ap;
@@ -534,6 +534,8 @@ Node *mul(Token **rest, Token *tok,Ident **lvar_head)
 /*
 数値などの正負の項
 unary = ("+"|"-")? primary
+		|("&"|"*") unary
+
 */
 Node *unary(Token **rest, Token *tok,Ident **lvar_head)
 {
@@ -545,11 +547,11 @@ Node *unary(Token **rest, Token *tok,Ident **lvar_head)
     n = new_node(ND_SUB, new_node_num(0), primary(&tok, tok,lvar_head));
   else if (consume(&tok, tok, "&"))
   {
-    // todo:ポインタのアドレス
+    n = new_node(ND_ADDR,unary(&tok, tok,lvar_head), NULL);    
   }
   else if (consume(&tok, tok, "*"))
   {
-    // todo:ポインタのデリファレンサ
+   n = new_node(ND_DEREF,unary(&tok, tok,lvar_head), NULL);        
   }
   else
     n = primary(&tok, tok,lvar_head);

@@ -6,3 +6,5 @@ a.out
 #*~
 *.json
 foo/foo.c
+a.out
+gccsample

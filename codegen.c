@@ -1,8 +1,8 @@
 #include "9cc.h"
 
-void gennode_lvar(Node* current_node){
+void gennode_lval(Node* current_node){
   
-  if(current_node->kind !=ND_LVAR)
+  if(!(current_node->kind == ND_LVAR ||current_node->kind == ND_ADDR))
     error("代入の左辺値が変数ではありません。");
   printf("  mov rax,rbp\n");
   printf("  sub rax,%d\n",current_node->offset);
@@ -65,13 +65,20 @@ void gennode(Node* current_node){
     printf("  push rax\n");            
     return;
   case ND_LVAR:
-    gennode_lvar(current_node);
+    gennode_lval(current_node);
     printf("  pop rax\n");
-    printf("  mov rax,[rax]\n");
-    printf("  push rax\n");        
+    printf("  push [rax]\n");        
+    return;
+  case ND_ADDR:
+    gennode_lval(current_node->lhs);
+    return;
+  case ND_DEREF:
+    gennode(current_node->lhs);
+    printf("  pop rax\n");
+    printf("  push [rax]\n");
     return;
   case ND_ASSIGN:
-    gennode_lvar(current_node->lhs);
+    gennode_lval(current_node->lhs);
     gennode(current_node->rhs);
     printf("  pop rdi\n");
     printf("  pop rax\n");
@@ -88,6 +95,7 @@ void gennode(Node* current_node){
     break;
   }
   
+  //左右のノードを比較するコード
   gennode(current_node->lhs);
   gennode(current_node->rhs);    
 

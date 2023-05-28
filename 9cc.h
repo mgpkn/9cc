@@ -58,8 +58,8 @@ typedef enum {
   ND_BLOCK,//{}
   
   ////pointer
-  ND_POINTER, //&（ポインタ）
-  ND_DERFER, //*（デリィファレンサ）
+  ND_ADDR, //&（アドレス）
+  ND_DEREF, //*（デリファレンサ）
 
   //変数
   ND_LVAR,//ローカル

@@ -16,15 +16,11 @@ assert() {
   fi
 }
 
-
+<<COUT
 assert 25 "main(){return (5+20);}"
 assert 25 "main(){i=0;x=0;y=0;return (5+20);}"
 assert 50 "main(){a=2;b=5;b=b+3;c=3;return (b-c+ababa())*a;} ababa(){a=20;return 20;}"
 assert 3 "main(){return a=3;}"
-#<<COUT
-assert 67 "main(){i=11;return i+(ufufu()*(5+ababa()));} ababa(){if(3>1)return 3; else return 5;} ufufu(){ i=1;while(i<7){i=i+1;}return i; }"
-assert 81 "main(){i=11;return i+(ufufu()*(5+ababa()));} ababa(){if(3<1)return 3; else return 5;} ufufu(){ i=1;while(i<7){i=i+1;}return i; }"
-assert 81 "main(){i=11;j=0;x=0;return i+(ufufu()*(5+ababa()));} ababa(){if(3<1)return 3; else return 5;} ufufu(){ i=1;while(i<7){i=i+1;}return i; }"
 assert 25 "main(){;;;;return (5+20);}"
 assert 25 "main(){{} return (5+20);}"
 assert 3 "main(){return 0 - -3;}"
@@ -91,5 +87,15 @@ assert 8 "main(){return foo(a,b,4,baa(),(baa()*3)+(3+1))+baa(d,d,d)+baa();}"
 assert 4 "main(){return foo(1,2,3,4,5,6);}"
 assert 4 "main(a,b,c){return foo(1,2,3,4,5,6);}"
 #assert 4 "main(){return foo(1,2,3,4,5,6,7);}" #raise error pettern
-#COUT
+assert 67 "main(){i=11;return i+(ufufu()*(5+ababa()));} ababa(){if(3>1)return 3; else return 5;} ufufu(){ i=1;while(i<7){i=i+1;}return i; }"
+assert 81 "main(){i=11;return i+(ufufu()*(5+ababa()));} ababa(){if(3<1)return 3; else return 5;} ufufu(){ i=1;while(i<7){i=i+1;}return i; }"
+assert 81 "main(){i=11;j=0;x=0;return i+(ufufu()*(5+ababa()));} ababa(){if(3<1)return 3; else return 5;} ufufu(){ i=1;while(i<7){i=i+1;}return i; }"
+assert 4 "main(a,b,c){return foo(1,2,3,4,5,6);}"
+assert 4 "main(){b=4; return b;}"
+COUT
+assert 7 "main(){a=4;b=7;return b;}"
+assert 5 "main(){a=5;b=&a;return *b;}"
+assert 15 "main(){a=5;b=&a;return *b*3;}"
+assert 3 "main(){x=3;y=5;z=&y+8;return *z;}"
+#assert 3 "main(){a=5;b=&a;*b=3;return *b;}"
 echo OK
