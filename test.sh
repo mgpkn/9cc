@@ -92,10 +92,14 @@ assert 81 "main(){i=11;return i+(ufufu()*(5+ababa()));} ababa(){if(3<1)return 3;
 assert 81 "main(){i=11;j=0;x=0;return i+(ufufu()*(5+ababa()));} ababa(){if(3<1)return 3; else return 5;} ufufu(){ i=1;while(i<7){i=i+1;}return i; }"
 assert 4 "main(a,b,c){return foo(1,2,3,4,5,6);}"
 assert 4 "main(){b=4; return b;}"
-COUT
+
 assert 7 "main(){a=4;b=7;return b;}"
 assert 5 "main(){a=5;b=&a;return *b;}"
 assert 15 "main(){a=5;b=&a;return *b*3;}"
 assert 3 "main(){x=3;y=5;z=&y+8;return *z;}"
+assert 13 "main(){x=13;y=&x;return *y;}"
+COUT
+assert 13 "main(){int x;x=13;return x;}"
+assert 33 "main(){int x;x=13;int y;y=20;return x+y;}"
 #assert 3 "main(){a=5;b=&a;*b=3;return *b;}"
 echo OK

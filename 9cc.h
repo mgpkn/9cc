@@ -7,6 +7,7 @@
 
 #define NODENUM  100
 #define OFFSETSIZE 8
+#define BASE_OFFSETSIZE 8
 #define FUNC_PRAM_NUM 6
 
 //CallError
@@ -16,7 +17,7 @@ void error_at(char *loc, char *fmt, ...);
 
 // トークンの種類
 typedef enum {
-  TK_KEYWORD,//特別な構文全般
+  TK_KEYWORD,//特別な構文全般、型などの識別子
   TK_IDENT, //変数、関数などの識別子
   TK_NUM,      // 整数
   TK_EOF,      // コードの終わり
@@ -38,14 +39,12 @@ Token *tokenize(char *p);
 //Node
 // 抽象構文木のノードの種類
 typedef enum {
-
-  //キーワード
+  //演算子  
   ND_ADD, // +
   ND_SUB, // -
   ND_MUL, // *
   ND_DIV, // /
   ND_MOD, // %
-
   ND_EQ, // ==
   ND_NOTEQ, // !=
   ND_LLESS,// <
@@ -56,23 +55,21 @@ typedef enum {
   ND_WHILE,  //while
   ND_FOR,  //for
   ND_BLOCK,//{}
-  
-  ////pointer
   ND_ADDR, //&（アドレス）
   ND_DEREF, //*（デリファレンサ）
-
-  //変数
-  ND_LVAR,//ローカル
-
-  //関数
+  ND_LVAR,//ローカル変数
   ND_FUNC,//関数  
-
-  //実値
   ND_NUM // 整数
-
-  
 } NodeKind;
 
+typedef struct Identtype Identtype;
+struct Identtype{
+  char *name;
+  int name_len;
+  int size;
+  int offset_size;
+  Identtype *next;
+};
 
 // 抽象構文木のノードの型
 typedef struct Node Node;
@@ -103,6 +100,7 @@ struct Ident{
   char *name;
   int name_len;//変数名の長さ  
   Ident *next; //next ident
+  char *type;//型
 
   //for variable
   int offset; //RBPからのオフセット

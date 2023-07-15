@@ -2,16 +2,17 @@
 #include <string.h>
 #include "9cc.h"
 
-Ident *function(Token **rest, Token *tok);
-Node *statement(Token **rest, Token *tok, Ident **lvar_head);
-Node *expr(Token **rest, Token *tok, Ident **lvar_head);
-Node *assign(Token **rest, Token *tok, Ident **lvar_head);
-Node *equality(Token **rest, Token *tok, Ident **lvar_head);
-Node *relational(Token **rest, Token *tok, Ident **lvar_head);
-Node *add(Token **rest, Token *tok, Ident **lvar_head);
-Node *mul(Token **rest, Token *tok, Ident **lvar_head);
-Node *unary(Token **rest, Token *tok, Ident **lvar_head);
-Node *primary(Token **rest, Token *tok, Ident **lvar_head);
+Ident *function(Token **rest, Token *tok,Identtype **identtype_list);
+Node *statement(Token **rest, Token *tok, Ident **lvar_head,Identtype **identtype_list);
+Node *expr(Token **rest, Token *tok, Ident **lvar_head,Identtype **identtype_list);
+Node *declaration(Token **rest, Token *tok, Ident **lvar_head,Identtype **identtype_list);
+Node *assign(Token **rest, Token *tok, Ident **lvar_head,Identtype **identtype_list);
+Node *equality(Token **rest, Token *tok, Ident **lvar_head,Identtype **identtype_list);
+Node *relational(Token **rest, Token *tok, Ident **lvar_head,Identtype **identtype_list);
+Node *add(Token **rest, Token *tok, Ident **lvar_head,Identtype **identtype_list);
+Node *mul(Token **rest, Token *tok, Ident **lvar_head,Identtype **identtype_list);
+Node *unary(Token **rest, Token *tok, Ident **lvar_head,Identtype **identtype_list);
+Node *primary(Token **rest, Token *tok, Ident **lvar_head,Identtype **identtype_list);
 
 extern char *user_input; // main関数の引数
 int label_cnt;
@@ -47,6 +48,75 @@ bool equal_token(Token *tok, char *op)
   return (strncmp(tok->str, op, tok->len) == 0 && tok->len > 0);
 }
 
+bool is_identtype(Identtype *identtype_def_head, char *name, int name_len)
+{
+  Identtype *ity = identtype_def_head;
+  while (ity)
+  {
+    if (strncmp(ity->name, name, name_len) == 0)
+    {
+      return true;
+    }
+    ity = ity->next;
+  }
+  return false;
+}
+
+Identtype *get_identtype(Identtype *identtype_def_head, char *name, int name_len)
+{
+
+  Identtype *ity = identtype_def_head;
+  while (ity)
+  {
+    if (strncmp(ity->name, name, name_len) == 0)
+    {
+      return ity;
+    }
+    ity = ity->next;
+  }
+  return ity;
+}
+
+void add_identtype(Identtype **identtype_def_head, char *name,int name_len, int size)
+{
+
+  Identtype *ity;
+  int i = 1;
+  char err_msg[100];
+  if (get_identtype(*identtype_def_head, name, name_len))
+  {
+    sprintf(err_msg, "%s : 既に定義されているデータ型です。", name);
+    error(err_msg);
+  }
+
+  ity = calloc(1, sizeof(Identtype));
+  ity->name = strndup(name, sizeof(char) * (name_len));
+  ity->name_len = name_len;  
+  ity->size = size;
+  while (size > BASE_OFFSETSIZE * i)
+    i++;
+
+  ity->offset_size = BASE_OFFSETSIZE * i;
+
+  if (*identtype_def_head)
+  {
+    //２回目以降の宣言
+    for (Identtype *j = *identtype_def_head;; j = j->next)
+    {
+      if (!j->next)
+      {
+        j->next = ity;
+        break;
+      }
+    }
+  }
+  else
+  {
+    //１回目の宣言
+    *identtype_def_head = ity;
+  }
+}
+
 // 次のトークンが期待している記号のときには、トークンを1つ読み進めて
 // 真を返す。それ以外の場合には偽を返す。
 bool consume(Token **rest, Token *tok, char *op)
@@ -70,7 +140,7 @@ bool consume_number(Token **rest, Token *tok, char *op)
 void expect(Token **rest, Token *tok, char *op)
 {
   if (tok->kind != TK_KEYWORD || strlen(op) != tok->len || strncmp(tok->str, op, strlen(op)) != 0)
-    error_at(tok->str, "'%s'ではありません", op);
+    error_at(tok->str, "'%s'ではありません。", op);
   *rest = tok->next;
 }
 
@@ -79,7 +149,7 @@ void expect(Token **rest, Token *tok, char *op)
 int expect_number(Token **rest, Token *tok)
 {
   if (tok->kind != TK_NUM)
-    error_at(tok->str, "数ではありません");
+    error_at(tok->str, "数ではありません。");
   int val = tok->val;
   *rest = tok->next;
   return val;
@@ -95,6 +165,7 @@ Ident *find_lvar(Token *tok, Ident **lvar_head)
   return NULL;
 }
 
+/*
 Ident *find_last_declare_val(Ident *lvar_head)
 {
   if (!lvar_head)
@@ -105,6 +176,7 @@ Ident *find_last_declare_val(Ident *lvar_head)
       return v;
   }
 }
+*/
 
 // 数値以外のノードの作成
 Node *new_node(NodeKind kind, Node *lhs, Node *rhs)
@@ -126,7 +198,7 @@ Node *new_node_num(int val)
 }
 
 // 変数ノードの作成
-Node *new_node_lvar(Token **rest, Token *tok, Ident **lvar_head)
+Node *new_node_declare_lvar(Token **rest, Token *tok, Ident **lvar_head,Identtype *ity)
 {
   Node *node = NULL;
   if (tok)
@@ -136,34 +208,55 @@ Node *new_node_lvar(Token **rest, Token *tok, Ident **lvar_head)
 
     // すでに宣言されたローカル変数かを確認する
     Ident *lvar = find_lvar(tok, lvar_head);
-    if (!lvar)
+    if (lvar)
+      error_at(tok->str, "すで宣言されている識別子です。");
+
+    // なければlocalsに追加
+    lvar = calloc(1, sizeof(Ident));
+    lvar->is_function = false;
+    lvar->name = strndup(tok->str, sizeof(char) * (tok->len));
+    lvar->name_len = tok->len;
+    lvar->type = strndup(ity->name, sizeof(char) * (ity->name_len));
+    if (*lvar_head)
     {
-      // なければlocalsに追加
-      lvar = calloc(1, sizeof(Ident));
-      lvar->is_function = false;
-      lvar->name = strndup(tok->str, sizeof(char) * (tok->len));
-      lvar->name_len = tok->len;
-      if (*lvar_head)
+      // ２回目以降の宣言の場合
+      for (Ident *v = *lvar_head;; v = v->next)
       {
-        // ２回目以降の宣言の場合
-        for (Ident *v = *lvar_head;; v = v->next)
+        if (!v->next)
         {
-          if (!v->next)
-          {
-            lvar->offset = v->offset + OFFSETSIZE;
-            v->next = lvar;
-            break;
-          }
+          lvar->offset = v->offset + ity->offset_size;
+          v->next = lvar;
+          break;
         }
       }
-      else
-      {
-        // １回目の宣言の場合
-        lvar->offset = OFFSETSIZE;
-        *lvar_head = lvar;
-      }
-      node->ident_name = lvar->name;
     }
+    else
+    {
+      // １回目の宣言の場合
+      lvar->offset = ity->offset_size;
+      *lvar_head = lvar;
+    }
+    node->ident_name = lvar->name;
+    node->offset = lvar->offset;
+  }
+  *rest = tok->next;
+  return node;
+}
+
+// 変数ノードの作成
+Node *new_node_lvar(Token **rest, Token *tok, Ident **lvar_head,Identtype **identtype_list)
+{
+  Node *node = NULL;
+  if (tok)
+  {
+    // すでに宣言されたローカル変数かを確認する
+    Ident *lvar = find_lvar(tok, lvar_head);
+    if (!lvar)
+      error_at(tok->str, "まだ宣言されていない識別子です。");
+
+    node = calloc(1, sizeof(Node));
+    node->kind = ND_LVAR;
+    node->ident_name = lvar->name;
     node->offset = lvar->offset;
   }
   *rest = tok->next;
@@ -171,7 +264,7 @@ Node *new_node_lvar(Token **rest, Token *tok, Ident **lvar_head)
 }
 
 // 関数ノードの作成
-Node *new_node_function(Token **rest, Token *tok, Ident **lvar_head)
+Node *new_node_function(Token **rest, Token *tok, Ident **lvar_head,Identtype **identtype_list)
 {
   Node *node;
   int i = 0;
@@ -193,7 +286,7 @@ Node *new_node_function(Token **rest, Token *tok, Ident **lvar_head)
     {
       error("引数は%d個までです。", FUNC_PRAM_NUM);
     }
-    node->func_param[i] = expr(&tok, tok, lvar_head);
+    node->func_param[i] = expr(&tok, tok, lvar_head,identtype_list);
     if (!consume(&tok, tok, ","))
       break;
     i++;
@@ -213,26 +306,33 @@ Ident *parse(Token *tok)
 {
 
   label_cnt = 0;
+  Identtype *identtype_list = NULL;
   Ident *head_fn = NULL, *cur_fn = NULL;
+
+  // 基本形のデータ型を定義。
+  add_identtype(&identtype_list, "int", 3, 4);
+  add_identtype(&identtype_list, "char", 4, 1);
+
   while (!at_eof(tok))
   {
     if (head_fn)
     {
-      cur_fn->next = function(&tok, tok);
+      cur_fn->next = function(&tok, tok,&identtype_list);
       cur_fn = cur_fn->next;
     }
     else
     {
-      head_fn = function(&tok, tok);
+      head_fn = function(&tok, tok,&identtype_list);
       cur_fn = head_fn;
     }
   }
   return head_fn;
 }
 
-// function = ident "(" (ident("," ident)?)? ")" "{" statment? "}"
-
-Ident *function(Token **rest, Token *tok)
+/*
+function ::= declaration "(" (declaration("," declaration)?)? ")" "{" statment? "}"
+*/
+Ident *function(Token **rest, Token *tok,Identtype **identtype_list)
 {
 
   Ident *fn;
@@ -257,12 +357,12 @@ Ident *function(Token **rest, Token *tok)
       break;
     if (head_param)
     {
-      cur_param->next = expr(&tok, tok, &(fn->localvar));
+      cur_param->next = expr(&tok, tok, &(fn->localvar),identtype_list);
       cur_param = cur_param->next;
     }
     else
     {
-      head_param = expr(&tok, tok, &(fn->localvar));
+      head_param = expr(&tok, tok, &(fn->localvar),identtype_list);
       cur_param = head_param;
     }
     if (!consume(&tok, tok, ","))
@@ -279,12 +379,12 @@ Ident *function(Token **rest, Token *tok)
       break;
     if (head_body)
     {
-      cur_body->next = statement(&tok, tok, &(fn->localvar));
+      cur_body->next = statement(&tok, tok, &(fn->localvar),identtype_list);
       cur_body = cur_body->next;
     }
     else
     {
-      head_body = statement(&tok, tok, &(fn->localvar));
+      head_body = statement(&tok, tok, &(fn->localvar),identtype_list);
       cur_body = head_body;
     }
   }
@@ -296,14 +396,14 @@ Ident *function(Token **rest, Token *tok)
 }
 
 /*
-statement = expr? ";"
-    |"{" statement "}"
+statement ::= (declaration|expr)? ";"
+    |"{" statement? "}"
     | "return " expr ";"
     | "if" "(" expr ")" statement "else" statement
     | "while" "(" expr ")"  statement
-    | "for" "(" expr? ";" expr? ";" expr? ";" ")"  statement
+    | "for" "(" (declaration|expr)? ";" expr? ";" expr? ";" ")"  statement
 */
-Node *statement(Token **rest, Token *tok, Ident **lvar_head)
+Node *statement(Token **rest, Token *tok, Ident **lvar_head,Identtype **identtype_list)
 {
   Node *n;
   Node *n_block_current;
@@ -327,12 +427,12 @@ Node *statement(Token **rest, Token *tok, Ident **lvar_head)
       {
         if (n->block_head)
         {
-          n_block_current->next = statement(&tok, tok, lvar_head);
+          n_block_current->next = statement(&tok, tok, lvar_head,identtype_list);
           n_block_current = n_block_current->next;
         }
         else
         {
-          n->block_head = statement(&tok, tok, lvar_head);
+          n->block_head = statement(&tok, tok, lvar_head,identtype_list);
           n_block_current = n->block_head;
         }
       }
@@ -342,7 +442,7 @@ Node *statement(Token **rest, Token *tok, Ident **lvar_head)
     else if (equal_token(tok, "return"))
     {
       tok = tok->next;
-      n = new_node(ND_RETURN, expr(&tok, tok, lvar_head), NULL);
+      n = new_node(ND_RETURN, expr(&tok, tok, lvar_head,identtype_list), NULL);
     }
     else if (equal_token(tok, "if"))
     {
@@ -353,16 +453,16 @@ Node *statement(Token **rest, Token *tok, Ident **lvar_head)
       label_cnt++;
       if (consume(&tok, tok, "("))
       {
-        n->cond = expr(&tok, tok, lvar_head);
+        n->cond = expr(&tok, tok, lvar_head,identtype_list);
         expect(&tok, tok, ")");
       }
-      n->then = statement(&tok, tok, lvar_head);
+      n->then = statement(&tok, tok, lvar_head,identtype_list);
 
       // else
       if (equal_token(tok, "else"))
       {
         tok = tok->next;
-        n->els = statement(&tok, tok, lvar_head);
+        n->els = statement(&tok, tok, lvar_head,identtype_list);
       }
 
       *rest = tok;
@@ -377,10 +477,10 @@ Node *statement(Token **rest, Token *tok, Ident **lvar_head)
       label_cnt++;
       if (consume(&tok, tok, "("))
       {
-        n->cond = expr(&tok, tok, lvar_head);
+        n->cond = expr(&tok, tok, lvar_head,identtype_list);
         expect(&tok, tok, ")");
       }
-      n->then = statement(&tok, tok, lvar_head);
+      n->then = statement(&tok, tok, lvar_head,identtype_list);
 
       *rest = tok;
       return n;
@@ -397,69 +497,90 @@ Node *statement(Token **rest, Token *tok, Ident **lvar_head)
       {
         // init
         if (!equal_token(tok, ";"))
-          n->init = expr(&tok, tok, lvar_head);
+          n->init = expr(&tok, tok, lvar_head,identtype_list);
         expect(&tok, tok, ";");
         // condition
         if (!equal_token(tok, ";"))
-          n->cond = expr(&tok, tok, lvar_head);
+          n->cond = expr(&tok, tok, lvar_head,identtype_list);
         expect(&tok, tok, ";");
         // incriment
         if (!equal_token(tok, ")"))
-          n->inc = expr(&tok, tok, lvar_head);
+          n->inc = expr(&tok, tok, lvar_head,identtype_list);
         expect(&tok, tok, ")");
       }
-      n->then = statement(&tok, tok, lvar_head);
+      n->then = statement(&tok, tok, lvar_head,identtype_list);
       *rest = tok;
       return n;
     }
     else
     {
-      n = expr(&tok, tok, lvar_head);
+        n = expr(&tok, tok, lvar_head,identtype_list);
     }
   }
   else
   {
-    n = expr(&tok, tok, lvar_head);
+      if (is_identtype(*identtype_list,tok->str,tok->len))
+        n = declaration(&tok, tok, lvar_head,identtype_list);      
+      else 
+        n = expr(&tok, tok, lvar_head,identtype_list);
   }
   expect(&tok, tok, ";");
   *rest = tok;
   return n;
 }
 
-// expr = assgin
-Node *expr(Token **rest, Token *tok, Ident **lvar_head)
+// expr ::= assgin
+Node *expr(Token **rest, Token *tok, Ident **lvar_head,Identtype **identtype_list)
 {
-  Node *n = assign(&tok, tok, lvar_head);
+  Node *n = assign(&tok, tok, lvar_head,identtype_list);
   *rest = tok;
   return n;
 }
 
-// assign = equality ("=" assign )?
-Node *assign(Token **rest, Token *tok, Ident **lvar_head)
+/*
+declaration = type ident
+*/
+Node *declaration(Token **rest, Token *tok, Ident **lvar_head,Identtype **identtype_list)
 {
-  Node *n = equality(&tok, tok, lvar_head);
+
+  Identtype *ity;
+  if (!is_identtype(*identtype_list,tok->str,tok->len))
+    error_at(tok->str, "不正なデータ型です。");    
+
+  ity = get_identtype(*identtype_list,tok->str,tok->len);
+  tok=tok->next;
+  Node *n = new_node_declare_lvar(&tok,tok,lvar_head,ity);
+
+  *rest = tok;
+  return n;
+}
+
+// assign ::= equality ("=" assign )?
+Node *assign(Token **rest, Token *tok, Ident **lvar_head,Identtype **identtype_list)
+{
+  Node *n = equality(&tok, tok, lvar_head,identtype_list);
   if (consume(&tok, tok, "="))
-    n = new_node(ND_ASSIGN, n, assign(&tok, tok, lvar_head));
+    n = new_node(ND_ASSIGN, n, assign(&tok, tok, lvar_head,identtype_list));
 
   *rest = tok;
   return n;
 }
 
-// equality = relational ("==" relational |"!=" relational )*
-Node *equality(Token **rest, Token *tok, Ident **lvar_head)
+// equality ::= relational ("==" relational |"!=" relational )*
+Node *equality(Token **rest, Token *tok, Ident **lvar_head,Identtype **identtype_list)
 {
 
-  Node *n = relational(&tok, tok, lvar_head);
+  Node *n = relational(&tok, tok, lvar_head,identtype_list);
 
   for (;;)
   {
     if (consume(&tok, tok, "=="))
     {
-      n = new_node(ND_EQ, n, relational(&tok, tok, lvar_head));
+      n = new_node(ND_EQ, n, relational(&tok, tok, lvar_head,identtype_list));
     }
     else if (consume(&tok, tok, "!="))
     {
-      n = new_node(ND_NOTEQ, n, relational(&tok, tok, lvar_head));
+      n = new_node(ND_NOTEQ, n, relational(&tok, tok, lvar_head,identtype_list));
     }
     else
     {
@@ -469,22 +590,22 @@ Node *equality(Token **rest, Token *tok, Ident **lvar_head)
   }
 }
 
-// relational = add (">" add | "<" add | ">=" add | "<=" add)*
-Node *relational(Token **rest, Token *tok, Ident **lvar_head)
+// relational ::= add (">" add | "<" add | ">=" add | "<=" add)*
+Node *relational(Token **rest, Token *tok, Ident **lvar_head,Identtype **identtype_list)
 {
-  Node *n = add(&tok, tok, lvar_head);
+  Node *n = add(&tok, tok, lvar_head,identtype_list);
 
   for (;;)
   {
     //>および>=不等号が逆の場合は左右のノード自体を逆に生成する
     if (consume(&tok, tok, "<="))
-      n = new_node(ND_LLESSEQ, n, add(&tok, tok, lvar_head));
+      n = new_node(ND_LLESSEQ, n, add(&tok, tok, lvar_head,identtype_list));
     else if (consume(&tok, tok, ">="))
-      n = new_node(ND_LLESSEQ, add(&tok, tok, lvar_head), n);
+      n = new_node(ND_LLESSEQ, add(&tok, tok, lvar_head,identtype_list), n);
     else if (consume(&tok, tok, "<"))
-      n = new_node(ND_LLESS, n, add(&tok, tok, lvar_head));
+      n = new_node(ND_LLESS, n, add(&tok, tok, lvar_head,identtype_list));
     else if (consume(&tok, tok, ">"))
-      n = new_node(ND_LLESS, add(&tok, tok, lvar_head), n);
+      n = new_node(ND_LLESS, add(&tok, tok, lvar_head,identtype_list), n);
     else
     {
       *rest = tok;
@@ -493,18 +614,18 @@ Node *relational(Token **rest, Token *tok, Ident **lvar_head)
   }
 }
 
-// add = mul ("+" mul | "-" mul)*
-Node *add(Token **rest, Token *tok, Ident **lvar_head)
+// add ::= mul ("+" mul | "-" mul)*
+Node *add(Token **rest, Token *tok, Ident **lvar_head,Identtype **identtype_list)
 {
 
-  Node *n = mul(&tok, tok, lvar_head);
+  Node *n = mul(&tok, tok, lvar_head,identtype_list);
 
   for (;;)
   {
     if (consume(&tok, tok, "+"))
-      n = new_node(ND_ADD, n, mul(&tok, tok, lvar_head));
+      n = new_node(ND_ADD, n, mul(&tok, tok, lvar_head,identtype_list));
     else if (consume(&tok, tok, "-"))
-      n = new_node(ND_SUB, n, mul(&tok, tok, lvar_head));
+      n = new_node(ND_SUB, n, mul(&tok, tok, lvar_head,identtype_list));
     else
     {
       *rest = tok;
@@ -513,19 +634,19 @@ Node *add(Token **rest, Token *tok, Ident **lvar_head)
   }
 }
 
-// mul = unary ("*" unary|"/" unary|"%" unary)*
-Node *mul(Token **rest, Token *tok, Ident **lvar_head)
+// mul ::= unary ("*" unary|"/" unary|"%" unary)*
+Node *mul(Token **rest, Token *tok, Ident **lvar_head,Identtype **identtype_list)
 {
-  Node *n = unary(&tok, tok, lvar_head);
+  Node *n = unary(&tok, tok, lvar_head,identtype_list);
 
   for (;;)
   {
     if (consume(&tok, tok, "*"))
-      n = new_node(ND_MUL, n, unary(&tok, tok, lvar_head));
+      n = new_node(ND_MUL, n, unary(&tok, tok, lvar_head,identtype_list));
     else if (consume(&tok, tok, "/"))
-      n = new_node(ND_DIV, n, unary(&tok, tok, lvar_head));
+      n = new_node(ND_DIV, n, unary(&tok, tok, lvar_head,identtype_list));
     else if (consume(&tok, tok, "%"))
-      n = new_node(ND_MOD, n, unary(&tok, tok, lvar_head));
+      n = new_node(ND_MOD, n, unary(&tok, tok, lvar_head,identtype_list));
     else
     {
       *rest = tok;
@@ -536,45 +657,45 @@ Node *mul(Token **rest, Token *tok, Ident **lvar_head)
 
 /*
 数値などの正負の項
-unary = ("+"|"-")? primary
-    |("&"|"*") unary
 
+unary ::= ("+"|"-"|)? primary
+    |("&"|"*") unary
 */
-Node *unary(Token **rest, Token *tok, Ident **lvar_head)
+Node *unary(Token **rest, Token *tok, Ident **lvar_head,Identtype **identtype_list)
 {
   Node *n;
 
   if (consume(&tok, tok, "+"))
-    n = primary(&tok, tok, lvar_head);
+    n = primary(&tok, tok, lvar_head,identtype_list);
   else if (consume(&tok, tok, "-"))
-    n = new_node(ND_SUB, new_node_num(0), primary(&tok, tok, lvar_head));
+    n = new_node(ND_SUB, new_node_num(0), primary(&tok, tok, lvar_head,identtype_list));
   else if (consume(&tok, tok, "&"))
   {
-    n = new_node(ND_ADDR, unary(&tok, tok, lvar_head), NULL);
+    n = new_node(ND_ADDR, unary(&tok, tok, lvar_head,identtype_list), NULL);
   }
   else if (consume(&tok, tok, "*"))
   {
-    n = new_node(ND_DEREF, unary(&tok, tok, lvar_head), NULL);
+    n = new_node(ND_DEREF, unary(&tok, tok, lvar_head,identtype_list), NULL);
   }
   else
-    n = primary(&tok, tok, lvar_head);
+    n = primary(&tok, tok, lvar_head,identtype_list);
 
   *rest = tok;
   return n;
 }
 
 /*
-primary = "(" expr ")"
-    |ident("(" (expr("," expr)?)? ")")?
+primary ::= "(" expr ")"
+    |type? ident("(" (expr("," expr)?)? ")")?
     |num
 */
-Node *primary(Token **rest, Token *tok, Ident **lvar_head)
+Node *primary(Token **rest, Token *tok, Ident **lvar_head,Identtype **identtype_list)
 {
   Node *n;
 
   if (consume(&tok, tok, "("))
   {
-    Node *n = expr(&tok, tok, lvar_head);
+    Node *n = expr(&tok, tok, lvar_head,identtype_list);
     expect(&tok, tok, ")");
     *rest = tok;
     return n;
@@ -583,9 +704,9 @@ Node *primary(Token **rest, Token *tok, Ident **lvar_head)
   if (tok->kind == TK_IDENT)
   {
     if (equal_token(tok->next, "("))
-      n = new_node_function(&tok, tok, lvar_head);
+      n = new_node_function(&tok, tok, lvar_head,identtype_list);
     else
-      n = new_node_lvar(&tok, tok, lvar_head);
+      n = new_node_lvar(&tok, tok, lvar_head,identtype_list);
   }
   else
     n = new_node_num(expect_number(&tok, tok));

@@ -115,7 +115,8 @@ Token *tokenize(char *p) {
       continue;
     }
 
-    //変数のトークナイズ
+
+    //型、変数のトークナイズ
     //変数として有効な文字の探索
     i=0;
     while(true){
