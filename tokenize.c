@@ -1,3 +1,4 @@
+#define _XOPEN_SOURCE 700
 #include "9cc.h"
 #include <string.h>
 
@@ -7,9 +8,8 @@ Token *new_token(TokenKind kind, Token *cur, char *str,int len) {
   Token *tok = calloc(1, sizeof(Token));
 
   tok->kind = kind;
-  tok->str = str;  
   tok->len = len;
-
+  tok->str = strndup(str, sizeof(char) * len);
   cur->next = tok;
   
   return tok;

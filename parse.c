@@ -43,20 +43,25 @@ void error_at(char *loc, char *fmt, ...)
   exit(1);
 }
 
-bool equal_token(Token *tok, char *op)
+bool equal(char *str1, char *str2,int str1_len)
 {
-  return (strncmp(tok->str, op, tok->len) == 0 && tok->len > 0);
+  return (strncmp(str1,str2,str1_len) == 0 && str2[str1_len] == '\0');
 }
 
-bool is_identtype(Identtype *identtype_def_head, char *name, int name_len)
+
+bool equal_token(Token *tok, char *op)
+{
+  return equal(tok->str, op, tok->len);
+}
+
+bool is_identtype(Identtype *identtype_def_head, char *str)
 {
   Identtype *ity = identtype_def_head;
   while (ity)
   {
-    if (strncmp(ity->name, name, name_len) == 0)
-    {
+    if (equal(ity->name, str, ity->name_len))
       return true;
-    }
+
     ity = ity->next;
   }
   return false;
@@ -336,7 +341,14 @@ Ident *function(Token **rest, Token *tok,Identtype **identtype_list)
 {
 
   Ident *fn;
+  Identtype *ity; 
   Node *head_param = NULL, *cur_param = NULL, *head_body = NULL, *cur_body = NULL;
+
+  if (!is_identtype(*identtype_list,tok->str))
+    error_at(tok->str, "不正なデータ型です。");    
+
+  ity = get_identtype(*identtype_list,tok->str,tok->len);
+  tok=tok->next;
 
   // function_name
   if (tok->kind != TK_IDENT)
@@ -346,6 +358,7 @@ Ident *function(Token **rest, Token *tok,Identtype **identtype_list)
   fn = calloc(1, sizeof(Ident));
   fn->is_function = true;
   fn->name = strndup(tok->str, sizeof(char) * (tok->len));
+  fn->type = strndup(ity->name, sizeof(char) * (ity->name_len));
   fn->name_len = tok->len;
   tok = tok->next;
 
@@ -519,7 +532,7 @@ Node *statement(Token **rest, Token *tok, Ident **lvar_head,Identtype **identtyp
   }
   else
   {
-      if (is_identtype(*identtype_list,tok->str,tok->len))
+      if (is_identtype(*identtype_list,tok->str))
         n = declaration(&tok, tok, lvar_head,identtype_list);      
       else 
         n = expr(&tok, tok, lvar_head,identtype_list);
@@ -544,7 +557,7 @@ Node *declaration(Token **rest, Token *tok, Ident **lvar_head,Identtype **identt
 {
 
   Identtype *ity;
-  if (!is_identtype(*identtype_list,tok->str,tok->len))
+  if (!is_identtype(*identtype_list,tok->str))
     error_at(tok->str, "不正なデータ型です。");    
 
   ity = get_identtype(*identtype_list,tok->str,tok->len);
@@ -703,6 +716,7 @@ Node *primary(Token **rest, Token *tok, Ident **lvar_head,Identtype **identtype_
 
   if (tok->kind == TK_IDENT)
   {
+    //todo:()の有無ではなくident listから今後は変数判定するように変更。
     if (equal_token(tok->next, "("))
       n = new_node_function(&tok, tok, lvar_head,identtype_list);
     else
