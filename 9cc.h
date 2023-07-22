@@ -5,15 +5,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define NODENUM  100
-#define OFFSETSIZE 8
 #define BASE_OFFSETSIZE 8
 #define FUNC_PRAM_NUM 6
 
 //CallError
 void error(char *fmt, ...);
 void error_at(char *loc, char *fmt, ...);
-
 
 // トークンの種類
 typedef enum {
@@ -62,14 +59,21 @@ typedef enum {
   ND_NUM // 整数
 } NodeKind;
 
-typedef struct Identtype Identtype;
-struct Identtype{
-  char *name;
-  int name_len;
-  int size;
-  int offset_size;
-  Identtype *next;
+
+//データ型
+typedef struct Type Type;
+struct Type {
+  int ty;
+  Type *ptr_to;//次のstatement
 };
+
+//データ型定義
+enum IdentType{
+  TY_PTR,
+  TY_INT,
+  TY_CHAR
+};
+
 
 // 抽象構文木のノードの型
 typedef struct Node Node;
@@ -100,7 +104,7 @@ struct Ident{
   char *name;
   int name_len;//変数名の長さ  
   Ident *next; //next ident
-  char *type;//型
+  int type;//型
 
   //for variable
   int offset; //RBPからのオフセット
