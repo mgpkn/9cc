@@ -1,12 +1,24 @@
 #include "9cc.h"
 
-void gennode_lval(Node* current_node){
+
+void gennode(Node *current_node);
+
+void gennode_addr(Node* current_node){
   
-  if(!(current_node->kind == ND_LVAR ||current_node->kind == ND_ADDR))
-    error("代入の左辺値が変数ではありません。");
-  printf("  mov rax,rbp\n");
-  printf("  sub rax,%d\n",current_node->offset);
-  printf("  push rax\n");  
+  switch(current_node->kind){
+  case ND_LVAR:
+    printf("  mov rax,rbp\n");
+    printf("  sub rax,%d\n",current_node->offset);
+    printf("  push rax\n");  
+    return;
+  case ND_DEREF:
+    gennode(current_node->lhs);
+    return;
+  default:
+    break;
+  }
+
+  error("代入の左辺値が変数ではありません。");
 }
 
 void gennode(Node* current_node){
@@ -65,12 +77,12 @@ void gennode(Node* current_node){
     printf("  push rax\n");            
     return;
   case ND_LVAR:
-    gennode_lval(current_node);
+    gennode_addr(current_node);
     printf("  pop rax\n");
     printf("  push [rax]\n");        
     return;
   case ND_ADDR:
-    gennode_lval(current_node->lhs);
+    gennode_addr(current_node->lhs);  
     return;
   case ND_DEREF:
     gennode(current_node->lhs);
@@ -78,7 +90,7 @@ void gennode(Node* current_node){
     printf("  push [rax]\n");
     return;
   case ND_ASSIGN:
-    gennode_lval(current_node->lhs);
+    gennode_addr(current_node->lhs);
     gennode(current_node->rhs);
     printf("  pop rdi\n");
     printf("  pop rax\n");

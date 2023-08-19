@@ -67,30 +67,43 @@ bool is_identtype(char *str)
     return false;
 }
 
-int get_type(char *name)
+Type *get_type(char *name_str,Token *tok)
 {
-  if (equal("int", name, 3)) return TY_INT;
-  if (equal("char", name, 4)) return TY_CHAR;
+  Type *ty;
+  ty=calloc(1,sizeof(Type));
+  ty->ty=-1;
 
-  error_at(NULL,"無効なデータ型（Type）です。");
-  return 0;
+  if(equal(tok->str,"*",tok->len)){
+    ty->ty = TY_PTR;
+    ty->ptr_to = get_type(name_str,tok->next);
+    return ty;
+  }
+
+  if (equal("int", name_str, 3)) ty->ty = TY_INT;
+  if (equal("char", name_str, 4)) ty->ty = TY_CHAR;
+
+  if(ty->ty <0)
+    error_at(NULL,"無効なデータ型（Type）です。");
+
+  return ty;
 
 }
 
-int get_type_size(int ty)
+int get_type_size(Type *type)
 {
-  if (ty == TY_INT) return 4;
-  if (ty == TY_CHAR) return 1;
+  if (type->ty == TY_PTR) return 8;  
+  if (type->ty == TY_INT) return 4;
+  if (type->ty == TY_CHAR) return 1;
 
   error_at(NULL,"無効なデータ型（Type）です。");
   return 0;
 }
 
-int get_type_offset_size(int ty)
+int get_type_offset_size(Type *type)
 {
     int size;
     int i = 0;
-    size = get_type_size(ty);
+    size = get_type_size(type);
 
     while (size > BASE_OFFSETSIZE * i)
         i++;
@@ -137,11 +150,28 @@ int expect_number(Token **rest, Token *tok)
   return val;
 }
 
+//プレフィックスなしの識別子名を取得
+Token *get_plane_ident_token(Token *tok)
+{
+  //デリファレンサ、ポインタを除去
+  while (equal(tok->str,"*",1) || equal(tok->str,"&",1) )
+    tok = tok->next;
+  
+  if (tok->kind != TK_IDENT)
+    error_at(tok->str, "識別子ではありません。");
+
+  return tok;
+
+}
+
+//宣言されたローカル変数があるか探索
 Ident *find_lvar(Token *tok, Ident **lvar_head)
 {
+  Token *plane_ident_tok = get_plane_ident_token(tok);
+
   for (Ident *v = *lvar_head; v; v = v->next)
   {
-    if (tok->len == v->name_len && strncmp(tok->str, v->name, tok->len) == 0)
+    if (equal(plane_ident_tok->str,v->name,plane_ident_tok->len))
       return v;
   }
   return NULL;
@@ -166,10 +196,13 @@ Node *new_node_num(int val)
   return node;
 }
 
-// 変数ノードの作成
+//変数ノードの作成
 Node *new_node_declare_lvar(Token **rest, Token *tok, Ident **lvar_head,char *type_name)
 {
   Node *node = NULL;
+
+  //プレフィックス無しの識別子名を取得
+  Token *plane_ident_tok = get_plane_ident_token(tok);
 
   if (!is_identtype(type_name))
     error_at(tok->str, "不正なデータ型です。");    
@@ -187,9 +220,9 @@ Node *new_node_declare_lvar(Token **rest, Token *tok, Ident **lvar_head,char *ty
     // なければlocalsに追加
     lvar = calloc(1, sizeof(Ident));
     lvar->is_function = false;
-    lvar->name = strndup(tok->str, sizeof(char) * (tok->len));
+    lvar->name = strndup(plane_ident_tok->str, sizeof(char) * (plane_ident_tok->len));
     lvar->name_len = tok->len;
-    lvar->type = get_type(type_name);
+    lvar->type = get_type(type_name,tok);
     if (*lvar_head)
     {
       // ２回目以降の宣言の場合
@@ -212,7 +245,7 @@ Node *new_node_declare_lvar(Token **rest, Token *tok, Ident **lvar_head,char *ty
     node->ident_name = lvar->name;
     node->offset = lvar->offset;
   }
-  *rest = tok->next;
+  *rest = plane_ident_tok->next;
   return node;
 }
 
@@ -322,7 +355,7 @@ Ident *function(Token **rest, Token *tok)
   fn = calloc(1, sizeof(Ident));
   fn->is_function = true;
   fn->name = strndup(tok->str, sizeof(char) * (tok->len));
-  fn->type = get_type(ty_str);
+  fn->type = get_type(ty_str,tok);
   fn->name_len = tok->len;
   tok = tok->next;
 
@@ -334,12 +367,12 @@ Ident *function(Token **rest, Token *tok)
       break;
     if (head_param)
     {
-      cur_param->next = expr(&tok, tok, &(fn->localvar));
+      cur_param->next = declaration(&tok, tok, &(fn->localvar));
       cur_param = cur_param->next;
     }
     else
     {
-      head_param = expr(&tok, tok, &(fn->localvar));
+      head_param = declaration(&tok, tok, &(fn->localvar));
       cur_param = head_param;
     }
     if (!consume(&tok, tok, ","))
@@ -629,10 +662,11 @@ Node *mul(Token **rest, Token *tok, Ident **lvar_head)
 }
 
 /*
-数値などの正負の項
+数値などの正負の項、ポインタデリファレンサ
 
 unary ::= ("+"|"-"|)? primary
-    |("&"|"*") unary
+    |("&")? unary
+    |("*")* unary    
 */
 Node *unary(Token **rest, Token *tok, Ident **lvar_head)
 {
@@ -659,7 +693,7 @@ Node *unary(Token **rest, Token *tok, Ident **lvar_head)
 
 /*
 primary ::= "(" expr ")"
-    |type? ident("(" (expr("," expr)?)? ")")?
+    |ident("(" (expr("," expr)?)? ")")?
     |num
 */
 Node *primary(Token **rest, Token *tok, Ident **lvar_head)

@@ -68,7 +68,7 @@ struct Type {
 };
 
 //データ型定義
-enum IdentType{
+enum TypeKind{
   TY_PTR,
   TY_INT,
   TY_CHAR
@@ -104,7 +104,7 @@ struct Ident{
   char *name;
   int name_len;//変数名の長さ  
   Ident *next; //next ident
-  int type;//型
+  Type *type;//型
 
   //for variable
   int offset; //RBPからのオフセット
