@@ -14,8 +14,10 @@ equality ::= relational ("==" relational |"!=" relational )*
 relational ::= add (">" add | "<" add | ">=" add | "<=" add)*
 add ::= mul ("+" mul | "-" mul)*
 mul ::= unary ("*" unary|"/" unary|"%" unary)*
-unary ::= ("+"|"-"|)? primary
-		|("&"|"*") unary
+unary ::= sizeof unary
+    |("+"|"-"|)? primary
+    |("&")? unary
+    |("*")* unary    
 primary ::= "(" expr ")"
 		|type? ident("(" (expr("," expr)?)? ")")? 
 		|num

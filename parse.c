@@ -725,7 +725,8 @@ Node *mul(Token **rest, Token *tok, Ident **lvar_head)
 /*
 数値などの正負の項、ポインタデリファレンサ
 
-unary ::= ("+"|"-"|)? primary
+unary ::= sizeof unary
+    |("+"|"-"|)? primary
     |("&")? unary
     |("*")* unary    
 */
@@ -733,18 +734,19 @@ Node *unary(Token **rest, Token *tok, Ident **lvar_head)
 {
   Node *n;
 
-  if (consume(&tok, tok, "+"))
+  if(consume(&tok, tok, "+"))
     n = primary(&tok, tok, lvar_head);
-  else if (consume(&tok, tok, "-"))
+  else if(consume(&tok, tok, "-"))
     n = new_node(ND_SUB, new_node_num(0), primary(&tok, tok, lvar_head));
-  else if (consume(&tok, tok, "&"))
-  {
+  else if(consume(&tok, tok, "&"))
     n = new_node(ND_ADDR, unary(&tok, tok, lvar_head), NULL);
-  }
-  else if (consume(&tok, tok, "*"))
-  {
+  else if(consume(&tok, tok, "*"))
     n = new_node(ND_DEREF, unary(&tok, tok, lvar_head), NULL);
-  }
+  else if(consume(&tok, tok, "sizeof")){
+    n = unary(&tok, tok, lvar_head);
+    init_nodetype(n);
+    n = new_node_num(get_type_size(n->ty));  
+  }    
   else
     n = primary(&tok, tok, lvar_head);
 

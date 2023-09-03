@@ -48,7 +48,12 @@ Token *tokenize(char *p) {
       continue;
     }
 
-    
+  estamate_len=6;    
+  if (strncmp(p,"sizeof",estamate_len) == 0){
+      cur = new_token(TK_KEYWORD, cur,p,estamate_len);
+      p += estamate_len;      
+      continue;
+  }
     //2文字の演算子のトークナイズ
     estamate_len=2;    
     if (strncmp(p,"<=",estamate_len) == 0
