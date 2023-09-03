@@ -1,6 +1,5 @@
 #define _XOPEN_SOURCE 700
 #include "9cc.h"
-#include <string.h>
 
 // 新しいトークンを作成してcurに繋げる
 Token *new_token(TokenKind kind, Token *cur, char *str,int len) {

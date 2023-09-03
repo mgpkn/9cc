@@ -1,5 +1,4 @@
 #define _XOPEN_SOURCE 700
-#include <string.h>
 #include "9cc.h"
 
 Ident *function(Token **rest, Token *tok);
@@ -10,6 +9,8 @@ Node *assign(Token **rest, Token *tok, Ident **lvar_head);
 Node *equality(Token **rest, Token *tok, Ident **lvar_head);
 Node *relational(Token **rest, Token *tok, Ident **lvar_head);
 Node *add(Token **rest, Token *tok, Ident **lvar_head);
+Node *extra_add(Node *lhs,Node *rhs,Ident **lvar_head,Token *tok_dummy);
+Node *extra_sub(Node *lhs,Node *rhs,Ident **lvar_head,Token *tok_dummy);
 Node *mul(Token **rest, Token *tok, Ident **lvar_head);
 Node *unary(Token **rest, Token *tok, Ident **lvar_head);
 Node *primary(Token **rest, Token *tok, Ident **lvar_head);
@@ -71,18 +72,18 @@ Type *get_type(char *name_str,Token *tok)
 {
   Type *ty;
   ty=calloc(1,sizeof(Type));
-  ty->ty=-1;
+  ty->kind=-1;
 
   if(equal(tok->str,"*",tok->len)){
-    ty->ty = TY_PTR;
+    ty->kind = TY_PTR;
     ty->ptr_to = get_type(name_str,tok->next);
     return ty;
   }
 
-  if (equal("int", name_str, 3)) ty->ty = TY_INT;
-  if (equal("char", name_str, 4)) ty->ty = TY_CHAR;
+  if (equal("int", name_str, 3)) ty->kind = TY_INT;
+  if (equal("char", name_str, 4)) ty->kind = TY_CHAR;
 
-  if(ty->ty <0)
+  if(ty->kind <0)
     error_at(NULL,"無効なデータ型（Type）です。");
 
   return ty;
@@ -91,9 +92,9 @@ Type *get_type(char *name_str,Token *tok)
 
 int get_type_size(Type *type)
 {
-  if (type->ty == TY_PTR) return 8;  
-  if (type->ty == TY_INT) return 4;
-  if (type->ty == TY_CHAR) return 1;
+  if (type->kind == TY_PTR) return 8;  
+  if (type->kind == TY_INT) return 4;
+  if (type->kind == TY_CHAR) return 1;
 
   error_at(NULL,"無効なデータ型（Type）です。");
   return 0;
@@ -264,6 +265,7 @@ Node *new_node_lvar(Token **rest, Token *tok, Ident **lvar_head)
     node->kind = ND_LVAR;
     node->ident_name = lvar->name;
     node->offset = lvar->offset;
+    node->ty = lvar->type;
   }
   *rest = tok->next;
   return node;
@@ -624,21 +626,80 @@ Node *relational(Token **rest, Token *tok, Ident **lvar_head)
 Node *add(Token **rest, Token *tok, Ident **lvar_head)
 {
 
+  Token *tok_dummy = tok;//extra_に渡すダミーのトークン。
   Node *n = mul(&tok, tok, lvar_head);
 
   for (;;)
   {
-    if (consume(&tok, tok, "+"))
-      n = new_node(ND_ADD, n, mul(&tok, tok, lvar_head));
-    else if (consume(&tok, tok, "-"))
-      n = new_node(ND_SUB, n, mul(&tok, tok, lvar_head));
-    else
-    {
-      *rest = tok;
-      return n;
+    if (consume(&tok, tok, "+")){
+      n = extra_add(n,mul(&tok, tok, lvar_head),lvar_head,tok_dummy);
+      continue;
     }
+
+    if (consume(&tok, tok, "-")){
+      n = extra_sub(n,mul(&tok, tok, lvar_head),lvar_head,tok_dummy);
+      continue;
+    }      
+
+    *rest = tok;
+    return n;
+
   }
 }
+
+//数値とポインタの組み合わせによってノードの加算方法をよしなに変える
+Node *extra_add(Node *lhs,Node *rhs,Ident **lvar_head,Token *tok_dummy)
+{
+
+  init_nodetype(lhs);
+  init_nodetype(rhs);
+
+  //num + numの場合は普通の演算
+  if(is_num_node(lhs) && is_num_node(rhs)) 
+    return new_node(ND_ADD,lhs,rhs);
+
+  //pointer + num (=num + pointer)の場合はオフセットの計算 
+  //逆だった場合正規化を行う。
+  if(is_num_node(lhs) && is_ptr_node(rhs)) {
+    Node *swp;
+    swp = lhs;
+    lhs = rhs;    
+    rhs = swp;        
+  }    
+
+  if(is_ptr_node(lhs) && is_num_node(rhs)) {
+    return new_node(ND_ADD,lhs,new_node(ND_MUL,rhs,new_node_num(get_type_size(rhs->ty))));
+  }
+
+  error("不正な加算式です。");
+  return NULL;
+
+}
+
+//数値とポインタの組み合わせによってノードの減算方法をよしなに変える
+Node *extra_sub(Node *lhs,Node *rhs,Ident **lvar_head,Token *tok_dummy)
+{
+
+  init_nodetype(lhs);
+  init_nodetype(rhs);
+
+  //num - numの場合は普通の演算
+  if(is_num_node(lhs) && is_num_node(rhs)) 
+    return new_node(ND_SUB,lhs,rhs);
+
+  //pointer - num (=num + pointer)の場合はオフセットの計算 
+  if(is_ptr_node(lhs) && is_num_node(rhs)) 
+    return new_node(ND_SUB,lhs,new_node(ND_MUL,rhs,new_node_num(get_type_size(rhs->ty))));
+
+  //pointer - pointerはアドレスの差
+  if(is_ptr_node(lhs) && is_ptr_node(rhs))
+    return new_node(ND_DIV,new_node(ND_SUB,lhs,rhs),new_node_num(get_type_size(lhs->ty->ptr_to)));
+
+  error("不正な減算式です。");
+  return NULL;
+
+}
+
 
 // mul ::= unary ("*" unary|"/" unary|"%" unary)*
 Node *mul(Token **rest, Token *tok, Ident **lvar_head)

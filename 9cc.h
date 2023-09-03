@@ -63,7 +63,7 @@ typedef enum {
 //データ型
 typedef struct Type Type;
 struct Type {
-  int ty;
+  int kind;
   Type *ptr_to;//次のstatement
 };
 
@@ -81,6 +81,7 @@ struct Node {
   NodeKind kind; // ノードの型
   Node *lhs;     // 左辺
   Node *rhs;     // 右辺
+  Type *ty; //ノードの論理的なデータ型
   char *ident_name; //識別子名
   int val;       // kindがND_NUMの場合のみ使う
   int offset; //kindがND_VAL系の場合のみ扱う
@@ -122,3 +123,8 @@ Ident *parse(Token *token);
 
 //codegen
 void codegen(Ident *func_list);
+
+//type
+void init_nodetype(Node *n);
+bool is_num_node(Node *n);
+bool is_ptr_node(Node *n);

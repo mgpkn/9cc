@@ -3,8 +3,8 @@ SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
 
 9cc: $(OBJS)
-	$(CC) -c foo/foo.c 
-	$(CC) -o 9cc $(OBJS) $(CFLAGS) foo.o
+	$(CC) -c helper/helper.c 
+	$(CC) -o 9cc $(OBJS) $(CFLAGS) helper.o
 
 $(OBJS): 9cc.h
 

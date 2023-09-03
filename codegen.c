@@ -1,5 +1,6 @@
 #include "9cc.h"
 
+static char *argreg[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
 
 void gennode(Node *current_node);
 
@@ -73,6 +74,12 @@ void gennode(Node* current_node){
     printf("  push %d\n",current_node -> val );    
     return;
   case ND_FUNC:
+
+    for(int i=0;current_node->func_param[i];i++){
+        gennode(current_node->func_param[i]);              
+        printf("  pop %s\n",argreg[i]);        
+    }
+
     printf("  call %s\n",current_node->ident_name);        
     printf("  push rax\n");            
     return;
@@ -188,7 +195,7 @@ void codegen(Ident *func_list){
     total_offset=0;
     cur_localvar = cur_func->localvar;
     while(cur_localvar){
-      total_offset += 8;
+      total_offset += cur_localvar->offset;
       cur_localvar=cur_localvar->next;
     }
     printf("  sub rsp, %d\n",total_offset);  
