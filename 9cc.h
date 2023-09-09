@@ -111,7 +111,7 @@ struct Ident{
   int offset; //RBPからのオフセット
 
   //for function
-  Node *param;
+  Node *arg;
   Node *body;
   Ident *localvar;   
 

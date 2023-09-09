@@ -340,7 +340,7 @@ Ident *function(Token **rest, Token *tok)
 {
 
   Ident *fn;
-  Node *head_param = NULL, *cur_param = NULL, *head_body = NULL, *cur_body = NULL;
+  Node *head_arg = NULL, *cur_arg = NULL, *head_body = NULL, *cur_body = NULL;
   char *ty_str;
 
   if (!is_identtype(tok->str))
@@ -361,27 +361,27 @@ Ident *function(Token **rest, Token *tok)
   fn->name_len = tok->len;
   tok = tok->next;
 
-  // params
+  // arg
   expect(&tok, tok, "(");
   while (true)
   {
     if (equal_token(tok, ")"))
       break;
-    if (head_param)
+    if (head_arg)
     {
-      cur_param->next = declaration(&tok, tok, &(fn->localvar));
-      cur_param = cur_param->next;
+      cur_arg->next = declaration(&tok, tok, &(fn->localvar));
+      cur_arg = cur_arg->next;
     }
     else
     {
-      head_param = declaration(&tok, tok, &(fn->localvar));
-      cur_param = head_param;
+      head_arg = declaration(&tok, tok, &(fn->localvar));
+      cur_arg = head_arg;
     }
     if (!consume(&tok, tok, ","))
       break;
   }
   consume(&tok, tok, ")");
-  fn->param = head_param;
+  fn->arg = head_arg;
 
   // body
   expect(&tok, tok, "{");

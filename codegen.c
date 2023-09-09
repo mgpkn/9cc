@@ -74,12 +74,10 @@ void gennode(Node* current_node){
     printf("  push %d\n",current_node -> val );    
     return;
   case ND_FUNC:
-
     for(int i=0;current_node->func_param[i];i++){
         gennode(current_node->func_param[i]);              
         printf("  pop %s\n",argreg[i]);        
     }
-
     printf("  call %s\n",current_node->ident_name);        
     printf("  push rax\n");            
     return;
@@ -167,11 +165,56 @@ void gennode(Node* current_node){
   printf("  push rax\n");
 }
 
+void codegen_func(Ident *func){
+
+  Node *cur_code,*cur_arg;  
+  Ident *cur_localvar=NULL;
+  int total_offset;
+
+  //関数名のラベルを作成
+  printf("%s:\n",func->name);
+
+  //変数領域の確保。
+  printf("  push rbp\n");
+  printf("  mov rbp, rsp\n");
+  total_offset=0;
+  cur_localvar = func->localvar;
+  while(cur_localvar){
+    total_offset += cur_localvar->offset;
+    cur_localvar=cur_localvar->next;
+  }
+  printf("  sub rsp, %d\n",total_offset);  
+
+  //引数をレジスタからロード。
+  cur_arg = func->arg;
+  for(int i=0;cur_arg;i++){
+      gennode_addr(cur_arg);
+
+      printf("  pop rax\n");
+      printf("  mov [rax],%s\n",argreg[i]);        
+      printf("  push [rax]\n");            
+      cur_arg = cur_arg->next;
+  }
+
+  //関数の本文を記述。
+  cur_code=func->body;  
+  while(cur_code)
+  {
+    gennode(cur_code);
+    cur_code = cur_code->next;
+  }
+
+  //エピローグ    
+  printf("  mov rsp, rbp\n");
+  printf("  pop rbp\n");
+  printf("  ret\n");    //関数名のラベルを作成
+
+
+}
+
 void codegen(Ident *func_list){
 
-  Ident *cur_func=func_list,*cur_localvar=NULL;
-  Node *cur_code;  
-  int total_offset;
+  Ident *cur_func=func_list;
   
   //プロローグ
   printf(".intel_syntax noprefix\n");
@@ -183,35 +226,10 @@ void codegen(Ident *func_list){
   }
   printf("\n");  
 
+  //各関数を生成
   cur_func=func_list;
   while(cur_func){
-
-    //関数名のラベルを作成
-    printf("%s:\n",cur_func->name);
-
-    //変数領域の確保。
-    printf("  push rbp\n");
-    printf("  mov rbp, rsp\n");
-    total_offset=0;
-    cur_localvar = cur_func->localvar;
-    while(cur_localvar){
-      total_offset += cur_localvar->offset;
-      cur_localvar=cur_localvar->next;
-    }
-    printf("  sub rsp, %d\n",total_offset);  
-
-    //関数の本文を記述。
-    cur_code=cur_func->body;  
-    while(cur_code)
-    {
-      gennode(cur_code);
-      cur_code = cur_code->next;
-    }
-
-    //エピローグ    
-    printf("  mov rsp, rbp\n");
-    printf("  pop rbp\n");
-    printf("  ret\n");
+    codegen_func(cur_func);
     cur_func=cur_func->next;    
   }
 
