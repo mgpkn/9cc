@@ -4,12 +4,17 @@ static char *argreg[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
 
 void gennode(Node *current_node);
 
+void load_val(Type *ty){
+  if(ty->kind==TY_ARRAY) return; 
+  printf("  mov rax,[rax]\n");
+}
+
+
 void gennode_addr(Node* current_node){
   
   switch(current_node->kind){
   case ND_LVAR:
-    printf("  mov rax,rbp\n");
-    printf("  sub rax,%d\n",current_node->offset);
+    printf("  lea rax,[rbp - %d]\n",current_node->offset);
     printf("  push rax\n");  
     return;
   case ND_DEREF:
@@ -84,7 +89,19 @@ void gennode(Node* current_node){
   case ND_LVAR:
     gennode_addr(current_node);
     printf("  pop rax\n");
-    printf("  push [rax]\n");        
+    
+    switch(get_type_size(current_node->ty)){
+    case 1:
+    case 4:
+      printf("  movsxd rax, DWORD PTR [rax]\n");
+      break;
+    case 8:      
+    default:
+      load_val(current_node->ty);
+      break;
+    }      
+    
+    printf("  push rax\n");        
     return;
   case ND_ADDR:
     gennode_addr(current_node->lhs);  
@@ -92,15 +109,20 @@ void gennode(Node* current_node){
   case ND_DEREF:
     gennode(current_node->lhs);
     printf("  pop rax\n");
-    printf("  push [rax]\n");
+    load_val(current_node->ty);
+    printf("  push rax\n");
     return;
   case ND_ASSIGN:
     gennode_addr(current_node->lhs);
     gennode(current_node->rhs);
     printf("  pop rdi\n");
     printf("  pop rax\n");
-    printf("  mov [rax],rdi\n");        
-    printf("  push [rax]\n");            
+    if(current_node->ty->kind == TY_INT)
+      printf("  mov [rax],edi\n");        
+    else 
+      printf("  mov [rax],rdi\n");        
+    printf("  mov rax,[rax]\n");            
+    printf("  push rax\n");            
     return;
   case ND_BLOCK:
     n = current_node->block_head;
@@ -169,7 +191,7 @@ void codegen_func(Ident *func){
 
   Node *cur_code,*cur_arg;  
   Ident *cur_localvar=NULL;
-  int total_offset;
+  int cur_offset;
 
   //関数名のラベルを作成
   printf("%s:\n",func->name);
@@ -177,13 +199,20 @@ void codegen_func(Ident *func){
   //変数領域の確保。
   printf("  push rbp\n");
   printf("  mov rbp, rsp\n");
-  total_offset=0;
+  cur_offset=0;
   cur_localvar = func->localvar;
   while(cur_localvar){
-    total_offset += cur_localvar->offset;
+    cur_offset = cur_localvar->offset;
     cur_localvar=cur_localvar->next;
   }
-  printf("  sub rsp, %d\n",total_offset);  
+  
+  int i=0;
+  while(true){      
+    if(cur_offset<=i*BASE_ALIGNMENTSIZE) break;
+    i++;
+  }
+  
+  printf("  sub rsp, %d\n",i*BASE_ALIGNMENTSIZE);  
 
   //引数をレジスタからロード。
   cur_arg = func->arg;
@@ -204,11 +233,12 @@ void codegen_func(Ident *func){
     cur_code = cur_code->next;
   }
 
+/*
   //エピローグ    
   printf("  mov rsp, rbp\n");
   printf("  pop rbp\n");
   printf("  ret\n");    //関数名のラベルを作成
-
+*/
 
 }
 

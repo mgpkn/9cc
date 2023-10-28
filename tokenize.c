@@ -2,13 +2,13 @@
 #include "9cc.h"
 
 // 新しいトークンを作成してcurに繋げる
-Token *new_token(TokenKind kind, Token *cur, char *str,int len) {
+Token *new_token(TokenKind kind, Token *cur, char *pos,int len) {
 
   Token *tok = calloc(1, sizeof(Token));
 
   tok->kind = kind;
   tok->len = len;
-  tok->str = strndup(str, sizeof(char) * len);
+  tok->pos = pos;
   cur->next = tok;
   
   return tok;
@@ -69,7 +69,8 @@ Token *tokenize(char *p) {
     //1文字の演算子のトークナイズ
     estamate_len=1;
     if (*p == '+' || *p == '-' ||	*p == '*' || *p == '/' || *p == '%' ||
-        *p == '(' || *p == ')' || *p == '{' || *p == '}' ||	*p == '&' ||
+        *p == '(' || *p == ')' || *p == '[' || *p == ']' || 
+        *p == '{' || *p == '}' ||	*p == '&' ||
 	      *p == '<' || *p == '>' || *p == '=' ||
 	      *p == ';'|| *p==',') 
       {
@@ -145,7 +146,7 @@ Token *tokenize(char *p) {
       continue;
     }
     
-    error("トークナイズできません");
+    error("it coludn't tokenize.");
   }
 
   new_token(TK_EOF, cur, p,0);

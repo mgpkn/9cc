@@ -6,6 +6,7 @@
 #include <string.h>
 
 #define BASE_OFFSETSIZE 8
+#define BASE_ALIGNMENTSIZE 16
 #define FUNC_PRAM_NUM 6
 
 //CallError
@@ -28,7 +29,8 @@ struct Token {
   Token *next;    // 次の入力トークン
   int val;        // kindがTK_NUMの場合、その数値
   int len; //トークンの長さ
-  char *str;      // トークン文字列
+  char *pos;      // トークン文字列
+  //char *pos;//出力文字列の位置
 };
 
 Token *tokenize(char *p);
@@ -65,11 +67,13 @@ typedef struct Type Type;
 struct Type {
   int kind;
   Type *ptr_to;//次のstatement
+  size_t array_size;
 };
 
 //データ型定義
 enum TypeKind{
   TY_PTR,
+  TY_ARRAY,
   TY_INT,
   TY_CHAR
 };
@@ -105,7 +109,7 @@ struct Ident{
   char *name;
   int name_len;//変数名の長さ  
   Ident *next; //next ident
-  Type *type;//型
+  Type *ty;//型
 
   //for variable
   int offset; //RBPからのオフセット
@@ -125,6 +129,7 @@ Ident *parse(Token *token);
 void codegen(Ident *func_list);
 
 //type
+int get_type_size(Type *ty);
 void init_nodetype(Node *n);
 bool is_num_node(Node *n);
 bool is_ptr_node(Node *n);

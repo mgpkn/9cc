@@ -9,8 +9,38 @@ bool is_num_node(Node *n){
 
 bool is_ptr_node(Node *n){
     if(n->ty->kind == TY_PTR) return true;
+    if(n->ty->kind == TY_ARRAY) return true;    
     return false;
 }
+
+int get_type_size(Type *ty)
+{
+
+  if (ty->kind == TY_ARRAY) return ty->array_size * get_type_size(ty->ptr_to);   
+  if (ty->kind == TY_PTR) return 8;  
+  if (ty->kind == TY_INT) return 4;
+  if (ty->kind == TY_CHAR) return 1;
+
+  error_at(NULL,"invalid data type.");
+  return 0;
+}
+
+/*
+int get_type_offset_size(Type *ty)
+{
+  int size;
+  int i = 0;
+
+  if(ty->kind == TY_ARRAY)
+    size = ty->array_size * get_type_size(ty->ptr_to);
+  else 
+    size = get_type_size(ty);
+
+  while (size > BASE_OFFSETSIZE * i) i++;
+
+  return BASE_OFFSETSIZE * i;
+}
+*/
 
 //各ノードの論理的な型を設定
 void init_nodetype(Node *n){
