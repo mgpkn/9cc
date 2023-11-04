@@ -702,7 +702,7 @@ Node *extra_add(Node *lhs,Node *rhs,Ident **lvar_head,Token *tok_dummy)
     return new_node(ND_ADD,lhs,n);
   }
 
-  error("不正な加算式です。");
+  error("invalid types addtion.");
   return NULL;
 
 }
@@ -726,7 +726,7 @@ Node *extra_sub(Node *lhs,Node *rhs,Ident **lvar_head,Token *tok_dummy)
   if(is_ptr_node(lhs) && is_ptr_node(rhs))
     return new_node(ND_DIV,new_node(ND_SUB,lhs,rhs),new_node_num(get_type_size(lhs->ty->ptr_to)));
 
-  error("不正な減算式です。");
+  error("invalid types subtraction");
   return NULL;
 
 }

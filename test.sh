@@ -75,7 +75,8 @@ assert 10 "int main(){int i;i=10;return hahaha(i);} int hahaha(int i){return i;}
 assert 4 "int main(){return hahaha(15*10);} int hahaha(int i){return sizeof i;}"
 assert 150 "int main(){return hahaha(15*10);} int hahaha(int i){return i;}"
 assert 15 "int main(){int a;int *b;a=5;b=&a;return *b*3;}"
-#assert 35 "int main(){int *y;int *z;alloc4(&z,13,22,35,48);y=z+2;return *z+*(y-y+z+1);}" todo
+assert 13 "int main(){int hoi[3];hoi[1]=13;return *(hoi+1);}"
+assert 20 "int main(){int hoi[3];hoi[1]=13;hoi[2]=20;return 2[hoi];}"
 
 #<<COUT
 #COUT
