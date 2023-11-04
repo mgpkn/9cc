@@ -66,14 +66,17 @@ assert 8 "int main(int ababa){return ufufu();} int ufufu(){int fuga;fuga=1;while
 assert 36 "int main(){int hoi[9];return sizeof hoi;}"
 assert 4 "int main(){return sizeof(12+18);}" 
 assert 8 "int main(){int a;int ub;int d;return foo(a,ub,4,baa(),(baa()*3)+(3+1))+baa(d,d,d)+baa();}"
-#assert 16 "int main(){int *y;int *z;alloc4(&z,13,22,35,48);y=z+2;return *z+(y+1-z);}" todo
-#assert 27 "int main(){return hahaha(11,12,13,14,15,16);} int hahaha(int p1,int p2,int p3,int p4,int p5,int p6){return p1+p6;}" todo
-#assert 4 "int main(){return hahaha(15*10);} int hahaha(int i){return sizeof i;}"
-#assert 15 "int main(){int a;int b;a=5;b=&a;return *b*3;}" todo
-
+assert 27 "int main(){return hahaha(11,12,13,14,15,16);} int hahaha(int p1,int p2,int p3,int p4,int p5,int p6){return p1+p6;}"
+assert 4 "int main(){return sizeof(hahaha(15*10));} int hahaha(int i){return i;}"
 assert 1 "int main(){int *z;alloc4(&z,13,22,35,48);return (z+2)-(z+1);}"
 assert 13 "int main(){int hoi[3];hoi[1]=13;return hoi[1];}"
 assert 35 "int main(){int hoi[3];hoi[0]=13;hoi[1]=22;return hoi[0]+hoi[1];}"
+assert 10 "int main(){int i;i=10;return hahaha(i);} int hahaha(int i){return i;}"
+assert 4 "int main(){return hahaha(15*10);} int hahaha(int i){return sizeof i;}"
+assert 150 "int main(){return hahaha(15*10);} int hahaha(int i){return i;}"
+assert 15 "int main(){int a;int *b;a=5;b=&a;return *b*3;}"
+#assert 35 "int main(){int *y;int *z;alloc4(&z,13,22,35,48);y=z+2;return *z+*(y-y+z+1);}" todo
+
 #<<COUT
 #COUT
 echo OK
