@@ -1,6 +1,7 @@
 ```
-parse ::= function?
+parse ::= (function|global_var)
 function ::= declaration
+global_var ::= declaration
 statement ::= (declaration|expr)? ";"
 		|"{" statement? "}"
 		| "return " expr ";"
@@ -8,7 +9,7 @@ statement ::= (declaration|expr)? ";"
 		| "while" "(" expr ")"  statement
 		| "for" "(" (declaration|expr)? ";" expr? ";" expr? ";" ")"  statement
 expr ::= assgin
-declaration ::= type ("*"*|"&"?)ident( ("=" assign )?|declaration_suffix_array | declaration_suffix_function)
+declaration ::= type ("*"*|"&"?)ident( declaration_suffix_array | declaration_suffix_function)
 declaration_suffix_array ::=  ("[" num "]")*
 declaration_suffix_function ::= "(" (declaration("," declaration)?)? ")" "{" statment? "}"
 assign ::= equality ("=" assign )?

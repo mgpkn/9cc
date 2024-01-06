@@ -215,6 +215,9 @@ void gennode_stmt(Node *cur_node)
 void codegen_func(Ident *func)
 {
 
+  if(!func->is_function)
+    return;
+
   Node *cur_code, *cur_arg;
   Ident *cur_localvar = NULL;
   int cur_offset;
@@ -275,29 +278,54 @@ void codegen_func(Ident *func)
   }
 }
 
-void codegen(Ident *func_list)
+void codegen(Ident *prog_list)
 {
 
-  Ident *cur_func = func_list;
+  Ident *cur_prog = prog_list;
 
   // プロローグ
   printf(".intel_syntax noprefix\n");
-  printf(".globl ");
-  while (cur_func)
+
+  //define global variable
+  printf(".section .data\n");    
+  cur_prog = prog_list;  
+  while (cur_prog)
   {
-    printf("%s", cur_func->name);
-    cur_func = cur_func->next;
-    if (cur_func)
-      printf(",");
+    if ((cur_prog->is_function)){
+      cur_prog = cur_prog->next;    
+      continue;
+    }
+    printf("%s:\n", cur_prog->name);
+    printf("  .zero %d\n",get_type_size(cur_prog->ty));
+    cur_prog = cur_prog->next;    
   }
   printf("\n");
 
-  // 各関数を生成
-  cur_func = func_list;
-  while (cur_func)
+
+  //define functions
+  printf(".section .text\n");  
+  printf("  .global ");
+  cur_prog = prog_list;  
+  while (cur_prog)
   {
-    codegen_func(cur_func);
-    cur_func = cur_func->next;
+    if (!(cur_prog->is_function)){
+      cur_prog = cur_prog->next;    
+      continue;
+    }
+    printf("%s", cur_prog->name);
+    cur_prog = cur_prog->next;
+    if (cur_prog && cur_prog->is_function)
+      printf(",");
+
+  }
+  puts("\n");
+
+  //gen functions
+  cur_prog = prog_list;
+  while (cur_prog)
+  {
+    codegen_func(cur_prog);
+    cur_prog = cur_prog->next;
   }
 
   return;

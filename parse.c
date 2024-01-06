@@ -2,6 +2,7 @@
 #include "9cc.h"
 
 Ident *function(Token **rest, Token *tok);
+Ident *global_var(Token **rest, Token *tok);
 Node *statement(Token **rest, Token *tok, Ident **lvar_head);
 Node *expr(Token **rest, Token *tok, Ident **lvar_head);
 Node *declaration(Token **rest, Token *tok, Ident **lvar_head);
@@ -141,8 +142,6 @@ Type *get_type(Token **rest,Token *tok,char *ty_name,Type *ty_array)
 
 }
 
-
-
 //プレフィックスなしの識別子名を取得
 Token *get_core_ident_token(Token *tok)
 {
@@ -190,34 +189,90 @@ Node *new_node_num(int val)
   return node;
 }
 
+Ident *declarator(Token **rest,Token *tok,char *ty_name,Type *ty_array,bool is_global){
+
+  //プレフィックス無しの純粋な識別子名を取得
+  Token *core_ident_tok = get_core_ident_token(tok);
+
+  // if couldn'd find ident in locals. add it to locals.
+  Ident *idt = calloc(1, sizeof(Ident));
+  idt->is_global = is_global;
+  idt->name = strndup(core_ident_tok->pos, sizeof(char) * (core_ident_tok->len));
+  idt->name_len = core_ident_tok->len;
+  idt->ty = get_type(&tok,tok,ty_name,ty_array);
+
+  tok = tok->next;
+
+  //if this ident is function,set argments.
+  idt->is_function = equal_token(tok, "(");
+  Node *head_arg = NULL, *cur_arg = NULL, *head_body = NULL, *cur_body = NULL;  
+  if(idt->is_function){
+    consume(&tok, tok, "(");
+    while (true)
+    {
+      if (equal_token(tok, ")"))
+        break;
+      if (head_arg)
+      {
+        cur_arg->next = declaration(&tok, tok, &(idt->localvar));
+        cur_arg = cur_arg->next;
+      }
+      else
+      {
+        head_arg = declaration(&tok, tok, &(idt->localvar));
+        cur_arg = head_arg;
+      }
+      init_nodetype(cur_arg);
+      if (!consume(&tok, tok, ","))
+        break;
+    }
+    consume(&tok, tok, ")");
+    idt->arg = head_arg;
+
+    // body
+    expect(&tok, tok, "{");
+    while (true)
+    {
+      if (equal_token(tok, "}"))
+        break;
+      if (head_body)
+      {
+        cur_body->next = statement(&tok, tok, &(idt->localvar));
+        cur_body = cur_body->next;
+      }
+      else
+      {
+        head_body = statement(&tok, tok, &(idt->localvar));
+        cur_body = head_body;
+      }
+      init_nodetype(cur_body);
+    }
+    consume(&tok, tok, "}");
+    idt->body = head_body;
+  }
+
+  *rest = tok;
+  return idt;
+}
+
 //変数ノードの作成
 Node *new_node_declare_lvar(Token *tok,char *type_name,Type *ty_array,Ident **lvar_head)
 {
-
   Node *node = calloc(1, sizeof(Node));    
 
   if (!is_identtype(type_name))
     error_at(tok->pos, "invalid data type.");    
 
-  //プレフィックス無しの純粋な識別子名を取得
-  Token *core_ident_tok = get_core_ident_token(tok);
+  // find indent if it's already declared.
+  if (find_lvar(tok, lvar_head))
+    error_at(tok->pos, "the variable is already declared.");
 
   if (tok)
   {
-    // find indent if it's already declared.
-    Ident *lvar = find_lvar(tok, lvar_head);
-    if (lvar)
-      error_at(tok->pos, "the variable is already declared.");
-
-    // if couln'd find ident in locals. add it to locals.
-    lvar = calloc(1, sizeof(Ident));
-    lvar->is_function = false;
-    lvar->name = strndup(core_ident_tok->pos, sizeof(char) * (core_ident_tok->len));
-    lvar->name_len = core_ident_tok->len;
-    lvar->ty = get_type(&tok,tok,type_name,ty_array);
+    Ident *lvar = declarator(&tok,tok,type_name,ty_array,false);
     if (*lvar_head)
     {
-      // ２回目以降の宣言の場合
+      //after 2nd declare.
       for (Ident *v = *lvar_head;; v = v->next)
       {
         if (!v->next)
@@ -230,11 +285,10 @@ Node *new_node_declare_lvar(Token *tok,char *type_name,Type *ty_array,Ident **lv
     }
     else
     {
-      // １回目の宣言の場合
+      //1st declare.
       lvar->offset = get_type_size(lvar->ty);
       *lvar_head = lvar;
     }
-
 
     node->kind = ND_LVAR;    
     node->ident_name = lvar->name;
@@ -303,38 +357,51 @@ bool at_eof(Token *tok)
   return tok->kind == TK_EOF;
 }
 
-// parse = function?
+bool is_function(Token *tok){
+  return true;
+}
+
+
+// parse = (function|global_var)?
 Ident *parse(Token *tok)
 {
 
   label_cnt = 0;
   //Identtype *identtype_list = NULL;
-  Ident *head_fn = NULL, *cur_fn = NULL;
+  Ident *head_prg = NULL, *cur_prg = NULL,*tmp_prg=NULL;
 
   while (!at_eof(tok))
   {
-    if (head_fn)
+
+    tmp_prg = function(&tok, tok);
+
+    if (head_prg)
     {
-      cur_fn->next = function(&tok, tok);
-      cur_fn = cur_fn->next;
+      cur_prg->next = tmp_prg;
+      cur_prg = cur_prg->next;
     }
     else
     {
-      head_fn = function(&tok, tok);
-      cur_fn = head_fn;
+      head_prg = tmp_prg;      
+      cur_prg = head_prg;
     }
   }
-  return head_fn;
+  return head_prg;
 }
 
+/*
+global_var ::= declaration
+*/
+
+Ident *global_var(Token **rest, Token *tok){
+  return NULL;
+}
 /*
 function ::= declaration "(" (declaration("," declaration)?)? ")" "{" statment? "}"
 */
 Ident *function(Token **rest, Token *tok)
 {
 
-  Ident *fn;
-  Node *head_arg = NULL, *cur_arg = NULL, *head_body = NULL, *cur_body = NULL;
   char *ty_name;
 
   if (!is_identtype(tok->pos))
@@ -343,63 +410,9 @@ Ident *function(Token **rest, Token *tok)
 
   tok=tok->next;
 
-  // function_name
-  if (tok->kind != TK_IDENT)
-  {
-    error_at(tok->pos, "invalid function name.");
-  }
-  fn = calloc(1, sizeof(Ident));
-  fn->is_function = true;
-  fn->name = strndup(tok->pos, sizeof(char) * (tok->len));
-  fn->ty = get_type(&tok,tok,ty_name,NULL);
-  fn->name_len = tok->len;
-  tok = tok->next;
-
-  // arg
-  expect(&tok, tok, "(");
-  while (true)
-  {
-    if (equal_token(tok, ")"))
-      break;
-    if (head_arg)
-    {
-      cur_arg->next = declaration(&tok, tok, &(fn->localvar));
-      cur_arg = cur_arg->next;
-    }
-    else
-    {
-      head_arg = declaration(&tok, tok, &(fn->localvar));
-      cur_arg = head_arg;
-    }
-    init_nodetype(cur_arg);
-    if (!consume(&tok, tok, ","))
-      break;
-  }
-  consume(&tok, tok, ")");
-  fn->arg = head_arg;
-
-  // body
-  expect(&tok, tok, "{");
-  while (true)
-  {
-    if (equal_token(tok, "}"))
-      break;
-    if (head_body)
-    {
-      cur_body->next = statement(&tok, tok, &(fn->localvar));
-      cur_body = cur_body->next;
-    }
-    else
-    {
-      head_body = statement(&tok, tok, &(fn->localvar));
-      cur_body = head_body;
-    }
-    init_nodetype(cur_body);
-
-  }
-  consume(&tok, tok, "}");
-  fn->body = head_body;
-
+  Ident *fn = declarator(&tok,tok,ty_name,NULL,true);
+  
+  consume(&tok,tok,";");
   *rest = tok;
   return fn;
 }
@@ -547,11 +560,10 @@ Node *expr(Token **rest, Token *tok, Ident **lvar_head)
 }
 
 /*
-declaration ::= type ("*"*|"&"?)ident( ("=" assign )?|declaration_suffix_array | declaration_suffix_function)
+declaration ::= type ("*"*|"&"?)ident( declaration_suffix_array | declaration_suffix_function)
 */
 Node *declaration(Token **rest, Token *tok, Ident **lvar_head)
 {
-
   //ident_tok -> has prefix(&,*)
   //core_ident_tok -> remove prefix
   Token *ident_tok,*core_ident_tok;
@@ -569,10 +581,14 @@ Node *declaration(Token **rest, Token *tok, Ident **lvar_head)
     ;//todo
 
   //array
-  Type *ty_array;
-  ty_array = declaration_suffix_array(&tok,core_ident_tok->next);
+  Type *ty_array;  
+  ty_array = declaration_suffix_array(&tok,core_ident_tok->next);  
+  if(equal_token(core_ident_tok->next,"[") ){
+
+  }
 
   *rest = tok;
+  
   return new_node_declare_lvar(ident_tok,ty_name,ty_array,lvar_head);
 }
 

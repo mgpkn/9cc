@@ -104,7 +104,8 @@ typedef struct Ident Ident;
 struct Ident{
 
   bool is_function;
-
+  bool is_global;
+  
   //common
   char *name;
   int name_len;//変数名の長さ  

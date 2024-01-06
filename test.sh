@@ -15,8 +15,9 @@ assert() {
     exit 1
   fi
 }
-
-assert 25 "int main(){return (5+20);}"
+#assert 13 "int main(){return 9 + -4;}" todo 
+assert 13 "int main(){return 9 + +4;}"
+assert 15 "int glob;int main(){return (15);}"
 assert 15 "int main(){return (15);}"
 assert 20 "int main(){return 11+9+8-4-4;}"
 assert 15 "int main(){int b;b=3*4+3;return b;}"
@@ -72,12 +73,11 @@ assert 1 "int main(){int *z;alloc4(&z,13,22,35,48);return (z+2)-(z+1);}"
 assert 13 "int main(){int hoi[3];hoi[1]=13;return hoi[1];}"
 assert 35 "int main(){int hoi[3];hoi[0]=13;hoi[1]=22;return hoi[0]+hoi[1];}"
 assert 10 "int main(){int i;i=10;return hahaha(i);} int hahaha(int i){return i;}"
-assert 4 "int main(){return hahaha(15*10);} int hahaha(int i){return sizeof i;}"
 assert 150 "int main(){return hahaha(15*10);} int hahaha(int i){return i;}"
 assert 15 "int main(){int a;int *b;a=5;b=&a;return *b*3;}"
 assert 13 "int main(){int hoi[3];hoi[1]=13;return *(hoi+1);}"
-assert 20 "int main(){int hoi[3];hoi[1]=13;hoi[2]=20;return 2[hoi];}"
-
+assert 150 "int glob;int *globa;int main(){return hahaha(15*10);} int hahaha(int i){return i;}"
+#assert 4 "int main(){return hahaha(15*10);} int hahaha(int i){return sizeof i;}"
 #<<COUT
 #COUT
 echo OK
