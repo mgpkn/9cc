@@ -25,23 +25,6 @@ int get_type_size(Type *ty)
   return 0;
 }
 
-/*
-int get_type_offset_size(Type *ty)
-{
-  int size;
-  int i = 0;
-
-  if(ty->kind == TY_ARRAY)
-    size = ty->array_size * get_type_size(ty->ptr_to);
-  else 
-    size = get_type_size(ty);
-
-  while (size > BASE_OFFSETSIZE * i) i++;
-
-  return BASE_OFFSETSIZE * i;
-}
-*/
-
 //各ノードの論理的な型を設定
 void init_nodetype(Node *n){
 
@@ -59,6 +42,7 @@ void init_nodetype(Node *n){
         init_nodetype(block_n);
     }
 
+    Type *t = calloc(1,sizeof(Type));
     //ノードの種類によってtyの
     switch(n->kind){
     case ND_ADD:
@@ -76,11 +60,13 @@ void init_nodetype(Node *n){
     case ND_LVAR:
     case ND_FUNC:
     case ND_NUM:
-        //n->ty = ty_int;
-        n->ty = &(Type){TY_INT};
+        t->kind = TY_INT;
+        n->ty = t;
         return;            
     case ND_ADDR:
-        n->ty = &(Type){TY_PTR,n->lhs->ty};        
+        t->kind = TY_PTR;
+        t->ptr_to = n->lhs->ty;
+        n->ty = t;        
         return;    
     case ND_DEREF:
         n->ty = n->lhs->ty->ptr_to;    

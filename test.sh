@@ -15,8 +15,10 @@ assert() {
     exit 1
   fi
 }
-#assert 13 "int main(){return 9 + -4;}" todo 
-assert 13 "int main(){return 9 + +4;}"
+
+#<<COUT
+#assert 13 "int main(){return 9 + -4;}" #todo 
+assert 13 "int main(){return +9 + 4;}"
 assert 15 "int glob;int main(){return (15);}"
 assert 15 "int main(){return (15);}"
 assert 20 "int main(){return 11+9+8-4-4;}"
@@ -77,7 +79,6 @@ assert 150 "int main(){return hahaha(15*10);} int hahaha(int i){return i;}"
 assert 15 "int main(){int a;int *b;a=5;b=&a;return *b*3;}"
 assert 13 "int main(){int hoi[3];hoi[1]=13;return *(hoi+1);}"
 assert 150 "int glob;int *globa;int main(){return hahaha(15*10);} int hahaha(int i){return i;}"
-#assert 4 "int main(){return hahaha(15*10);} int hahaha(int i){return sizeof i;}"
-#<<COUT
+assert 4 "int main(){return hahaha(15*10);} int hahaha(int i){return sizeof i;}"
 #COUT
 echo OK

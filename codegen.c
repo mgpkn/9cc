@@ -229,7 +229,7 @@ void codegen_func(Ident *func)
   printf("  push rbp\n");
   printf("  mov rbp, rsp\n");
   cur_offset = 0;
-  cur_localvar = func->localvar;
+  cur_localvar = func->locals;
   while (cur_localvar)
   {
     cur_offset = cur_localvar->offset;

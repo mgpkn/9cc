@@ -66,7 +66,7 @@ typedef enum {
 typedef struct Type Type;
 struct Type {
   int kind;
-  Type *ptr_to;//次のstatement
+  Type *ptr_to;
   size_t array_size;
 };
 
@@ -118,7 +118,7 @@ struct Ident{
   //for function
   Node *arg;
   Node *body;
-  Ident *localvar;   
+  Ident *locals;   
 
 };
 
