@@ -16,8 +16,9 @@ assert() {
   fi
 }
 
-
-#assert 13 "int main(){return 9 + -4;}" #todo 
+cout
+assert 5 "int main(){return 9 + -4;}"
+assert 0 "int main(){return 9 + -9;}"
 assert 13 "int main(){return +9 + 4;}"
 assert 15 "int glob;int main(){return (15);}"
 assert 15 "int main(){return (15);}"
@@ -82,7 +83,11 @@ assert 4 "int main(){return hahaha(15*10);} int hahaha(int i){return sizeof i;}"
 assert 150 "int glob;int *globa;int main(){return 15*10;}"
 assert 40 "int glob;int main(){int x;x=2;glob=20;return glob*x;}"
 assert 55 "int *glob;int main(){int x;x=55;glob=&x;return *glob;}"
+assert 10 "int main(){int x[10];x[3]=10;return x[3];}"
+#assert 10 "int x[10];int main(){x[3]=10;return x[3];}"//todo
+assert 10 "int main(){char c[10];c[3]=10;return c[3];}"
+assert 3 "int main(){char x[3];x[0] = -1;x[1]=2;int y;y = 4;return x[0]+y;}"
+#cout
 
-#assert 150 "int glob;int main(){int glob;return 15*10;}" ok error
 
 echo OK

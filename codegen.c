@@ -156,6 +156,8 @@ void gennode_stmt(Node *cur_node)
     switch (get_type_size(cur_node->ty))
     {
     case 1:
+      printf("  movsx rax, BYTE PTR [rax]\n");
+      break;
     case 4:
       printf("  movsxd rax, DWORD PTR [rax]\n");
       break;

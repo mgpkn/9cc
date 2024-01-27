@@ -2,10 +2,6 @@
 
 void init_nodetype(Node *n);
 
-bool is_num_node(Node *n){
-    if(n->ty->kind == TY_INT) return true;
-    return false;
-}
 
 bool is_ptr_node(Node *n){
     if(n->ty->kind == TY_PTR) return true;

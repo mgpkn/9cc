@@ -713,19 +713,19 @@ Node *extra_add(Node *lhs,Node *rhs,Token *tok_dummy)
   init_nodetype(rhs);
 
   //num + numの場合は普通の演算
-  if(is_num_node(lhs) && is_num_node(rhs)) 
+  if(!is_ptr_node(lhs) && !is_ptr_node(rhs)) 
     return new_node(ND_ADD,lhs,rhs);
 
   //pointer + num (=num + pointer)の場合はオフセットの計算 
   //逆だった場合正規化を行う。
-  if(is_num_node(lhs) && is_ptr_node(rhs)) {
+  if(!is_ptr_node(lhs) && is_ptr_node(rhs)) {
     Node *swp;
     swp = lhs;
     lhs = rhs;    
     rhs = swp;        
   }    
 
-  if(is_ptr_node(lhs) && is_num_node(rhs)) {
+  if(is_ptr_node(lhs) && !is_ptr_node(rhs)) {
     Node *n = new_node(ND_MUL,rhs,new_node_num(get_type_size(lhs->ty->ptr_to)));
     return new_node(ND_ADD,lhs,n);
   }
@@ -743,11 +743,11 @@ Node *extra_sub(Node *lhs,Node *rhs,Token *tok_dummy)
   init_nodetype(rhs);
 
   //num - numの場合は普通の演算
-  if(is_num_node(lhs) && is_num_node(rhs)) 
+  if(!is_ptr_node(lhs) && !is_ptr_node(rhs)) 
     return new_node(ND_SUB,lhs,rhs);
 
   //pointer - num (=num + pointer)の場合はオフセットの計算 
-  if(is_ptr_node(lhs) && is_num_node(rhs)) 
+  if(is_ptr_node(lhs) && !is_ptr_node(rhs)) 
     return new_node(ND_SUB,lhs,new_node(ND_MUL,rhs,new_node_num(get_type_size(rhs->ty))));
 
   //pointer - pointerはアドレスの差
