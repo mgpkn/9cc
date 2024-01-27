@@ -205,6 +205,10 @@ Ident *declarator(Token **rest,Token *tok,char *ty_name,Type *ty_array,bool is_g
   //remove prefix in ident
   Token *core_ident_tok = get_core_ident_token(tok);
 
+  // find indent if it's already declared.
+  if(find_var(core_ident_tok))
+    error_at(tok->pos, "the variable is already declared.");
+    
   // if couldn'd find ident in locals. add it to locals.
   Ident *idt = calloc(1, sizeof(Ident));
   idt->is_global = is_global;
@@ -271,13 +275,14 @@ Node *new_node_declare_lvar(Token *tok,char *type_name,Type *ty_array)
 {
   Node *node = calloc(1, sizeof(Node));    
 
-  if (!is_identtype(type_name))
+  if(!is_identtype(type_name))
     error_at(tok->pos, "invalid data type.");    
 
   // find indent if it's already declared.
-  if (find_var(tok))
+  if(find_var(tok))
     error_at(tok->pos, "the variable is already declared.");
 
+  
   if (tok)
   {
     Ident *var = declarator(&tok,tok,type_name,ty_array,false);
@@ -309,10 +314,10 @@ Node *new_node_declare_lvar(Token *tok,char *type_name,Type *ty_array)
   return node;
 }
 
-// 変数ノードの作成
+//create variable node
 Node *new_node_var(Token **rest, Token *tok)
 {
-  Node *node = NULL;
+  Node *n = NULL;
   if (tok)
   {
 
@@ -322,14 +327,20 @@ Node *new_node_var(Token **rest, Token *tok)
       error_at(tok->pos, "the variable is not declared.");
     }
 
-    node = calloc(1, sizeof(Node));
-    node->kind = ND_LVAR;
-    node->ident_name = var->name;
-    node->offset = var->offset;
-    node->ty = var->ty;
+    n = calloc(1, sizeof(Node));
+    n->ident_name = var->name;
+    n->ty = var->ty;
+
+    if(var->is_global){
+      n->kind = ND_GVAR;    
+    }
+    else {
+      n->kind = ND_LVAR;
+      n->offset = var->offset;      
+    }
   }
   *rest = tok->next;
-  return node;
+  return n;
 }
 
 //create function node
@@ -370,37 +381,33 @@ bool at_eof(Token *tok)
   return tok->kind == TK_EOF;
 }
 
-bool is_function(Token *tok){
-  return true;
-}
-
-
 // parse = (function)?
 Ident *parse(Token *tok)
 {
 
   label_cnt = 0;
-  Ident *head_prg = NULL, *cur_prg = NULL,*tmp_prg=NULL;
+  globals = NULL;
+  Ident  *cur_globals = NULL,*tmp_globals=NULL;
 
   while (!at_eof(tok))
   {
 
     locals = NULL;
-    tmp_prg = function(&tok, tok);
-    tmp_prg->locals = locals;
+    tmp_globals = function(&tok, tok);
+    tmp_globals->locals = locals;
 
-    if (head_prg)
+    if (globals)
     {
-      cur_prg->next = tmp_prg;
-      cur_prg = cur_prg->next;
+      cur_globals->next = tmp_globals;
+      cur_globals = cur_globals->next;
     }
     else
     {
-      head_prg = tmp_prg;      
-      cur_prg = head_prg;
+      globals = tmp_globals;      
+      cur_globals = globals;
     }
   }
-  return head_prg;
+  return globals;
 }
 
 /*

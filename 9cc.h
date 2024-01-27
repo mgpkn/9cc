@@ -51,14 +51,15 @@ typedef enum {
   ND_ASSIGN,//=
   ND_RETURN,  //return  
   ND_IF,  //if
-  ND_WHILE,  //while
+  ND_WHILE, //while
   ND_FOR,  //for
   ND_BLOCK,//{}
-  ND_ADDR, //&（アドレス）
-  ND_DEREF, //*（デリファレンサ）
-  ND_LVAR,//ローカル変数
-  ND_FUNC,//関数  
-  ND_NUM // 整数
+  ND_ADDR, //&（address）
+  ND_DEREF, //*（dereferencer）
+  ND_LVAR,//local var
+  ND_GVAR,//global var
+  ND_FUNC,//function  
+  ND_NUM //num value 
 } NodeKind;
 
 

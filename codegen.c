@@ -22,6 +22,10 @@ void gennode_addr(Node *cur_node)
     printf("  lea rax,[rbp - %d]\n", cur_node->offset);
     printf("  push rax\n");
     return;
+  case ND_GVAR:
+    printf("  lea rax,%s[rip]\n", cur_node->ident_name);
+    printf("  push rax\n");
+    return;
   case ND_DEREF:
     gennode_stmt(cur_node->lhs);
     return;
@@ -146,9 +150,9 @@ void gennode_stmt(Node *cur_node)
     printf("  push rax\n");
     return;
   case ND_LVAR:
+  case ND_GVAR:
     gennode_addr(cur_node);
     printf("  pop rax\n");
-
     switch (get_type_size(cur_node->ty))
     {
     case 1:

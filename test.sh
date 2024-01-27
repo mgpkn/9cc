@@ -16,7 +16,7 @@ assert() {
   fi
 }
 
-#<<COUT
+
 #assert 13 "int main(){return 9 + -4;}" #todo 
 assert 13 "int main(){return +9 + 4;}"
 assert 15 "int glob;int main(){return (15);}"
@@ -34,12 +34,12 @@ assert 1 "int main(){return 201>200;}"
 assert 0 "int main(){return 200>200;}"
 assert 1 "int main(){return 200>=200;}"
 assert 0 "int main(){return 199>=200;}"
-assert 7 "int main(){return ufufu();} int ufufu(){int fuga;fuga=1;while(fuga<7){fuga=fuga+1;} return fuga; }"
+assert 4 "int main(){return foo();}"
+assert 7 "int ufufu(){int fuga;fuga=1;while(fuga<7){fuga=fuga+1;} return fuga; } int main(){return ufufu();} "
 assert 13 "int main(){int ieei;ieei=13;return ieei;}"
 assert 33 "int main(){int x;int y;int z;int hoge;return 33;}"
 assert 33 "int main(){int x;int y;int z;x=13;z=20;return x+z;}"
 assert 33 "int main(){int x;int y;x=13;y=20;return x+y;}"
-assert 4 "int main(){return foo();}"
 assert 10 "int main(){return aba(10);}"
 assert 21 "int main(){return sum_all_param(1,2,3,4,5,6);}"
 assert 32 "int main(){int x;x=3;return sum_all_param((x+1)*x,2,3,4,5,6);}"
@@ -78,7 +78,11 @@ assert 10 "int main(){int i;i=10;return hahaha(i);} int hahaha(int i){return i;}
 assert 150 "int main(){return hahaha(15*10);} int hahaha(int i){return i;}"
 assert 15 "int main(){int a;int *b;a=5;b=&a;return *b*3;}"
 assert 13 "int main(){int hoi[3];hoi[1]=13;return *(hoi+1);}"
-assert 150 "int glob;int *globa;int main(){return hahaha(15*10);} int hahaha(int i){return i;}"
 assert 4 "int main(){return hahaha(15*10);} int hahaha(int i){return sizeof i;}"
-#COUT
+assert 150 "int glob;int *globa;int main(){return 15*10;}"
+assert 40 "int glob;int main(){int x;x=2;glob=20;return glob*x;}"
+assert 55 "int *glob;int main(){int x;x=55;glob=&x;return *glob;}"
+
+#assert 150 "int glob;int main(){int glob;return 15*10;}" ok error
+
 echo OK
