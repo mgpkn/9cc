@@ -69,6 +69,7 @@ struct Type {
   int kind;
   Type *ptr_to;
   size_t array_size;
+  Token *core_ident_tok;
 };
 
 //データ型定義

@@ -2,7 +2,6 @@
 
 void init_nodetype(Node *n);
 
-
 bool is_ptr_node(Node *n){
     if(n->ty->kind == TY_PTR) return true;
     if(n->ty->kind == TY_ARRAY) return true;    

@@ -16,7 +16,8 @@ assert() {
   fi
 }
 
-cout
+
+#cout
 assert 5 "int main(){return 9 + -4;}"
 assert 0 "int main(){return 9 + -9;}"
 assert 13 "int main(){return +9 + 4;}"
@@ -47,6 +48,7 @@ assert 32 "int main(){int x;x=3;return sum_all_param((x+1)*x,2,3,4,5,6);}"
 assert 7 "int main(int ababa){return ufufu();} int ufufu(){int fuga;fuga=1;while(fuga<7){fuga=fuga+1;} return fuga; }"
 assert 8 "int main(){int a;int b;a=13;b=8;if(0)return a;else return b;}"
 assert 33 "int main(int hoge){int x;x=13;int y;y=20;return x+y;}"
+assert 27 "int main(){return hahaha(11,12,13,14,15,16);} int hahaha(int p1,int p2,int p3,int p4,int p5,int p6){return p1+p6;}"
 assert 33 "int main(int hoge,int fuga){int x;x=13;int y;y=20;return x+y;}"
 assert 10 "int main(){int x;int *y;y=&x;*y=10;return x;}"
 assert 13 "int main(){int x;int *y;int **z;y=&x;z=&y;**z=13;return x;}"
@@ -70,7 +72,6 @@ assert 8 "int main(int ababa){return ufufu();} int ufufu(){int fuga;fuga=1;while
 assert 36 "int main(){int hoi[9];return sizeof hoi;}"
 assert 4 "int main(){return sizeof(12+18);}" 
 assert 8 "int main(){int a;int ub;int d;return foo(a,ub,4,baa(),(baa()*3)+(3+1))+baa(d,d,d)+baa();}"
-assert 27 "int main(){return hahaha(11,12,13,14,15,16);} int hahaha(int p1,int p2,int p3,int p4,int p5,int p6){return p1+p6;}"
 assert 4 "int main(){return sizeof(hahaha(15*10));} int hahaha(int i){return i;}"
 assert 1 "int main(){int *z;alloc4(&z,13,22,35,48);return (z+2)-(z+1);}"
 assert 13 "int main(){int hoi[3];hoi[1]=13;return hoi[1];}"
@@ -87,6 +88,7 @@ assert 10 "int main(){int x[10];x[3]=10;return x[3];}"
 #assert 10 "int x[10];int main(){x[3]=10;return x[3];}"//todo
 assert 10 "int main(){char c[10];c[3]=10;return c[3];}"
 assert 3 "int main(){char x[3];x[0] = -1;x[1]=2;int y;y = 4;return x[0]+y;}"
+#assert -1 "int main(){return -1;}" //todo shellではテスト不可。
 #cout
 
 
