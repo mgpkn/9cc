@@ -520,6 +520,7 @@ Type *declarator_prefix(Token **rest, Token *tok)
     ty->kind = TY_PTR;
     ty->ptr_to = declarator_prefix(&tok, tok);
   }
+  *rest = tok;
   return ty;
 }
 
