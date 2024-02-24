@@ -63,24 +63,15 @@ bool equal_token(Token *tok, char *op)
   return equal(tok->pos, op, tok->len);
 }
 
-
-// あとで消す
-bool is_typename(char *str)
+bool is_core_type_token(Token *tok)
 {
-  char *s = str;
-
-  // skip pointer keyword
-  while (*s == '*')
-    s++;
-
-  if (equal(s, "int", 3))
+  if (equal_token(tok, "int"))
     return true;
-  if (equal(s, "char", 4))
+  if (equal_token(tok, "char"))
     return true;
 
   return false;
 }
-
 
 Type *core_type(Token **rest, Token *tok)
 {
@@ -372,13 +363,15 @@ Ident *declaration_global_var(Token **rest, Token *tok, Type *core_ty)
   idt->name = strndup(ty->core_ident_tok->pos, sizeof(char) * idt->name_len);
   idt->ty = ty;
 
-  // todo create multi variables
+  //todo declaration multi variables
+
+
   consume(&tok, tok, ";");
   *rest = tok;
   return idt;
 }
 
-// declaration_function ::= declarator "(" (declaration("," declaration)?)? ")" "{" statment? "}"
+//declaration_function ::= declarator "(" (declaration_local("," declaration_local)?)? ")" "{" statment* "}"
 Ident *declaration_function(Token **rest, Token *tok, Type *core_ty)
 {
 
@@ -449,7 +442,7 @@ Ident *declaration_function(Token **rest, Token *tok, Type *core_ty)
   return idt;
 }
 
-// declarator ::= (declarator_prefix)* ident (declarator_suffix)*
+// declarator ::= declarator_prefix ident declarator_suffix
 Type *declarator(Token **rest, Token *tok, Type *core_ty)
 {
 
@@ -507,7 +500,7 @@ Type *declarator(Token **rest, Token *tok, Type *core_ty)
   return core_ty;
 }
 
-// declarator_prefix := "*"? declarator_prefix
+//declarator_prefix := ("*" declarator_prefix)? 
 Type *declarator_prefix(Token **rest, Token *tok)
 {
 
@@ -524,7 +517,7 @@ Type *declarator_prefix(Token **rest, Token *tok)
   return ty;
 }
 
-// declarator_suffix := ("[" num "]")? declarator_suffix
+//declarator_suffix ::= ("[" num "]" declarator_suffix)?
 Type *declarator_suffix(Token **rest, Token *tok)
 {
 
@@ -668,7 +661,7 @@ Node *statement(Token **rest, Token *tok)
   }
   else
   {
-    if (is_typename(tok->pos))
+    if (is_core_type_token(tok))
       n = declaration_local(&tok, tok);
     else
       n = expr(&tok, tok);
@@ -694,6 +687,8 @@ Node *declaration_local(Token **rest, Token *tok)
 
   Type *ty = core_type(&tok, tok);
   ty = declarator(&tok,tok,ty);
+
+  //todo declaration multi declaration
 
   *rest = tok;
   return new_node_declare_lvar(ty);
