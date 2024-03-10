@@ -1,5 +1,8 @@
 #include "9cc.h"
 
+Type *ty_char = &(Type){TY_CHAR};
+Type *ty_int = &(Type){TY_INT};
+
 void init_nodetype(Node *n);
 
 bool is_ptr_node(Node *n){
@@ -57,7 +60,7 @@ void init_nodetype(Node *n){
     case ND_NUM:
         t->kind = TY_INT;
         n->ty = t;
-        return;            
+        return;
     case ND_ADDR:
         t->kind = TY_PTR;
         t->ptr_to = n->lhs->ty;

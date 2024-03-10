@@ -25,8 +25,11 @@ int alloc4(int **p, int val1, int val2, int val3, int val4)
     *(*p+1)=val2;    
     *(*p+2)=val3;
     *(*p+3)=val4;        
-    //
 
     return 0;
 }
 
+int printf_test(char *str){
+  printf("%s",str);
+  return 0;
+}

@@ -22,6 +22,7 @@ void gennode_addr(Node *cur_node)
     printf("  lea rax,[rbp - %d]\n", cur_node->offset);
     printf("  push rax\n");
     return;
+  case ND_STR:
   case ND_GVAR:
     printf("  lea rax,%s[rip]\n", cur_node->ident_name);
     printf("  push rax\n");
@@ -151,6 +152,7 @@ void gennode_stmt(Node *cur_node)
     return;
   case ND_LVAR:
   case ND_GVAR:
+  case ND_STR:
     gennode_addr(cur_node);
     printf("  pop rax\n");
     switch (get_type_size(cur_node->ty))
@@ -221,7 +223,7 @@ void gennode_stmt(Node *cur_node)
 void codegen_func(Ident *func)
 {
 
-  if(!func->is_function)
+  if (!func->is_function)
     return;
 
   Node *cur_code, *cur_arg;
@@ -292,41 +294,46 @@ void codegen(Ident *prog_list)
   // プロローグ
   printf(".intel_syntax noprefix\n");
 
-  //define global variable
-  printf(".section .data\n");    
-  cur_prog = prog_list;  
+  // define global variable
+  printf(".section .data\n");
+  cur_prog = prog_list;
   while (cur_prog)
   {
-    if ((cur_prog->is_function)){
-      cur_prog = cur_prog->next;    
+    if ((cur_prog->is_function))
+    {
+      cur_prog = cur_prog->next;
       continue;
     }
     printf("%s:\n", cur_prog->name);
-    printf("  .zero %d\n",get_type_size(cur_prog->ty));
-    cur_prog = cur_prog->next;    
+    if (cur_prog->str)
+      for (int i = 0; i < cur_prog->ty->array_size; i++)
+        printf("  .byte %d\n", cur_prog->str[i]);
+    else
+      printf("  .zero %d\n", get_type_size(cur_prog->ty));
+
+    cur_prog = cur_prog->next;
   }
   printf("\n");
 
-
-  //define functions
-  printf(".section .text\n");  
+  // define functions
+  printf(".section .text\n");
   printf("  .global ");
-  cur_prog = prog_list;  
+  cur_prog = prog_list;
   while (cur_prog)
   {
-    if (!(cur_prog->is_function)){
-      cur_prog = cur_prog->next;    
+    if (!(cur_prog->is_function))
+    {
+      cur_prog = cur_prog->next;
       continue;
     }
     printf("%s", cur_prog->name);
     cur_prog = cur_prog->next;
     if (cur_prog && cur_prog->is_function)
       printf(",");
-
   }
   puts("\n");
 
-  //gen functions
+  // gen functions
   cur_prog = prog_list;
   while (cur_prog)
   {

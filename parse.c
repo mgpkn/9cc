@@ -172,6 +172,64 @@ Node *new_node_num(int val)
   return node;
 }
 
+Ident *add_globals(Ident *tar){
+
+  if(!globals){
+    globals= tar;
+    return globals;
+  }
+
+  Ident *tmp = globals;
+  while(tmp->next) 
+    tmp=tmp->next;
+  tmp->next = tar; 
+  return tmp->next;
+
+}
+
+static Ident *declaration_str(Token *tok)
+{
+
+  //literal string is treated like a global var.
+
+  static int str_id=0;
+  str_id++; //when this function called,incriment str_id;
+
+  Type *ty = calloc(1,sizeof(Type));
+  ty->kind=TY_ARRAY;
+  ty->ptr_to = ty_char;  
+  ty->array_size = tok->len;
+
+  Ident *idt = calloc(1, sizeof(Ident));
+  idt->is_global = true;
+  idt->is_function = false;
+  //sprintf(NULL,".LC%d",str_id);
+  idt->name = calloc(1,sizeof(char)*10);
+  idt->name_len = sprintf(idt->name,".LC%d",str_id);
+  idt->str = tok->str;
+  idt->ty = ty;
+  
+  add_globals(idt);
+
+  return idt;
+}
+
+
+Node *new_node_str(Token **rest,Token *tok)
+{
+  Ident *idt_str = declaration_str(tok);
+
+  Node *node = calloc(1, sizeof(Node));
+  node->kind = ND_STR;
+  node->ty = idt_str->ty;
+  node->ident_name = idt_str->name;
+  init_nodetype(node);
+
+  tok= tok->next;
+  *rest = tok;
+  return node;
+}
+
 
 // create lvar node
 Node *new_node_declare_lvar(Type *ty)
@@ -228,9 +286,8 @@ Node *new_node_var(Token **rest, Token *tok)
     // search the variable in globals or locals
     Ident *var = find_var(tok);
     if (!var)
-    {
       error_at(tok->pos, "the variable is not declared.");
-    }
+
 
     n = calloc(1, sizeof(Node));
     n->ident_name = var->name;
@@ -296,25 +353,17 @@ Ident *parse(Token *tok)
 
   label_cnt = 0;
   globals = NULL;
-  Ident *cur_globals = NULL, *tmp_globals = NULL;
-
+  Ident *tmp_global;//*cur_global = NULL;
+  
   while (!at_eof(tok))
   {
 
     locals = NULL;
-    tmp_globals = global(&tok, tok);
-    tmp_globals->locals = locals;
+    tmp_global = global(&tok, tok);
+    tmp_global->locals = locals;
+    add_globals(tmp_global);
 
-    if (globals)
-    {
-      cur_globals->next = tmp_globals;
-      cur_globals = cur_globals->next;
-    }
-    else
-    {
-      globals = tmp_globals;
-      cur_globals = globals;
-    }
+
   }
   return globals;
 }
@@ -908,7 +957,7 @@ Node *postfix(Token **rest, Token *tok)
 /*
 primary ::= "(" expr ")"
     |ident("(" (expr("," expr)?)? ")")?
-    |num
+    |num|str
 */
 Node *primary(Token **rest, Token *tok)
 {
@@ -930,7 +979,11 @@ Node *primary(Token **rest, Token *tok)
     else
       n = new_node_var(&tok, tok);
   }
-  else
+
+  if (tok->kind == TK_STR)
+    n = new_node_str(&tok,tok);
+    
+  if (tok->kind == TK_NUM)
     n = new_node_num(expect_number(&tok, tok));
 
   *rest = tok;

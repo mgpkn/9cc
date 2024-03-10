@@ -15,30 +15,28 @@ void error_at(char *loc, char *fmt, ...);
 
 // トークンの種類
 typedef enum {
-  TK_KEYWORD,//特別な構文全般、型などの識別子
-  TK_IDENT, //変数、関数などの識別子
-  TK_NUM,      // 整数
-  TK_EOF,      // コードの終わり
+  TK_KEYWORD, //any syntax word(if,while etc..)
+  TK_IDENT,  //ident,function name
+  TK_NUM,      //digit value 
+  TK_STR,      //string  
+  TK_EOF
 } TokenKind;
 
 typedef struct Token Token;
 
-// トークン型
 struct Token {
-  TokenKind kind; // トークンの型
-  Token *next;    // 次の入力トークン
-  int val;        // kindがTK_NUMの場合、その数値
-  int len; //トークンの長さ
-  char *pos;      // トークン文字列
-  //char *pos;//出力文字列の位置
+  TokenKind kind;
+  Token *next;
+  int val; //numeric value 
+  char *str; //string value
+  int len; //token length
+  char *pos; //token word position(string) 
 };
 
 Token *tokenize(char *p);
 
 //Node
-// 抽象構文木のノードの種類
 typedef enum {
-  //演算子  
   ND_ADD, // +
   ND_SUB, // -
   ND_MUL, // *
@@ -59,7 +57,8 @@ typedef enum {
   ND_LVAR,//local var
   ND_GVAR,//global var
   ND_FUNC,//function  
-  ND_NUM //num value 
+  ND_NUM, //num value 
+  ND_STR //string value   
 } NodeKind;
 
 
@@ -117,6 +116,9 @@ struct Ident{
   //for variable
   int offset; //RBPからのオフセット
 
+  //for global string.
+  char *str;
+
   //for function
   Node *arg;
   Node *body;
@@ -136,3 +138,6 @@ int get_type_size(Type *ty);
 void init_nodetype(Node *n);
 bool is_num_node(Node *n);
 bool is_ptr_node(Node *n);
+
+extern Type *ty_char;
+extern Type *ty_int;

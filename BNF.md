@@ -24,5 +24,5 @@ unary ::= ("+"|"-"|"&"|"*"|"sizeof") unary
 postfix ::= primary ("[" & expr & "]")*	
 primary ::= "(" expr ")"
 		|type? ident("(" (expr("," expr)?)? ")")? 
-		|num
+		|num|str
 ```
