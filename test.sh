@@ -19,6 +19,13 @@ assert() {
 
 assert 0 "int main(){printf_test(\"Hello World!\n\");return 0;}"
 #assert 97 "int main(){char str[10];str=\"abcdef\";return str[1];}"
+assert 5 "/*this is comment*/ int main(){return 9 + -4;}"
+assert 5 "int main(/*this is comment*/ ){return 9 + -4;}"
+assert 5 "int main(){return 9 + -4;}/*this is comment*/ "
+assert 5 "int main(/*this is comment*/ ){return 9 + -4;}"
+assert 5 "int main(){return 9 + -4;}/*if*/ "
+# assert 5 "int main(){return 9 + -4;} //this is comment" #あとから
+
 <<cout
 assert 5 "int main(){return 9 + -4;}"
 assert 0 "int main(){return 9 + -9;}"

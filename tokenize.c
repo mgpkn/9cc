@@ -53,6 +53,29 @@ Token *tokenize(char *p)
       continue;
     }
 
+    // line comment
+    estamate_len = 2;
+    if (strncmp(p, "//", estamate_len) == 0)
+    {
+      p += estamate_len;
+      while (*p != '\n' || *p !='\0')
+        p++;
+      continue;
+    }
+
+    // block comment
+    if (strncmp(p, "/*", estamate_len) == 0)
+    {
+      char *q = strstr(p + estamate_len, "*/");
+      if (!q)
+        error_at(p, "comment isn't closed");
+      p = q + estamate_len;
+      continue;
+    }
+
+
+
+
     estamate_len = 6;
     if (strncmp(p, "sizeof", estamate_len) == 0)
     {
@@ -84,16 +107,18 @@ Token *tokenize(char *p)
     }
 
     // string(")
-    if(*p == '"'){
-        //serach close double quote.
-        for(i=1;*(p+i) != '"';i++){
-            if(*(p+i)=='\n' || *(p+i)=='\0')
-              error_at(p,"coludn't find closed double quote.");
-        }
-        cur = new_token(TK_STR, cur, p,i-1);
-        cur->str = strndup(cur->pos+1, sizeof(char) * cur->len);
-        p+= i+1;
-        continue;
+    if (*p == '"')
+    {
+      // serach close double quote.
+      for (i = 1; *(p + i) != '"'; i++)
+      {
+        if (*(p + i) == '\n' || *(p + i) == '\0')
+          error_at(p, "coludn't find closed double quote.");
+      }
+      cur = new_token(TK_STR, cur, p, i - 1);
+      cur->str = strndup(cur->pos + 1, sizeof(char) * cur->len);
+      p += i + 1;
+      continue;
     }
 
     // keyword tokens.
