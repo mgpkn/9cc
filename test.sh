@@ -17,25 +17,24 @@ assert() {
 }
 
 
-assert 0 "int main(){printf_test(\"Hello World!\n\");return 0;}"
-#assert 97 "int main(){char str[10];str=\"abcdef\";return str[1];}"
-assert 5 "/*this is comment*/ int main(){return 9 + -4;}"
-assert 5 "int main(/*this is comment*/ ){return 9 + -4;}"
-assert 5 "int main(){return 9 + -4;}/*this is comment*/ "
-assert 5 "int main(/*this is comment*/ ){return 9 + -4;}"
-assert 5 "int main(){return 9 + -4;}/*if*/ "
-# assert 5 "int main(){return 9 + -4;} //this is comment" #あとから
 
+
+
+assert 3 "test_cfiles/refer_array_values1.c"
+assert 0 "test_cfiles/printf_helloworld.c"
+assert 3 "test_cfiles/commentout1.c"
 <<cout
-assert 5 "int main(){return 9 + -4;}"
-assert 0 "int main(){return 9 + -9;}"
-assert 13 "int main(){return +9 + 4;}"
-assert 15 "int main(){int b;b=3*4+3;return b;}"
-assert 15 "int glob;int main(){return (15);}"
-assert 15 "int main(){return (15);}"
-assert 20 "int main(){return 11+9+8-4-4;}"
-assert 23 "int main(){return 11+3*4;}"
-assert 30 "int main(){int i;i=(3+3)*5;return i;}"
+assert 97 "test_cfiles/refer_strings.c"
+"test_cfiles/"
+assert 5 "test_cfiles/""int main(){return 9 + -4;}"
+assert 0 "test_cfiles/""int main(){return 9 + -9;}"
+assert 13 "test_cfiles/""int main(){return +9 + 4;}"
+assert 15 "test_cfiles/""int main(){int b;b=3*4+3;return b;}"
+assert 15 "test_cfiles/""int glob;int main(){return (15);}"
+assert 15 "test_cfiles/""int main(){return (15);}"
+assert 20 "test_cfiles/""int main(){return 11+9+8-4-4;}"
+assert 23 "test_cfiles/""int main(){return 11+3*4;}"
+assert 30 "test_cfiles/""int main(){int i;i=(3+3)*5;return i;}"
 assert 2 "int main(){int i;i=(13-3)/5;return i;}"
 assert 1 "int main(){return 100<101;}"
 assert 0 "int main(){return 100<100;}"
@@ -99,7 +98,9 @@ assert 10 "int main(){int x[10];x[3]=10;return x[3];}"
 assert 40 "int x[10];int main(){x[3]=10;x[2]=4;return x[3]*x[2];}"
 assert 10 "int main(){char c[10];c[3]=10;return c[3];}"
 assert 3 "int main(){char x[3];x[0] = -1;x[1]=2;int y;y = 4;return x[0]+y;}"
+
 cout
+
 #assert -1 "int main(){return -1;}" //todo shellではテスト不可。
 
 
