@@ -25,7 +25,7 @@ Node *unary(Token **rest, Token *tok);
 Node *postfix(Token **rest, Token *tok);
 Node *primary(Token **rest, Token *tok);
 
-extern char *user_input; //command parameter
+extern char *code;
 extern char *filename; //command parameter
 int label_cnt;
 
@@ -50,7 +50,7 @@ void error_at(char *loc, char *msg, ...) {
 
   // locが含まれている行の開始地点と終了地点を取得
   char *line = loc;
-  while (user_input < line && line[-1] != '\n')
+  while (code < line && line[-1] != '\n')
     line--;
 
   char *end = loc;
@@ -59,7 +59,7 @@ void error_at(char *loc, char *msg, ...) {
 
   // 見つかった行が全体の何行目なのかを調べる
   int line_num = 1;
-  for (char *p = user_input; p < line; p++)
+  for (char *p = code; p < line; p++)
     if (*p == '\n')
       line_num++;
 
@@ -70,8 +70,7 @@ void error_at(char *loc, char *msg, ...) {
   // エラー箇所を"^"で指し示して、エラーメッセージを表示
   int pos = loc - line + indent;
   fprintf(stderr, "%*s", pos, ""); // pos個の空白を出力
-  fprintf(stderr,  msg,ap);
-  fprintf(stderr, "n");  
+  fprintf(stderr,"^ %s\n",msg);
   exit(1);
 }
 
