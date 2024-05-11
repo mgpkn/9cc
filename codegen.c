@@ -90,7 +90,7 @@ void gennode_stmt(Node *cur_node)
 {
 
   Node *n;
-
+  int argn=0;
   if (!cur_node)
     return;
 
@@ -142,11 +142,12 @@ void gennode_stmt(Node *cur_node)
     printf("  push %d\n", cur_node->val);
     return;
   case ND_FUNC:
-    for (int i = 0; cur_node->func_param[i]; i++)
-    {
-      gennode_stmt(cur_node->func_param[i]);
-      printf("  pop %s\n", argreg8[i]);
-    }
+    for (argn=0; cur_node->func_param[argn];argn++)
+      gennode_stmt(cur_node->func_param[argn]);
+
+    for(argn--;argn>=0;argn--)
+      printf("  pop %s\n", argreg8[argn]);
+
     printf("  call %s\n", cur_node->ident_name);
     printf("  push rax\n");
     return;
@@ -319,6 +320,8 @@ void codegen(Ident *prog_list)
   printf(".section .text\n");
   printf("  .global ");
   cur_prog = prog_list;
+  bool is_first_function =true;
+
   while (cur_prog)
   {
     if (!(cur_prog->is_function))
@@ -326,10 +329,14 @@ void codegen(Ident *prog_list)
       cur_prog = cur_prog->next;
       continue;
     }
+
+    if (cur_prog->is_function && !is_first_function)
+      printf(",");
+
     printf("%s", cur_prog->name);
     cur_prog = cur_prog->next;
-    if (cur_prog && cur_prog->is_function)
-      printf(",");
+    is_first_function = false;
+
   }
   puts("\n");
 
