@@ -306,9 +306,10 @@ void codegen(Ident *prog_list)
       continue;
     }
     printf("%s:\n", cur_prog->name);
-    if (cur_prog->str)
+    if (cur_prog->str){
       for (int i = 0; i < cur_prog->ty->array_size; i++)
         printf("  .byte %d\n", cur_prog->str[i]);
+    }      
     else
       printf("  .zero %d\n", get_type_size(cur_prog->ty));
 
@@ -338,7 +339,7 @@ void codegen(Ident *prog_list)
     is_first_function = false;
 
   }
-  puts("\n");
+  puts("");
 
   // gen functions
   cur_prog = prog_list;

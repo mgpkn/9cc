@@ -141,3 +141,6 @@ bool is_ptr_node(Node *n);
 
 extern Type *ty_char;
 extern Type *ty_int;
+
+//read_file
+char *read_file(char *path);

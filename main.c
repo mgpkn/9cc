@@ -1,7 +1,7 @@
 #include "9cc.h"
 
-char *user_input; // main関数の引数
-char *filename; // main関数の引数
+char *code;
+char *filename;
 
 int main(int argc, char **argv)
 {
@@ -13,9 +13,9 @@ int main(int argc, char **argv)
   }
 
   filename = calloc(1,sizeof(char)*500);
-  user_input = read_file(argv[1]);
+  code = read_file(argv[1]);
 
-  Token *tok = tokenize(user_input);
+  Token *tok = tokenize(code);
 
   //ノードの集団を生成  
   Ident *prog_list = parse(tok);
