@@ -58,8 +58,9 @@ Token *tokenize(char *p)
     if (strncmp(p, "//", estamate_len) == 0)
     {
       p += estamate_len;
-      while (*p != '\n' || *p !='\0')
+      while (!(*p == '\n' || *p =='\0'))
         p++;
+      p++;
       continue;
     }
 
@@ -73,9 +74,7 @@ Token *tokenize(char *p)
       continue;
     }
 
-
-
-
+    // 6 length token.
     estamate_len = 6;
     if (strncmp(p, "sizeof", estamate_len) == 0)
     {
@@ -115,9 +114,11 @@ Token *tokenize(char *p)
         if (*(p + i) == '\n' || *(p + i) == '\0')
           error_at(p, "coludn't find closed double quote.");
       }
-      cur = new_token(TK_STR, cur, p, i - 1);
+      cur = new_token(TK_STR, cur, p, i);
       cur->str = strndup(cur->pos + 1, sizeof(char) * cur->len);
-      p += i + 1;
+      cur->str[cur->len-1] = '\0';
+
+      p += i+1;
       continue;
     }
 
