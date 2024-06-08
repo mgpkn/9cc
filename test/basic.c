@@ -1,0 +1,187 @@
+#include "test.h"
+
+int ret3()
+{
+    return 3;
+    return 5;
+}
+
+int myadd(int a, int b)
+{
+    return a + b;
+}
+
+int foo()
+{
+    return 4;
+}
+
+int baa()
+{
+    return 2;
+}
+
+int aba(int d)
+{
+    return d;
+}
+
+int myadd2(int a, int b)
+{
+    return a + b;
+}
+
+int sum_all_param(int p1, int p2, int p3, int p4, int p5, int p6)
+{
+    return p1 + p2 + p3 + p4 + p5 + p6;
+}
+
+
+
+/*
+int printf_test(char *str)
+{
+    printf("%s", str);
+    return 0;
+}
+*/
+
+int ufufu()
+{
+    int fuga;
+    fuga = 1;
+    while (fuga < 7)
+    {
+        fuga = fuga + 1;
+    }
+    return fuga;
+}
+
+int glob;
+int *glob_addr;
+
+int main()
+{
+
+    int x;
+    int *y;
+    int **z;
+    int arr[10];
+
+    ASSERT(3, ret3());
+    ASSERT(5, 9 + -4);
+    ASSERT(0, 9 + -9);
+    ASSERT(8, +11 + 9 + 8 - 4 - 4 + -12);
+    ASSERT(23, 11 + 3 * 4);
+    ASSERT(-1, -10 + 9);
+
+    x = (3 + 3) * 5;
+    ASSERT(30, x);
+
+    x = (13 - 3) / 5;
+    ASSERT(23, 11 + 3 * 4);
+
+    ASSERT(1, 100 < 101);
+    ASSERT(0, 100 < 100);
+    ASSERT(1, 99 <= 100);
+    ASSERT(1, 100 <= 100);
+    ASSERT(1, 100 <= 101);
+    ASSERT(1, 101 > 100);
+    ASSERT(0, 101 > 101);
+    ASSERT(1, 100 >= 99);
+    ASSERT(1, 100 >= 100);
+    ASSERT(0, 100 >= 101);
+
+    ASSERT(7, ufufu());
+    x = 3;
+    ASSERT(32, sum_all_param((x + 1) * x, 2, 3, 4, 5, 6));
+
+    if (0)
+        x = 13;
+    else
+        x = 8;
+    ASSERT(8, x);
+
+    /*
+    todo
+    if(100)i=13;else i=8;
+    ASSERT(13,i);
+    */
+
+    x=1;
+    while(x<8){x=x+1;}    
+    ASSERT(7, ufufu());
+
+    glob = 15;
+    ASSERT(150, glob * 10);
+
+    y = &x;
+    *y = 32;
+    ASSERT(32, x);
+
+    y = &x;
+    z = &y;
+    **z = 13;
+    ASSERT(13, x);
+
+    alloc4(&y,13,22,35,48);
+
+    /*
+    todo
+    
+    ASSERT(22,*(y+1));    
+    ASSERT(49,*(y+3)+1);
+
+    assert 3 "int main(){int *y;int *z;alloc4(&z,13,22,35,48);y=z+2;return y+1-z;}"
+    assert 48 "int main(){int *y;int *z;alloc4(&z,13,22,35,48);y=z+2;return *(y+1);}"
+    assert 22 "int main(){int *y;int *z;alloc4(&z,13,22,35,48);y=z+3;return *(y-2);}"
+    assert 1 "int main(){int *z;alloc4(&z,13,22,35,48);return (z+2)-(z+1);}"
+    */
+
+    ASSERT(4, sizeof(x));
+    ASSERT(4, sizeof(x + 100));
+    ASSERT(8, sizeof(y));
+    ASSERT(8, sizeof(&x));
+    ASSERT(40, sizeof(arr));
+    ASSERT(4, sizeof(arr[1]));
+
+    arr[0]=13;
+    arr[1]=22;    
+
+    /*
+    todo
+    ASSERT(13, arr[0]);    
+    ASSERT(35, arr[0]+arr[1]);    
+    ASSERT(22, *(arr+1);
+    */
+
+    x=2;glob=20;
+    ASSERT(40,glob*x);
+
+
+    /*
+    x=55;
+    glob_addr=&x;
+    ASSERT(55,*glob_addr);
+    */
+
+
+    /*
+    alloc4(&y,85,2,3,4);
+
+    ASSERT(85,*y);
+
+    y=y+3;
+    ASSERT(48,*y);
+    ASSERT(22,*(y-2));
+    */
+
+    ASSERT(3, ret3());
+    ASSERT(3, myadd(1, 2));
+    ASSERT(50, aba(50));
+    ASSERT(13, myadd(3, 10));
+
+    //my_printf("end");
+
+    return 0;
+}
