@@ -20,15 +20,16 @@ void gennode_addr(Node *cur_node)
   {
   case ND_LVAR:
     printf("  lea rax,[rbp - %d]\n", cur_node->offset);
-    printf("  push rax\n");
+    //printf("  push rax\n");
     return;
   case ND_STR:
   case ND_GVAR:
     printf("  lea rax,%s[rip]\n", cur_node->ident_name);
-    printf("  push rax\n");
+    //printf("  push rax\n");
     return;
   case ND_DEREF:
     gennode_stmt(cur_node->lhs);
+    printf("  pop rax\n");
     return;
   default:
     break;
@@ -156,7 +157,7 @@ void gennode_stmt(Node *cur_node)
   case ND_GVAR:
   case ND_STR:
     gennode_addr(cur_node);
-    printf("  pop rax\n");
+    //printf("  pop rax\n");
     switch (get_type_size(cur_node->ty))
     {
     case 1:
@@ -175,6 +176,7 @@ void gennode_stmt(Node *cur_node)
     return;
   case ND_ADDR:
     gennode_addr(cur_node->lhs);
+    printf("  push rax\n");
     return;
   case ND_DEREF:
     gennode_stmt(cur_node->lhs);
@@ -184,8 +186,9 @@ void gennode_stmt(Node *cur_node)
     return;
   case ND_ASSIGN:
     gennode_addr(cur_node->lhs);
+    printf("  push rax\n");    
     gennode_stmt(cur_node->rhs);
-    printf("  pop rdi\n");
+    printf("  pop rdi\n");    
     printf("  pop rax\n");
     switch (get_type_size(cur_node->ty))
     {
@@ -262,7 +265,7 @@ void codegen_func(Ident *func)
   {
     gennode_addr(cur_arg);
 
-    printf("  pop rax\n");
+    //printf("  pop rax\n");
     switch (get_type_size(cur_arg->ty))
     {
     case 1:
