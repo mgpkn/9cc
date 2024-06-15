@@ -6,9 +6,11 @@ OBJ_COMMON=$(SRC_COMMON:.c=.o)
 OBJS=$(SRCS:.c=.o)
 
 TEST_SRCS=$(wildcard test/*.c)
-TEST_PRI_SRCS=$(TEST_SRCS:.c=.cc)
+TEST_PRE_SRCS=$(TEST_SRCS:.c=.pc)
 TEST_ASSMBLES=$(TEST_SRCS:.c=.s)
 TESTS=$(TEST_SRCS:.c=.exe)
+
+.PRECIOUS: $(TEST_PRE_SRCS) $(TEST_ASSMBLES)
 
 9cc: $(OBJS) 
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) 
@@ -18,23 +20,24 @@ $(OBJS): 9cc.h
 $(OBJ_COMMON):$(SRC_COMMON)
 	$(CC) -c $^ -o $@
 
-test/%.cc:test/%.c
+
+test/%.pc : $(TEST_SRCS)
 	$(CC) -o- -E -P -C test/$*.c > $@
 
-test/%.exe: 9cc test/%.cc $(OBJ_COMMON) 
-	./9cc test/$*.cc > test/$*.s
+test/%.s : $(TEST_PRE_SRCS) 9cc
+	./9cc test/$*.pc > $@
+
+test/%.exe:$(OBJ_COMMON) $(TEST_ASSMBLES)
 	$(CC) -o $@ test/$*.s $(OBJ_COMMON)
 
 test: $(TESTS)
 	for i in $^; do echo $$i; ./$$i || exit 1; echo; done
 	test/driver.sh
 
-otest: 9cc
-	./test.sh
-
 clean:
-	rm -rf 9cc common/*.o $(TESTS) $(TEST_ASSMBLES) $(TEST_PRI_SRCS)
+	rm -rf 9cc common/*.o $(TESTS) $(TEST_ASSMBLES) $(TEST_PRE_SRCS)
 	find * -type f '(' -name '*~' -o -name '*.o' ')' -exec rm {} ';'
+
 
 params:
 #	echo $(CC)
