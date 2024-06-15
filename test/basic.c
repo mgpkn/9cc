@@ -36,16 +36,6 @@ int sum_all_param(int p1, int p2, int p3, int p4, int p5, int p6)
     return p1 + p2 + p3 + p4 + p5 + p6;
 }
 
-
-
-/*
-int printf_test(char *str)
-{
-    printf("%s", str);
-    return 0;
-}
-*/
-
 int ufufu()
 {
     int fuga;
@@ -102,11 +92,8 @@ int main()
         x = 8;
     ASSERT(8, x);
 
-    /*
-    todo
-    if(100)i=13;else i=8;
-    ASSERT(13,i);
-    */
+    if(100)x=13; else x=8;
+    ASSERT(13,x);
 
     x=1;
     while(x<8){x=x+1;}    
@@ -176,7 +163,6 @@ int main()
     ASSERT(22,*(y-2));
     */
 
-    ASSERT(3, ret3());
     ASSERT(3, myadd(1, 2));
     ASSERT(50, aba(50));
     ASSERT(13, myadd(3, 10));

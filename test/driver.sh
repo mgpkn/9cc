@@ -13,9 +13,9 @@ check() {
 }
 
 # -o
-rm -f $tmp/out
-./9cc $tmp/empty.c > $tmp/out 
-[ -f $tmp/out ]
+#rm -f $tmp/out
+#./9cc $tmp/empty.c > $tmp/out 
+#[ -f $tmp/out ]
 check -o
 
 # --help

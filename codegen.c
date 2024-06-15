@@ -109,6 +109,7 @@ void gennode_stmt(Node *cur_node)
     printf("  cmp rax,0\n");
     printf("  je .Lelse%d\n", cur_node->label_num);
     gennode_stmt(cur_node->then);
+    printf("  jmp .Lend%d\n", cur_node->label_num);    
     printf(".Lelse%d:\n", cur_node->label_num);
     if (cur_node->els)
     {

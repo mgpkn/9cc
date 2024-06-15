@@ -10,6 +10,7 @@ gccsample
 gcc_test
 gcc_test/*
 test/*.exe
+test/*.pc
 test/*.s
 test2
 
