@@ -40,6 +40,9 @@ void init_nodetype(Node *n){
         init_nodetype(block_n);
     }
 
+    for(int i;i<FUNC_ARG_NUM;i++)
+        init_nodetype(n->func_arg[i]);
+
     Type *t = calloc(1,sizeof(Type));
     //ノードの種類によってtyの
     switch(n->kind){

@@ -102,6 +102,7 @@ int main()
     glob = 15;
     ASSERT(150, glob * 10);
 
+
     y = &x;
     *y = 32;
     ASSERT(32, x);
@@ -111,13 +112,20 @@ int main()
     **z = 13;
     ASSERT(13, x);
 
+    arr[0]=22;
+    arr[1]=13;
+
+    ASSERT(13, arr[1]);
+    ASSERT(13, *(arr+1));    
+    ASSERT(35, arr[0]+arr[1]);    
+
+
+    /*    
     alloc4(&y,13,22,35,48);
 
-    /*
-    todo
-    
     ASSERT(22,*(y+1));    
     ASSERT(49,*(y+3)+1);
+
 
     assert 3 "int main(){int *y;int *z;alloc4(&z,13,22,35,48);y=z+2;return y+1-z;}"
     assert 48 "int main(){int *y;int *z;alloc4(&z,13,22,35,48);y=z+2;return *(y+1);}"
@@ -151,6 +159,7 @@ int main()
     glob_addr=&x;
     ASSERT(55,*glob_addr);
     */
+
 
 
     /*

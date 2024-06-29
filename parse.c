@@ -347,11 +347,11 @@ Node *new_node_function(Token **rest, Token *tok)
 
   while (true)
   {
-    if (i >= FUNC_PRAM_NUM)
+    if (i >= FUNC_ARG_NUM)
     {
-      error("function aguments limit is %d", FUNC_PRAM_NUM);
+      error("function aguments limit is %d", FUNC_ARG_NUM);
     }
-    node->func_param[i] = expr(&tok, tok);
+    node->func_arg[i] = expr(&tok, tok);
     if (!consume(&tok, tok, ","))
       break;
     i++;
@@ -955,17 +955,17 @@ postfix ::= primary ("[" & expr & "]")*
 */
 Node *postfix(Token **rest, Token *tok)
 {
-  Node *n;
+  Node *n,*idx;
   n = primary(&tok, tok);
 
   for (;;)
   {
-    // a[b] = *(a+b)
+    // a[b] = *(a+(b*ty_size))
     if (consume(&tok, tok, "["))
     {
-      n = extra_add(n, expr(&tok, tok), NULL);
-      n = new_node(ND_DEREF, n, NULL);
-      expect(&tok, tok, "]");
+      idx = extra_add(n, expr(&tok, tok), NULL);
+      expect(&tok, tok, "]");      
+      n = new_node(ND_DEREF, idx, NULL);
       continue;
     }
     break;

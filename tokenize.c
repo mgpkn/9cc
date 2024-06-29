@@ -94,6 +94,7 @@ Token *tokenize(char *p)
 
     // 1 length token.
     estamate_len = 1;
+    
     if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '%' ||
         *p == '(' || *p == ')' || *p == '[' || *p == ']' ||
         *p == '{' || *p == '}' || *p == '&' ||

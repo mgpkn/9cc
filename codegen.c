@@ -20,12 +20,10 @@ void gennode_addr(Node *cur_node)
   {
   case ND_LVAR:
     printf("  lea rax,[rbp - %d]\n", cur_node->offset);
-    //printf("  push rax\n");
     return;
   case ND_STR:
   case ND_GVAR:
     printf("  lea rax,%s[rip]\n", cur_node->ident_name);
-    //printf("  push rax\n");
     return;
   case ND_DEREF:
     gennode_stmt(cur_node->lhs);
@@ -144,8 +142,8 @@ void gennode_stmt(Node *cur_node)
     printf("  push %d\n", cur_node->val);
     return;
   case ND_FUNC:
-    for (argn=0; cur_node->func_param[argn];argn++)
-      gennode_stmt(cur_node->func_param[argn]);
+    for (argn=0; cur_node->func_arg[argn];argn++)
+      gennode_stmt(cur_node->func_arg[argn]);
 
     for(argn--;argn>=0;argn--)
       printf("  pop %s\n", argreg8[argn]);
@@ -157,7 +155,6 @@ void gennode_stmt(Node *cur_node)
   case ND_GVAR:
   case ND_STR:
     gennode_addr(cur_node);
-    //printf("  pop rax\n");
     switch (get_type_size(cur_node->ty))
     {
     case 1:
@@ -171,7 +168,6 @@ void gennode_stmt(Node *cur_node)
       load_val(cur_node->ty);
       break;
     }
-
     printf("  push rax\n");
     return;
   case ND_ADDR:
@@ -215,7 +211,7 @@ void gennode_stmt(Node *cur_node)
     break;
   }
 
-  // 左右のノードを比較するコード
+  //compare left-right node
   gennode_stmt(cur_node->lhs);
   gennode_stmt(cur_node->rhs);
 
@@ -265,7 +261,6 @@ void codegen_func(Ident *func)
   {
     gennode_addr(cur_arg);
 
-    //printf("  pop rax\n");
     switch (get_type_size(cur_arg->ty))
     {
     case 1:

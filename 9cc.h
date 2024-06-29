@@ -7,7 +7,7 @@
 
 #define BASE_OFFSETSIZE 8
 #define BASE_ALIGNMENTSIZE 16
-#define FUNC_PRAM_NUM 6
+#define FUNC_ARG_NUM 6
 
 //CallError
 void error(char *fmt, ...);
@@ -96,7 +96,7 @@ struct Node {
   Node *then; //cond==Trueの制御
   Node *els;  //cond==Falseの制御
   Node *block_head;//入れ子となっている{}内のコード（先頭）
-  Node *func_param[FUNC_PRAM_NUM];
+  Node *func_arg[FUNC_ARG_NUM];
   int label_num;//ラベル
   Node *next;//次のstatement
 };

@@ -5,13 +5,9 @@ int main()
     //my_printf("end");
 
 
+
+
     /*
-    todo
-    ASSERT(13, arr[0]);    
-    ASSERT(35, arr[0]+arr[1]);    
-    ASSERT(22, *(arr+1);
-
-
     x=2;glob=20;
     ASSERT(40,glob*x);
 
