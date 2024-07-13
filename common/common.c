@@ -23,5 +23,5 @@ int alloc4(int **p, int val1, int val2, int val3, int val4)
 }
 
 void my_printf(char *str){
-  printf("%s\n",str);
+  printf("%s",str);
 }

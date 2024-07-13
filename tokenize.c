@@ -41,7 +41,7 @@ Token *tokenize(char *p)
   Token head;
   head.next = NULL;
   Token *cur = &head;
-  int i;
+  int i, j;
   int estamate_len;
 
   while (*p)
@@ -58,7 +58,7 @@ Token *tokenize(char *p)
     if (strncmp(p, "//", estamate_len) == 0)
     {
       p += estamate_len;
-      while (!(*p == '\n' || *p =='\0'))
+      while (!(*p == '\n' || *p == '\0'))
         p++;
       p++;
       continue;
@@ -94,7 +94,7 @@ Token *tokenize(char *p)
 
     // 1 length token.
     estamate_len = 1;
-    
+
     if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '%' ||
         *p == '(' || *p == ')' || *p == '[' || *p == ']' ||
         *p == '{' || *p == '}' || *p == '&' ||
@@ -109,17 +109,70 @@ Token *tokenize(char *p)
     // string(")
     if (*p == '"')
     {
-      // serach close double quote.
+      // allocate memory based on maximum literal string length
       for (i = 1; *(p + i) != '"'; i++)
       {
+        // if can't find closed double quote,raise error.
         if (*(p + i) == '\n' || *(p + i) == '\0')
-          error_at(p, "coludn't find closed double quote.");
+          error_at(p, "cant't find closed double quote.");
       }
       cur = new_token(TK_STR, cur, p, i);
-      cur->str = strndup(cur->pos + 1, sizeof(char) * cur->len);
-      cur->str[cur->len-1] = '\0';
+      cur->str = calloc(1, sizeof(char) * cur->len);
 
-      p += i+1;
+      // assign string values to token.
+      j = 0;
+      for (i = 1; *(p + i) != '"'; i++)
+      {
+
+        // if can't find closed double quote,raise error.
+        if (*(p + i) == '\n' || *(p + i) == '\0')
+          error_at(p, "can't find closed double quote.");
+
+        // escape char
+        if (*(p + i) == '\\')
+        {
+          i++;
+          switch (*(p + i))
+          {
+          case 'a':
+            cur->str[j] = '\a';
+            break;
+          case 'b':
+            cur->str[j] = '\b';
+            break;            
+          case 't':
+            cur->str[j] = '\t';
+            break;            
+          case 'n':
+            cur->str[j] = '\n';
+            break;            
+          case 'v':
+            cur->str[j] = '\v';
+            break;            
+          case 'f':
+            cur->str[j] = '\f';
+            break;            
+          case 'r':
+            cur->str[j] = '\r';
+            break;            
+          case 'e': // [GNU] \e for the ASCII escape character is a GNU C extension.
+            cur->str[j] = 27;
+            break;            
+          default:
+            cur->str[j] = *(p + i);
+            break;
+          }
+        }
+        else
+        {
+          cur->str[j] = *(p + i);
+        }
+        j++;
+      }
+
+      cur->str[j] = '\0';
+
+      p += i + 1;
       continue;
     }
 

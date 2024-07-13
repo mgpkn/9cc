@@ -52,7 +52,7 @@ int *glob_addr;
 
 int main()
 {
-    my_printf("##start##");
+    my_printf("##start##\n");
 
     int x;
     int *y;
@@ -151,8 +151,10 @@ int main()
     ASSERT(3, myadd(1, 2));
     ASSERT(50, aba(50));
     ASSERT(13, myadd(3, 10));
+    
+    ASSERT(13, 13);
 
-    my_printf("##end##");
+    my_printf("##end##\n");
 
     return 0;
 }
