@@ -52,14 +52,15 @@ int *glob_addr;
 
 int main()
 {
+    my_printf("##start##");
 
     int x;
     int *y;
     int **z;
     int arr[10];
 
-    ASSERT(3, ret3());
     ASSERT(5, 9 + -4);
+    ASSERT(3, ret3());
     ASSERT(0, 9 + -9);
     ASSERT(8, +11 + 9 + 8 - 4 - 4 + -12);
     ASSERT(23, 11 + 3 * 4);
@@ -119,19 +120,11 @@ int main()
     ASSERT(13, *(arr+1));    
     ASSERT(35, arr[0]+arr[1]);    
 
-
-    /*    
     alloc4(&y,13,22,35,48);
 
     ASSERT(22,*(y+1));    
     ASSERT(49,*(y+3)+1);
-
-
-    assert 3 "int main(){int *y;int *z;alloc4(&z,13,22,35,48);y=z+2;return y+1-z;}"
-    assert 48 "int main(){int *y;int *z;alloc4(&z,13,22,35,48);y=z+2;return *(y+1);}"
-    assert 22 "int main(){int *y;int *z;alloc4(&z,13,22,35,48);y=z+3;return *(y-2);}"
-    assert 1 "int main(){int *z;alloc4(&z,13,22,35,48);return (z+2)-(z+1);}"
-    */
+    ASSERT(1,(z+2)-(z+1));    
 
     ASSERT(4, sizeof(x));
     ASSERT(4, sizeof(x + 100));
@@ -143,40 +136,23 @@ int main()
     arr[0]=13;
     arr[1]=22;    
 
-    /*
-    todo
-    ASSERT(13, arr[0]);    
-    ASSERT(35, arr[0]+arr[1]);    
-    ASSERT(22, *(arr+1);
-    */
 
     x=2;glob=20;
     ASSERT(40,glob*x);
 
-
-    /*
     x=55;
     glob_addr=&x;
     ASSERT(55,*glob_addr);
-    */
-
-
-
-    /*
-    alloc4(&y,85,2,3,4);
-
-    ASSERT(85,*y);
 
     y=y+3;
     ASSERT(48,*y);
     ASSERT(22,*(y-2));
-    */
-
+    
     ASSERT(3, myadd(1, 2));
     ASSERT(50, aba(50));
     ASSERT(13, myadd(3, 10));
 
-    //my_printf("end");
+    my_printf("##end##");
 
     return 0;
 }

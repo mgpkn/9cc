@@ -35,7 +35,7 @@ test: $(TESTS)
 	test/driver.sh
 
 clean:
-	rm -rf 9cc common/*.o $(TESTS) $(TEST_ASSMBLES) $(TEST_PRE_SRCS)
+	rm -rf 9cc common/*.o test/*.pc test/*.s test/*.exe
 	find * -type f '(' -name '*~' -o -name '*.o' ')' -exec rm {} ';'
 
 
