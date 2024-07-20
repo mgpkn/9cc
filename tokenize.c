@@ -36,6 +36,61 @@ bool is_alnum(char c, bool allow_num)
   return false;
 }
 
+int read_escape_char(char **rest_p, char *p)
+{
+
+  // octa decimal number
+  if (*(p) >= '0' && *(p) <= '7')
+  {
+    int oct_value;
+    oct_value = *(p++) - '0';
+    if (*(p) >= '0' && *(p) <= '7')
+    {
+      oct_value = oct_value << 3;
+      oct_value = oct_value + (*(p++) - '0');
+      if (*(p) >= '0' && *(p) <= '7')
+      {
+        oct_value = oct_value << 3;
+        oct_value = oct_value + (*(p++) - '0');
+      }
+    }
+    *rest_p = p;
+    return oct_value;
+  }
+
+  // other escape char
+  switch (*p)
+  {
+  case 'a':
+    *rest_p = ++p;
+    return '\a';
+  case 'b':
+    *rest_p = ++p;
+    return '\b';
+  case 't':
+    *rest_p = ++p;
+    return '\t';
+  case 'n':
+    *rest_p = ++p;
+    return '\n';
+  case 'v':
+    *rest_p = ++p;
+    return '\v';
+  case 'f':
+    *rest_p = ++p;
+    return '\f';
+  case 'r':
+    *rest_p = ++p;
+    return '\r';
+  case 'e': // [GNU] \e for the ASCII escape character is a GNU C extension.
+    *rest_p = ++p;
+    return 27;
+  default:
+    *rest_p = ++p;
+    return *p;
+  }
+}
+
 Token *tokenize(char *p)
 {
   Token head;
@@ -114,65 +169,30 @@ Token *tokenize(char *p)
       {
         // if can't find closed double quote,raise error.
         if (*(p + i) == '\n' || *(p + i) == '\0')
-          error_at(p, "cant't find closed double quote.");
+          error_at(p, "can't find closed double quote.");
       }
       cur = new_token(TK_STR, cur, p, i);
       cur->str = calloc(1, sizeof(char) * cur->len);
 
+      p++;
       // assign string values to token.
-      j = 0;
-      for (i = 1; *(p + i) != '"'; i++)
+      for (j = 0; *p != '"'; j++)
       {
 
         // if can't find closed double quote,raise error.
-        if (*(p + i) == '\n' || *(p + i) == '\0')
+        if (*p == '\n' || *p == '\0')
           error_at(p, "can't find closed double quote.");
 
-        // escape char
-        if (*(p + i) == '\\')
-        {
-          i++;
-          switch (*(p + i))
-          {
-          case 'a':
-            cur->str[j] = '\a';
-            break;
-          case 'b':
-            cur->str[j] = '\b';
-            break;            
-          case 't':
-            cur->str[j] = '\t';
-            break;            
-          case 'n':
-            cur->str[j] = '\n';
-            break;            
-          case 'v':
-            cur->str[j] = '\v';
-            break;            
-          case 'f':
-            cur->str[j] = '\f';
-            break;            
-          case 'r':
-            cur->str[j] = '\r';
-            break;            
-          case 'e': // [GNU] \e for the ASCII escape character is a GNU C extension.
-            cur->str[j] = 27;
-            break;            
-          default:
-            cur->str[j] = *(p + i);
-            break;
-          }
-        }
-        else
-        {
-          cur->str[j] = *(p + i);
-        }
-        j++;
-      }
 
+        if (*p == '\\')
+          // escape sequence
+          cur->str[j] = read_escape_char(&p, ++p);
+        else
+          cur->str[j] = *(p++);
+      }
       cur->str[j] = '\0';
 
-      p += i + 1;
+      p++;
       continue;
     }
 
