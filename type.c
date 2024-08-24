@@ -5,30 +5,57 @@ Type *ty_int = &(Type){TY_INT};
 
 void init_nodetype(Node *n);
 
-bool is_ptr_node(Node *n){
-    if(n->ty->kind == TY_PTR) return true;
-    if(n->ty->kind == TY_ARRAY) return true;    
+bool is_ptr_node(Node *n)
+{
+    if (n->ty->kind == TY_PTR)
+        return true;
+    if (n->ty->kind == TY_ARRAY)
+        return true;
     return false;
 }
+
 
 int get_type_size(Type *ty)
 {
 
-  if (ty->kind == TY_ARRAY) return ty->array_size * get_type_size(ty->ptr_to);   
-  if (ty->kind == TY_PTR) return 8;  
-  if (ty->kind == TY_INT) return 4;
-  if (ty->kind == TY_CHAR) return 1;
+    if (ty->kind == TY_ARRAY)
+        return 8;
+    if (ty->kind == TY_PTR)
+        return 8;
+    if (ty->kind == TY_INT)
+        return 4;
+    if (ty->kind == TY_CHAR)
+        return 1;
 
-  error_at(NULL,"invalid data type.");
-  return 0;
+    error_at(NULL, "invalid data type.");
+    return 0;
 }
 
-//各ノードの論理的な型を設定
-void init_nodetype(Node *n){
 
-    if(!n || n->ty) return;
+int calc_sizeof(Type *ty)
+{
 
-    //再帰的に下位ノードにも型タイプをinit
+    if (ty->kind == TY_ARRAY)
+        return ty->array_size * calc_sizeof(ty->ptr_to);
+    if (ty->kind == TY_PTR)
+        return 8;
+    if (ty->kind == TY_INT)
+        return 4;
+    if (ty->kind == TY_CHAR)
+        return 1;
+
+    error_at(NULL, "invalid data type.");
+    return 0;
+}
+
+// 各ノードの論理的な型を設定
+void init_nodetype(Node *n)
+{
+
+    if (!n || n->ty)
+        return;
+
+    // 再帰的に下位ノードにも型タイプをinit
     init_nodetype(n->lhs);
     init_nodetype(n->rhs);
     init_nodetype(n->init);
@@ -36,23 +63,25 @@ void init_nodetype(Node *n){
     init_nodetype(n->inc);
     init_nodetype(n->then);
     init_nodetype(n->els);
-    for(Node *block_n=n->block_head;block_n;block_n=block_n->next) {
+    for (Node *block_n = n->block_head; block_n; block_n = block_n->next)
+    {
         init_nodetype(block_n);
     }
 
-    for(int i;i<FUNC_ARG_NUM;i++)
+    for (int i; i < FUNC_ARG_NUM; i++)
         init_nodetype(n->func_arg[i]);
 
-    Type *t = calloc(1,sizeof(Type));
-    //ノードの種類によってtyの
-    switch(n->kind){
+    Type *t = calloc(1, sizeof(Type));
+    // ノードの種類によってtyを決定する。
+    switch (n->kind)
+    {
     case ND_ADD:
     case ND_SUB:
     case ND_MUL:
     case ND_DIV:
     case ND_MOD:
     case ND_ASSIGN:
-        n->ty=n->lhs->ty;
+        n->ty = n->lhs->ty;
         return;
     case ND_EQ:
     case ND_NOTEQ:
@@ -64,15 +93,19 @@ void init_nodetype(Node *n){
         t->kind = TY_INT;
         n->ty = t;
         return;
+    case ND_CHAR:
+        t->kind = TY_CHAR;
+        n->ty = t;
+        return;
     case ND_ADDR:
         t->kind = TY_PTR;
         t->ptr_to = n->lhs->ty;
-        n->ty = t;        
-        return;    
+        n->ty = t;
+        return;
     case ND_DEREF:
-        n->ty = n->lhs->ty->ptr_to;    
+        n->ty = n->lhs->ty->ptr_to;
         return;
     default:
         return;
-    }     
+    }
 }

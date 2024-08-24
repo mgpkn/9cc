@@ -161,11 +161,41 @@ Token *tokenize(char *p)
       continue;
     }
 
+    // char(')
+    if (*p == '\'')
+    {
+
+      // allocate memory based on maximum literal string length
+      for (i = 1; *(p + i) != '\''; i++)
+      {
+        // if can't find closed signle quote,raise error.
+        if (*(p + i) == '\n' || *(p + i) == '\0')
+          error_at(p, "can't find closed single quote.");
+      }
+      cur = new_token(TK_CHAR, cur, p, i);
+      cur->str = calloc(1, sizeof(char));
+
+      p++;
+
+      if (*p == '\'')
+        cur->str[0] = '\0';
+      else if (*p == '\\')
+        cur->str[0] = read_escape_char(&p, ++p);
+      else
+        cur->str[0] = *(p++);
+
+      if (*p != '\'')
+        error_at(p, "invalid char value.");
+
+      p++;
+      continue;
+    }
+
     // string(")
-    if (*p == '"')
+    if (*p == '\"')
     {
       // allocate memory based on maximum literal string length
-      for (i = 1; *(p + i) != '"'; i++)
+      for (i = 1; *(p + i) != '\"'; i++)
       {
         // if can't find closed double quote,raise error.
         if (*(p + i) == '\n' || *(p + i) == '\0')
@@ -176,13 +206,8 @@ Token *tokenize(char *p)
 
       p++;
       // assign string values to token.
-      for (j = 0; *p != '"'; j++)
+      for (j = 0; *p != '\"'; j++)
       {
-
-        // if can't find closed double quote,raise error.
-        if (*p == '\n' || *p == '\0')
-          error_at(p, "can't find closed double quote.");
-
 
         if (*p == '\\')
           // escape sequence

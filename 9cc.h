@@ -18,6 +18,7 @@ typedef enum {
   TK_KEYWORD, //any syntax word(if,while etc..)
   TK_IDENT,  //ident,function name
   TK_NUM,      //digit value 
+  TK_CHAR,      //char    
   TK_STR,      //string  
   TK_EOF
 } TokenKind;
@@ -58,7 +59,8 @@ typedef enum {
   ND_GVAR,//global var
   ND_FUNC,//function  
   ND_NUM, //num value 
-  ND_STR //string value   
+  ND_STR, //string value   
+  ND_CHAR //char value     
 } NodeKind;
 
 

@@ -139,6 +139,7 @@ void gennode_stmt(Node *cur_node)
     printf(".Lend%d:\n", cur_node->label_num);
     return;
   case ND_NUM:
+  case ND_CHAR:
     printf("  push %d\n", cur_node->val);
     return;
   case ND_FUNC:
@@ -189,6 +190,8 @@ void gennode_stmt(Node *cur_node)
     switch (get_type_size(cur_node->ty))
     {
     case 1:
+      printf("  mov [rax],dil\n");
+      break;
     case 4:
       printf("  mov [rax],edi\n");
       break;
@@ -265,6 +268,7 @@ void codegen_func(Ident *func)
     {
     case 1:
       printf("  mov [rax],%s\n", argreg1[i]);
+      break;      
     case 4:
       printf("  mov [rax],%s\n", argreg4[i]);
       break;
@@ -273,7 +277,6 @@ void codegen_func(Ident *func)
       printf("  mov [rax],%s\n", argreg8[i]);
       break;
     }
-    printf("  push [rax]\n");
     cur_arg = cur_arg->next;
   }
 
@@ -310,7 +313,7 @@ void codegen(Ident *prog_list)
         printf("  .byte %d\n", cur_prog->str[i]);
     }      
     else
-      printf("  .zero %d\n", get_type_size(cur_prog->ty));
+      printf("  .zero %d\n", calc_sizeof(cur_prog->ty));
 
     cur_prog = cur_prog->next;
   }

@@ -174,25 +174,6 @@ Ident *find_var(Token *tok)
   return NULL;
 }
 
-// create non num node
-Node *new_node(NodeKind kind, Node *lhs, Node *rhs)
-{
-  Node *n = calloc(1, sizeof(Node));
-  n->kind = kind;
-  n->lhs = lhs;
-  n->rhs = rhs;
-  return n;
-}
-
-Node *new_node_num(int val)
-{
-  Node *node = calloc(1, sizeof(Node));
-  node->kind = ND_NUM;
-  node->val = val;
-  init_nodetype(node);
-  return node;
-}
-
 Ident *add_globals(Ident *tar){
 
   if(!globals){
@@ -233,6 +214,37 @@ static Ident *declaration_str(Token *tok)
   add_globals(idt);
 
   return idt;
+}
+
+// create non num node
+Node *new_node(NodeKind kind, Node *lhs, Node *rhs)
+{
+  Node *n = calloc(1, sizeof(Node));
+  n->kind = kind;
+  n->lhs = lhs;
+  n->rhs = rhs;
+  return n;
+}
+
+Node *new_node_num(int val)
+{
+  Node *node = calloc(1, sizeof(Node));
+  node->kind = ND_NUM;
+  node->val = val;
+  init_nodetype(node);
+  return node;
+}
+
+Node *new_node_char(Token **rest,Token *tok,int val)
+{
+  Node *node = calloc(1, sizeof(Node));
+  node->kind = ND_CHAR;
+  node->val = val;
+  init_nodetype(node);
+
+  tok= tok->next;
+  *rest = tok;
+  return node;
 }
 
 
@@ -276,7 +288,7 @@ Node *new_node_declare_lvar(Type *ty)
       {
         if (!v->next)
         {
-          idt->offset = v->offset + get_type_size(idt->ty);
+          idt->offset = v->offset + calc_sizeof(idt->ty);
           v->next = idt;
           break;
         }
@@ -285,7 +297,7 @@ Node *new_node_declare_lvar(Type *ty)
     else
     {
       // 1st locals declare.
-      idt->offset = get_type_size(idt->ty);
+      idt->offset = calc_sizeof(idt->ty);
       locals = idt;
     }
 
@@ -868,7 +880,7 @@ Node *extra_add(Node *lhs, Node *rhs, Token *tok_dummy)
 
   if (is_ptr_node(lhs) && !is_ptr_node(rhs))
   {
-    Node *n = new_node(ND_MUL, rhs, new_node_num(get_type_size(lhs->ty->ptr_to)));
+    Node *n = new_node(ND_MUL, rhs, new_node_num(calc_sizeof(lhs->ty->ptr_to)));
     return new_node(ND_ADD, lhs, n);
   }
 
@@ -889,11 +901,11 @@ Node *extra_sub(Node *lhs, Node *rhs, Token *tok_dummy)
 
   // pointer - num (=num + pointer)の場合はオフセットの計算
   if (is_ptr_node(lhs) && !is_ptr_node(rhs))
-    return new_node(ND_SUB, lhs, new_node(ND_MUL, rhs, new_node_num(get_type_size(rhs->ty))));
+    return new_node(ND_SUB, lhs, new_node(ND_MUL, rhs, new_node_num(calc_sizeof(rhs->ty))));
 
   // pointer - pointerはアドレスの差
   if (is_ptr_node(lhs) && is_ptr_node(rhs))
-    return new_node(ND_DIV, new_node(ND_SUB, lhs, rhs), new_node_num(get_type_size(lhs->ty->ptr_to)));
+    return new_node(ND_DIV, new_node(ND_SUB, lhs, rhs), new_node_num(calc_sizeof(lhs->ty->ptr_to)));
 
   error("invalid types subtraction");
   return NULL;
@@ -941,7 +953,7 @@ Node *unary(Token **rest, Token *tok)
   {
     n = unary(&tok, tok);
     init_nodetype(n);
-    n = new_node_num(get_type_size(n->ty));
+    n = new_node_num(calc_sizeof(n->ty));
   }
   else
     n = postfix(&tok, tok);
@@ -978,7 +990,7 @@ Node *postfix(Token **rest, Token *tok)
 /*
 primary ::= "(" expr ")"
     |ident("(" (expr("," expr)?)? ")")?
-    |num|str
+    |num|char|str
 */
 Node *primary(Token **rest, Token *tok)
 {
@@ -1003,7 +1015,10 @@ Node *primary(Token **rest, Token *tok)
 
   if (tok->kind == TK_STR)
     n = new_node_str(&tok,tok);
-    
+
+  if (tok->kind == TK_CHAR)
+    n = new_node_char(&tok,tok,(int)tok->str[0]);
+
   if (tok->kind == TK_NUM)
     n = new_node_num(expect_number(&tok, tok));
 

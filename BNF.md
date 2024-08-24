@@ -23,6 +23,6 @@ unary ::= ("+"|"-"|"&"|"*"|"sizeof") unary
     |postfix
 postfix ::= primary ("[" & expr & "]")*	
 primary ::= "(" expr ")"
-		|type? ident("(" (expr("," expr)?)? ")")? 
-		|num|str
+    |ident("(" (expr("," expr)?)? ")")?
+    |num|char|str
 ```
