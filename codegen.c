@@ -5,13 +5,39 @@ static char *argreg1[] = {"dil", "sil", "dl", "cl", "r8b", "r9b"};
 static char *argreg4[] = {"edi", "esi", "edx", "ecx", "r8d", "r9d"};
 static char *argreg8[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
 
+int stack_depth;
+
 void gennode_stmt(Node *cur_node);
+
+void push()
+{
+  printf("  push rax\n");
+  stack_depth++;
+}
+void pop(char *reg)
+{
+  printf("  pop %s\n", reg);
+  stack_depth--;
+}
 
 void load_val(Type *ty)
 {
   if (ty->kind == TY_ARRAY)
     return;
-  printf("  mov rax,[rax]\n");
+
+  switch (get_type_size(ty))
+  {
+  case 1:
+    printf("  movsx rax, BYTE PTR [rax]\n");
+    break;
+  case 4:
+    printf("  movsxd rax, DWORD PTR [rax]\n");
+    break;
+  case 8:
+  default:
+    printf("  mov rax,[rax]\n");
+    break;
+  }
 }
 
 void gennode_addr(Node *cur_node)
@@ -27,7 +53,7 @@ void gennode_addr(Node *cur_node)
     return;
   case ND_DEREF:
     gennode_stmt(cur_node->lhs);
-    printf("  pop rax\n");
+    pop("rax");
     return;
   default:
     break;
@@ -82,14 +108,14 @@ void gennode_expr(Node *cur_node)
   default:
     break;
   }
-  printf("  push rax\n");
+  push();
 }
 
 void gennode_stmt(Node *cur_node)
 {
 
   Node *n;
-  int argn=0;
+  int argn = 0;
   if (!cur_node)
     return;
 
@@ -97,29 +123,27 @@ void gennode_stmt(Node *cur_node)
   {
   case ND_RETURN:
     gennode_stmt(cur_node->lhs);
-    printf("  pop rax\n");
+    pop("rax");
     printf("  mov rsp, rbp\n");
-    printf("  pop rbp\n");
+    pop("rbp");
     printf("  ret\n");
     return;
   case ND_IF:
     gennode_stmt(cur_node->cond);
-    printf("  pop rax\n");
+    pop("rax");
     printf("  cmp rax,0\n");
     printf("  je .Lelse%d\n", cur_node->label_num);
     gennode_stmt(cur_node->then);
-    printf("  jmp .Lend%d\n", cur_node->label_num);    
+    printf("  jmp .Lend%d\n", cur_node->label_num);
     printf(".Lelse%d:\n", cur_node->label_num);
     if (cur_node->els)
-    {
       gennode_stmt(cur_node->els);
-    }
     printf(".Lend%d:\n", cur_node->label_num);
     return;
   case ND_WHILE:
     printf(".Lbegin%d:\n", cur_node->label_num);
     gennode_stmt(cur_node->cond);
-    printf("  pop rax\n");
+    pop("rax");
     printf("  cmp rax,0\n");
     printf("  je .Lend%d\n", cur_node->label_num);
     gennode_stmt(cur_node->then);
@@ -130,7 +154,7 @@ void gennode_stmt(Node *cur_node)
     gennode_stmt(cur_node->init);
     printf(".Lbegin%d:\n", cur_node->label_num);
     gennode_stmt(cur_node->cond);
-    printf("  pop rax\n");
+    pop("rax");
     printf("  cmp rax,0\n");
     printf("  je .Lend%d\n", cur_node->label_num);
     gennode_stmt(cur_node->then);
@@ -138,55 +162,51 @@ void gennode_stmt(Node *cur_node)
     printf("  jmp .Lbegin%d\n", cur_node->label_num);
     printf(".Lend%d:\n", cur_node->label_num);
     return;
+  case ND_BLOCK:
+    n = cur_node->block_head;
+    while (n)
+    {
+      gennode_stmt(n);
+      n = n->next;
+    }
   case ND_NUM:
   case ND_CHAR:
-    printf("  push %d\n", cur_node->val);
+    printf("  mov rax,%d\n", cur_node->val);
+    push();
     return;
   case ND_FUNC:
-    for (argn=0; cur_node->func_arg[argn];argn++)
+    for (argn = 0; cur_node->func_arg[argn]; argn++)
       gennode_stmt(cur_node->func_arg[argn]);
 
-    for(argn--;argn>=0;argn--)
-      printf("  pop %s\n", argreg8[argn]);
+    for (argn--; argn >= 0; argn--)
+      pop(argreg8[argn]);
 
     printf("  call %s\n", cur_node->ident_name);
-    printf("  push rax\n");
+    push();
     return;
   case ND_LVAR:
   case ND_GVAR:
   case ND_STR:
     gennode_addr(cur_node);
-    switch (get_type_size(cur_node->ty))
-    {
-    case 1:
-      printf("  movsx rax, BYTE PTR [rax]\n");
-      break;
-    case 4:
-      printf("  movsxd rax, DWORD PTR [rax]\n");
-      break;
-    case 8:
-    default:
-      load_val(cur_node->ty);
-      break;
-    }
-    printf("  push rax\n");
+    load_val(cur_node->ty);
+    push();
     return;
   case ND_ADDR:
     gennode_addr(cur_node->lhs);
-    printf("  push rax\n");
+    push();
     return;
   case ND_DEREF:
     gennode_stmt(cur_node->lhs);
-    printf("  pop rax\n");
+    pop("rax");
     load_val(cur_node->ty);
-    printf("  push rax\n");
+    push();
     return;
   case ND_ASSIGN:
     gennode_addr(cur_node->lhs);
-    printf("  push rax\n");    
+    push();
     gennode_stmt(cur_node->rhs);
-    printf("  pop rdi\n");    
-    printf("  pop rax\n");
+    pop("rdi");
+    pop("rax");
     switch (get_type_size(cur_node->ty))
     {
     case 1:
@@ -200,26 +220,17 @@ void gennode_stmt(Node *cur_node)
       printf("  mov [rax],rdi\n");
       break;
     }
-    printf("  mov rax,[rax]\n");
-    printf("  push rax\n");
     return;
-  case ND_BLOCK:
-    n = cur_node->block_head;
-    while (n)
-    {
-      gennode_stmt(n);
-      n = n->next;
-    }
   default:
     break;
   }
 
-  //compare left-right node
+  // compare left-right node
   gennode_stmt(cur_node->lhs);
   gennode_stmt(cur_node->rhs);
 
-  printf("  pop rdi\n");
-  printf("  pop rax\n");
+  pop("rdi");
+  pop("rax");
 
   gennode_expr(cur_node);
 }
@@ -268,7 +279,7 @@ void codegen_func(Ident *func)
     {
     case 1:
       printf("  mov [rax],%s\n", argreg1[i]);
-      break;      
+      break;
     case 4:
       printf("  mov [rax],%s\n", argreg4[i]);
       break;
@@ -308,10 +319,11 @@ void codegen(Ident *prog_list)
       continue;
     }
     printf("%s:\n", cur_prog->name);
-    if (cur_prog->str){
+    if (cur_prog->str)
+    {
       for (int i = 0; i < cur_prog->ty->array_size; i++)
         printf("  .byte %d\n", cur_prog->str[i]);
-    }      
+    }
     else
       printf("  .zero %d\n", calc_sizeof(cur_prog->ty));
 
@@ -323,7 +335,7 @@ void codegen(Ident *prog_list)
   printf(".section .text\n");
   printf("  .global ");
   cur_prog = prog_list;
-  bool is_first_function =true;
+  bool is_first_function = true;
 
   while (cur_prog)
   {
@@ -339,7 +351,6 @@ void codegen(Ident *prog_list)
     printf("%s", cur_prog->name);
     cur_prog = cur_prog->next;
     is_first_function = false;
-
   }
   puts("");
 
