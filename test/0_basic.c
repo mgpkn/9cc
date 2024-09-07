@@ -36,6 +36,18 @@ int sum_all_param(int p1, int p2, int p3, int p4, int p5, int p6)
     return p1 + p2 + p3 + p4 + p5 + p6;
 }
 
+int araara()
+{
+    int i;
+    int j;
+    j=10;
+    for(i=1;i <= 1;i=i+1)
+    {
+        j=j+1;
+    }
+    return i+j;
+}
+
 int ufufu()
 {
     int fuga;
@@ -83,6 +95,7 @@ int main()
     ASSERT(1, 100 >= 100);
     ASSERT(0, 100 >= 101);
 
+    ASSERT(13, araara());
     ASSERT(7, ufufu());
     x = 3;
     ASSERT(32, sum_all_param((x + 1) * x, 2, 3, 4, 5, 6));

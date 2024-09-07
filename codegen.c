@@ -53,7 +53,6 @@ void gennode_addr(Node *cur_node)
     return;
   case ND_DEREF:
     gennode_stmt(cur_node->lhs);
-    pop("rax");
     return;
   default:
     break;
@@ -64,6 +63,66 @@ void gennode_addr(Node *cur_node)
 
 void gennode_expr(Node *cur_node)
 {
+
+  int argn = 0;
+
+  switch (cur_node->kind)
+  {
+  case ND_NUM:
+  case ND_CHAR:
+    printf("  mov rax,%d\n", cur_node->val);
+    return;
+  case ND_FUNC:
+    for (argn = 0; cur_node->func_arg[argn]; argn++){
+      gennode_stmt(cur_node->func_arg[argn]);
+      push();
+    }
+    for (argn--; argn >= 0; argn--)
+      pop(argreg8[argn]);
+
+    printf("  call %s\n", cur_node->ident_name);
+    return;
+  case ND_LVAR:
+  case ND_GVAR:
+  case ND_STR:
+    gennode_addr(cur_node);
+    load_val(cur_node->ty);
+    return;
+  case ND_ADDR:
+    gennode_addr(cur_node->lhs);
+    return;
+  case ND_DEREF:
+    gennode_stmt(cur_node->lhs);
+    load_val(cur_node->ty);
+    return;
+  case ND_ASSIGN:
+    gennode_stmt(cur_node->rhs);    
+    push();
+    gennode_addr(cur_node->lhs);
+    pop("rdi");
+    switch (get_type_size(cur_node->ty))
+    {
+    case 1:
+      printf("  mov [rax],dil\n");
+      break;
+    case 4:
+      printf("  mov [rax],edi\n");
+      break;
+    case 8:
+    default:
+      printf("  mov [rax],rdi\n");
+      break;
+    }
+    return;
+  default:
+    break;
+  }
+
+  // compare left-right node
+  gennode_stmt(cur_node->rhs);  
+  push();
+  gennode_stmt(cur_node->lhs);
+  pop("rdi");
 
   switch (cur_node->kind)
   {
@@ -108,14 +167,13 @@ void gennode_expr(Node *cur_node)
   default:
     break;
   }
-  push();
+  //push();
 }
 
 void gennode_stmt(Node *cur_node)
 {
 
   Node *n;
-  int argn = 0;
   if (!cur_node)
     return;
 
@@ -123,14 +181,13 @@ void gennode_stmt(Node *cur_node)
   {
   case ND_RETURN:
     gennode_stmt(cur_node->lhs);
-    pop("rax");
+    //pop("rax");
     printf("  mov rsp, rbp\n");
     pop("rbp");
     printf("  ret\n");
     return;
   case ND_IF:
     gennode_stmt(cur_node->cond);
-    pop("rax");
     printf("  cmp rax,0\n");
     printf("  je .Lelse%d\n", cur_node->label_num);
     gennode_stmt(cur_node->then);
@@ -143,7 +200,6 @@ void gennode_stmt(Node *cur_node)
   case ND_WHILE:
     printf(".Lbegin%d:\n", cur_node->label_num);
     gennode_stmt(cur_node->cond);
-    pop("rax");
     printf("  cmp rax,0\n");
     printf("  je .Lend%d\n", cur_node->label_num);
     gennode_stmt(cur_node->then);
@@ -154,7 +210,6 @@ void gennode_stmt(Node *cur_node)
     gennode_stmt(cur_node->init);
     printf(".Lbegin%d:\n", cur_node->label_num);
     gennode_stmt(cur_node->cond);
-    pop("rax");
     printf("  cmp rax,0\n");
     printf("  je .Lend%d\n", cur_node->label_num);
     gennode_stmt(cur_node->then);
@@ -169,68 +224,9 @@ void gennode_stmt(Node *cur_node)
       gennode_stmt(n);
       n = n->next;
     }
-  case ND_NUM:
-  case ND_CHAR:
-    printf("  mov rax,%d\n", cur_node->val);
-    push();
-    return;
-  case ND_FUNC:
-    for (argn = 0; cur_node->func_arg[argn]; argn++)
-      gennode_stmt(cur_node->func_arg[argn]);
-
-    for (argn--; argn >= 0; argn--)
-      pop(argreg8[argn]);
-
-    printf("  call %s\n", cur_node->ident_name);
-    push();
-    return;
-  case ND_LVAR:
-  case ND_GVAR:
-  case ND_STR:
-    gennode_addr(cur_node);
-    load_val(cur_node->ty);
-    push();
-    return;
-  case ND_ADDR:
-    gennode_addr(cur_node->lhs);
-    push();
-    return;
-  case ND_DEREF:
-    gennode_stmt(cur_node->lhs);
-    pop("rax");
-    load_val(cur_node->ty);
-    push();
-    return;
-  case ND_ASSIGN:
-    gennode_addr(cur_node->lhs);
-    push();
-    gennode_stmt(cur_node->rhs);
-    pop("rdi");
-    pop("rax");
-    switch (get_type_size(cur_node->ty))
-    {
-    case 1:
-      printf("  mov [rax],dil\n");
-      break;
-    case 4:
-      printf("  mov [rax],edi\n");
-      break;
-    case 8:
-    default:
-      printf("  mov [rax],rdi\n");
-      break;
-    }
-    return;
   default:
     break;
   }
-
-  // compare left-right node
-  gennode_stmt(cur_node->lhs);
-  gennode_stmt(cur_node->rhs);
-
-  pop("rdi");
-  pop("rax");
 
   gennode_expr(cur_node);
 }
