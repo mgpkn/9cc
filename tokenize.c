@@ -39,16 +39,45 @@ bool is_alnum(char c, bool allow_num)
 int read_escape_char(char **rest_p, char *p)
 {
 
-  // octa decimal number
-  if (*(p) >= '0' && *(p) <= '7')
+  // hexadecimal number
+  if (*(p) >= 'x')
+  {
+    int hex_value = 0;
+    p++;
+    if (!isxdigit(*p))
+      error_at(p, "can't translate hexdecimal value.");
+
+    while (true)
+    {
+      if (!isxdigit(*p))
+        break;
+
+      hex_value = hex_value << 4;
+      if (*p >= '0' && *p <= '9')
+        hex_value = hex_value + (*p) - '0';
+
+      if (*p >= 'a' && *p <= 'z')
+        hex_value = hex_value + (*p) - 'a' + 10;
+
+      if (*p >= 'A' && *p <= 'Z')
+        hex_value = hex_value + (*p) - 'A' + 10;
+
+      p++;
+    }
+    *rest_p = p;
+    return hex_value;
+  }
+
+  // octal number
+  if (*p >= '0' && *p <= '7')
   {
     int oct_value;
     oct_value = *(p++) - '0';
-    if (*(p) >= '0' && *(p) <= '7')
+    if (*p >= '0' && *p <= '7')
     {
       oct_value = oct_value << 3;
       oct_value = oct_value + (*(p++) - '0');
-      if (*(p) >= '0' && *(p) <= '7')
+      if (*p >= '0' && *p <= '7')
       {
         oct_value = oct_value << 3;
         oct_value = oct_value + (*(p++) - '0');
