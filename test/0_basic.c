@@ -149,7 +149,6 @@ int main()
     arr[0]=13;
     arr[1]=22;    
 
-
     x=2;glob=20;
     ASSERT(40,glob*x);
 
@@ -167,7 +166,15 @@ int main()
     
     ASSERT(13, 13);
 
-    my_printf("##end##\n");
+    ASSERT(0,({ 0; }));
+    ASSERT(12,({ 0; 1; 2*6; }));    
+    ASSERT(18,({ x; x = 3; x*6;}));
+    ASSERT(6,({ 1; }) + ({ 2; }) + ({ 3; }));        
+    ASSERT(10,({ 1;5; }) + ({ 2; }) + ({ 3; }));
+    //assert 1 'int main() { ({ 0; return 1; 2; }); return 3; }'
+    my_printf("##end1##\n");    
+    ASSERT(18,({x; x = 3;18;}));
+    my_printf("##end2##\n");
 
     return 0;
 }

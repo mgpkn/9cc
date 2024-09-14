@@ -26,7 +26,7 @@ Node *postfix(Token **rest, Token *tok);
 Node *primary(Token **rest, Token *tok);
 
 extern char *code;
-extern char *filename; //command parameter
+extern char *filename; // command parameter
 int label_cnt;
 
 // print error with printf() format.
@@ -39,11 +39,12 @@ void error(char *fmt, ...)
   exit(1);
 }
 
-//print error with token location.
-//the error message is like a bellow.
-// foo.c:10: x = y + + 5;
-//                   ^ 式ではありません
-void error_at(char *loc, char *msg, ...) {
+// print error with token location.
+// the error message is like a bellow.
+//  foo.c:10: x = y + + 5;
+//                    ^ 式ではありません
+void error_at(char *loc, char *msg, ...)
+{
 
   va_list ap;
   va_start(ap, msg);
@@ -70,7 +71,7 @@ void error_at(char *loc, char *msg, ...) {
   // エラー箇所を"^"で指し示して、エラーメッセージを表示
   int pos = loc - line + indent;
   fprintf(stderr, "%*s", pos, ""); // pos個の空白を出力
-  fprintf(stderr,"^ %s\n",msg);
+  fprintf(stderr, "^ %s\n", msg);
   exit(1);
 }
 
@@ -104,7 +105,7 @@ Type *core_type(Token **rest, Token *tok)
     ty->kind = TY_INT;
   if (equal_token(tok, "char"))
     ty->kind = TY_CHAR;
-  
+
   if (ty->kind == -1)
     error_at(tok->pos, "undefined type name;");
 
@@ -149,12 +150,11 @@ int expect_number(Token **rest, Token *tok)
   return tok->val;
 }
 
-
 // check if the variable is already declared
 Ident *find_var(Token *tok)
 {
-  Token *target,*dummy;
-  Type *decl = declarator(&dummy,tok,calloc(1,sizeof(Type)));
+  Token *target, *dummy;
+  Type *decl = declarator(&dummy, tok, calloc(1, sizeof(Type)));
   target = decl->core_ident_tok;
 
   // search locals
@@ -174,43 +174,44 @@ Ident *find_var(Token *tok)
   return NULL;
 }
 
-Ident *add_globals(Ident *tar){
+Ident *add_globals(Ident *tar)
+{
 
-  if(!globals){
-    globals= tar;
+  if (!globals)
+  {
+    globals = tar;
     return globals;
   }
 
   Ident *tmp = globals;
-  while(tmp->next) 
-    tmp=tmp->next;
-  tmp->next = tar; 
+  while (tmp->next)
+    tmp = tmp->next;
+  tmp->next = tar;
   return tmp->next;
-
 }
 
 static Ident *declaration_str(Token *tok)
 {
 
-  //literal string is treated like a global var.
+  // literal string is treated like a global var.
 
-  static int str_id=0;
-  str_id++; //when this function called,incriment str_id;
+  static int str_id = 0;
+  str_id++; // when this function called,incriment str_id;
 
-  Type *ty = calloc(1,sizeof(Type));
-  ty->kind=TY_ARRAY;
-  ty->ptr_to = ty_char;  
+  Type *ty = calloc(1, sizeof(Type));
+  ty->kind = TY_ARRAY;
+  ty->ptr_to = ty_char;
   ty->array_size = tok->len;
 
   Ident *idt = calloc(1, sizeof(Ident));
   idt->is_global = true;
   idt->is_function = false;
-  //sprintf(NULL,".LC%d",str_id);
-  idt->name = calloc(1,sizeof(char)*10);
-  idt->name_len = sprintf(idt->name,".LC%d",str_id);
+  // sprintf(NULL,".LC%d",str_id);
+  idt->name = calloc(1, sizeof(char) * 10);
+  idt->name_len = sprintf(idt->name, ".LC%d", str_id);
   idt->str = tok->str;
   idt->ty = ty;
-  
+
   add_globals(idt);
 
   return idt;
@@ -235,20 +236,19 @@ Node *new_node_num(int val)
   return node;
 }
 
-Node *new_node_char(Token **rest,Token *tok,int val)
+Node *new_node_char(Token **rest, Token *tok, int val)
 {
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_CHAR;
   node->val = val;
   init_nodetype(node);
 
-  tok= tok->next;
+  tok = tok->next;
   *rest = tok;
   return node;
 }
 
-
-Node *new_node_str(Token **rest,Token *tok)
+Node *new_node_str(Token **rest, Token *tok)
 {
   Ident *idt_str = declaration_str(tok);
 
@@ -258,11 +258,10 @@ Node *new_node_str(Token **rest,Token *tok)
   node->ident_name = idt_str->name;
   init_nodetype(node);
 
-  tok= tok->next;
+  tok = tok->next;
   *rest = tok;
   return node;
 }
-
 
 // create lvar node
 Node *new_node_declare_lvar(Type *ty)
@@ -277,7 +276,7 @@ Node *new_node_declare_lvar(Type *ty)
   {
     Ident *idt = calloc(1, sizeof(Ident));
     idt->is_global = false;
-    idt->name_len = ty->core_ident_tok->len;    
+    idt->name_len = ty->core_ident_tok->len;
     idt->name = strndup(ty->core_ident_tok->pos, sizeof(char) * idt->name_len);
     idt->ty = ty;
 
@@ -320,7 +319,6 @@ Node *new_node_var(Token **rest, Token *tok)
     Ident *var = find_var(tok);
     if (!var)
       error_at(tok->pos, "the variable is not declared.");
-
 
     n = calloc(1, sizeof(Node));
     n->ident_name = var->name;
@@ -386,8 +384,8 @@ Ident *parse(Token *tok)
 
   label_cnt = 0;
   globals = NULL;
-  Ident *tmp_global;//*cur_global = NULL;
-  
+  Ident *tmp_global;
+
   while (!at_eof(tok))
   {
 
@@ -395,8 +393,6 @@ Ident *parse(Token *tok)
     tmp_global = global(&tok, tok);
     tmp_global->locals = locals;
     add_globals(tmp_global);
-
-
   }
   return globals;
 }
@@ -445,15 +441,14 @@ Ident *declaration_global_var(Token **rest, Token *tok, Type *core_ty)
   idt->name = strndup(ty->core_ident_tok->pos, sizeof(char) * idt->name_len);
   idt->ty = ty;
 
-  //todo declaration multi variables
-
+  // todo declaration multi variables
 
   consume(&tok, tok, ";");
   *rest = tok;
   return idt;
 }
 
-//declaration_function ::= declarator "(" (declaration_local("," declaration_local)?)? ")" "{" statment* "}"
+// declaration_function ::= declarator "(" (declaration_local("," declaration_local)?)? ")" "{" statment* "}"
 Ident *declaration_function(Token **rest, Token *tok, Type *core_ty)
 {
 
@@ -582,7 +577,7 @@ Type *declarator(Token **rest, Token *tok, Type *core_ty)
   return core_ty;
 }
 
-//declarator_prefix := ("*" declarator_prefix)? 
+// declarator_prefix := ("*" declarator_prefix)?
 Type *declarator_prefix(Token **rest, Token *tok)
 {
 
@@ -599,7 +594,7 @@ Type *declarator_prefix(Token **rest, Token *tok)
   return ty;
 }
 
-//declarator_suffix ::= ("[" num "]" declarator_suffix)?
+// declarator_suffix ::= ("[" num "]" declarator_suffix)?
 Type *declarator_suffix(Token **rest, Token *tok)
 {
 
@@ -621,16 +616,16 @@ Type *declarator_suffix(Token **rest, Token *tok)
 
 /*
 statement ::= (declaration_local|expr)? ";"
-		|"{" statement? "}"
-		| "return " expr ";"
-		| "if" "(" expr ")" statement "else" statement
-		| "while" "(" expr ")"  statement
-		| "for" "(" (declaration_local|expr)? ";" expr? ";" expr? ";" ")"  statement
+    |"{" statement? "}"
+    | "return " expr ";"
+    | "if" "(" expr ")" statement "else" statement
+    | "while" "(" expr ")"  statement
+    | "for" "(" (declaration_local|expr)? ";" expr? ";" expr? ";" ")"  statement
 */
 Node *statement(Token **rest, Token *tok)
 {
   Node *n;
-  Node *n_block_current;
+  Node *n_block_cur;
 
   if (tok->kind == TK_KEYWORD)
   {
@@ -651,13 +646,13 @@ Node *statement(Token **rest, Token *tok)
       {
         if (n->block_head)
         {
-          n_block_current->next = statement(&tok, tok);
-          n_block_current = n_block_current->next;
+          n_block_cur->next = statement(&tok, tok);
+          n_block_cur = n_block_cur->next;
         }
         else
         {
           n->block_head = statement(&tok, tok);
-          n_block_current = n->block_head;
+          n_block_cur = n->block_head;
         }
       }
       *rest = tok;
@@ -743,7 +738,7 @@ Node *statement(Token **rest, Token *tok)
   }
   else
   {
-    if (is_core_type_token(tok))
+p√    if (is_core_type_token(tok))
       n = declaration_local(&tok, tok);
     else
       n = expr(&tok, tok);
@@ -768,14 +763,13 @@ Node *declaration_local(Token **rest, Token *tok)
 {
 
   Type *ty = core_type(&tok, tok);
-  ty = declarator(&tok,tok,ty);
+  ty = declarator(&tok, tok, ty);
 
-  //todo declaration multi declaration
+  // todo declaration multi declaration
 
   *rest = tok;
   return new_node_declare_lvar(ty);
 }
-
 
 // assign ::= equality ("=" assign )?
 Node *assign(Token **rest, Token *tok)
@@ -967,7 +961,7 @@ postfix ::= primary ("[" & expr & "]")*
 */
 Node *postfix(Token **rest, Token *tok)
 {
-  Node *n,*idx;
+  Node *n, *idx;
   n = primary(&tok, tok);
 
   for (;;)
@@ -976,7 +970,7 @@ Node *postfix(Token **rest, Token *tok)
     if (consume(&tok, tok, "["))
     {
       idx = extra_add(n, expr(&tok, tok), NULL);
-      expect(&tok, tok, "]");      
+      expect(&tok, tok, "]");
       n = new_node(ND_DEREF, idx, NULL);
       continue;
     }
@@ -988,17 +982,39 @@ Node *postfix(Token **rest, Token *tok)
 }
 
 /*
-primary ::= "(" expr ")"
-    |ident("(" (expr("," expr)?)? ")")?
+primary ::= "(" "{" statement+ "}" ")"
+    |"(" expr ")"
+    |ident("(" expr? ("," expr)? ")")?
     |num|char|str
 */
 Node *primary(Token **rest, Token *tok)
 {
   Node *n;
-
   if (consume(&tok, tok, "("))
   {
-    Node *n = expr(&tok, tok);
+    // block statement
+    if (consume(&tok, tok, "{"))
+    {
+      n = new_node(ND_BLOCK, NULL, NULL);
+      Node *n_block_cur;
+      while (!consume(&tok, tok, "}"))
+      {
+        if (n->block_head)
+        {
+          n_block_cur->next = statement(&tok, tok);
+          n_block_cur = n_block_cur->next;
+        }
+        else
+        {
+          n->block_head = statement(&tok, tok);
+          n_block_cur = n->block_head;
+        }
+      }
+    }
+    else
+    {
+      n = expr(&tok, tok);
+    }
     expect(&tok, tok, ")");
     *rest = tok;
     return n;
@@ -1014,10 +1030,10 @@ Node *primary(Token **rest, Token *tok)
   }
 
   if (tok->kind == TK_STR)
-    n = new_node_str(&tok,tok);
+    n = new_node_str(&tok, tok);
 
   if (tok->kind == TK_CHAR)
-    n = new_node_char(&tok,tok,(int)tok->str[0]);
+    n = new_node_char(&tok, tok, (int)tok->str[0]);
 
   if (tok->kind == TK_NUM)
     n = new_node_num(expect_number(&tok, tok));

@@ -27,9 +27,9 @@ int main()
     ASSERT(10, ch6);
     ASSERT(26, char7);    
 
-    my_printf("\x48\x65\x78\x5F\x44\x61\x74\x61\n");
+    my_printf("\x48\x65\x78\x5F\x44\x61\x74\x61\x5f\n");
     my_printf("##end##\n");
-
+    
 
     return 0;
 }

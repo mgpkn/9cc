@@ -55,6 +55,8 @@ void init_nodetype(Node *n)
     if (!n || n->ty)
         return;
 
+    Type *t = calloc(1, sizeof(Type));
+
     // 再帰的に下位ノードにも型タイプをinit
     init_nodetype(n->lhs);
     init_nodetype(n->rhs);
@@ -66,12 +68,19 @@ void init_nodetype(Node *n)
     for (Node *block_n = n->block_head; block_n; block_n = block_n->next)
     {
         init_nodetype(block_n);
+        if(!block_n->next){
+            t->kind = block_n->ty;
+            n->ty = t;
+            return;
+        }
+
     }
 
     for (int i; i < FUNC_ARG_NUM; i++)
         init_nodetype(n->func_arg[i]);
 
-    Type *t = calloc(1, sizeof(Type));
+
+
     // ノードの種類によってtyを決定する。
     switch (n->kind)
     {

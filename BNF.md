@@ -22,7 +22,8 @@ mul ::= unary ("*" unary|"/" unary|"%" unary)*
 unary ::= ("+"|"-"|"&"|"*"|"sizeof") unary
     |postfix
 postfix ::= primary ("[" & expr & "]")*	
-primary ::= "(" expr ")"
-    |ident("(" (expr("," expr)?)? ")")?
+primary ::= "(" "{" statement+ "}" ")"
+    |"(" expr ")"
+    |ident("(" expr? ("," expr)? ")")?
     |num|char|str
 ```
