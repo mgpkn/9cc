@@ -69,17 +69,14 @@ void init_nodetype(Node *n)
     {
         init_nodetype(block_n);
         if(!block_n->next){
-            t->kind = block_n->ty;
+            t = block_n->ty;
             n->ty = t;
             return;
         }
-
     }
 
     for (int i; i < FUNC_ARG_NUM; i++)
         init_nodetype(n->func_arg[i]);
-
-
 
     // ノードの種類によってtyを決定する。
     switch (n->kind)

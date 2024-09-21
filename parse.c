@@ -1,13 +1,29 @@
 #define _XOPEN_SOURCE 700
 #include "9cc.h"
 
+typedef struct VarScope VarScope;
+struct VarScope
+{
+  VarScope *next;
+  // char *name;
+  Ident *var;
+};
+
+typedef struct Scope Scope;
+struct Scope
+{
+  Scope *next;
+  VarScope *vars;
+};
+
+static Scope *cur_scope;
 static Ident *locals;
 static Ident *globals;
 
 Ident *global(Token **rest, Token *tok);
-Ident *declaration_global_var(Token **rest, Token *tok, Type *core_ty);
-Ident *declaration_function(Token **rest, Token *tok, Type *core_ty);
-Type *declarator(Token **rest, Token *tok, Type *core_ty);
+Ident *declaration_global_var(Token **rest, Token *tok, Type *base_ty);
+Ident *declaration_function(Token **rest, Token *tok, Type *base_ty);
+Type *declarator(Token **rest, Token *tok, Type *base_ty);
 Type *declarator_prefix(Token **rest, Token *tok);
 Type *declarator_suffix(Token **rest, Token *tok);
 Node *statement(Token **rest, Token *tok);
@@ -85,7 +101,7 @@ bool equal_token(Token *tok, char *op)
   return equal(tok->pos, op, tok->len);
 }
 
-bool is_core_type_token(Token *tok)
+bool is_base_type_token(Token *tok)
 {
   if (equal_token(tok, "int"))
     return true;
@@ -95,7 +111,7 @@ bool is_core_type_token(Token *tok)
   return false;
 }
 
-Type *core_type(Token **rest, Token *tok)
+Type *base_type(Token **rest, Token *tok)
 {
 
   Type *ty = calloc(1, sizeof(Type));
@@ -150,12 +166,45 @@ int expect_number(Token **rest, Token *tok)
   return tok->val;
 }
 
+// enter-leave scope.
+void *enter_scope()
+{
+  Scope *sc = calloc(1, sizeof(Scope));
+
+  if (cur_scope)
+    sc->next = cur_scope;
+  cur_scope = sc;
+}
+
+void *leave_scope()
+{
+  cur_scope = cur_scope->next;
+}
+
+void add_varscope(Ident *var){
+
+  VarScope *vs = calloc(1, sizeof(VarScope));
+  vs->var = var;
+  vs->next = cur_scope->vars;
+  cur_scope -> vars = vs;
+
+}
+
 // check if the variable is already declared
 Ident *find_var(Token *tok)
 {
   Token *target, *dummy;
   Type *decl = declarator(&dummy, tok, calloc(1, sizeof(Type)));
-  target = decl->core_ident_tok;
+  target = decl->ident_name_tok;
+
+  for(Scope *sc = cur_scope;sc;sc = sc->next){
+    for(VarScope *vsc = sc->vars;vsc;vsc = vsc->next){
+      if (equal(target->pos, vsc->var->name, target->len))
+        return vsc->var;
+    }
+  }
+
+  /*
 
   // search locals
   for (Ident *v = locals; v; v = v->next)
@@ -170,6 +219,8 @@ Ident *find_var(Token *tok)
     if (equal(target->pos, v->name, target->len))
       return v;
   }
+
+  */
 
   return NULL;
 }
@@ -193,7 +244,7 @@ Ident *add_globals(Ident *tar)
 static Ident *declaration_str(Token *tok)
 {
 
-  // literal string is treated like a global var.
+  // literal string is treated like　global vars.
 
   static int str_id = 0;
   str_id++; // when this function called,incriment str_id;
@@ -206,8 +257,8 @@ static Ident *declaration_str(Token *tok)
   Ident *idt = calloc(1, sizeof(Ident));
   idt->is_global = true;
   idt->is_function = false;
-  // sprintf(NULL,".LC%d",str_id);
-  idt->name = calloc(1, sizeof(char) * 10);
+  
+  idt->name = calloc(1, sizeof(char) * 50);
   idt->name_len = sprintf(idt->name, ".LC%d", str_id);
   idt->str = tok->str;
   idt->ty = ty;
@@ -269,15 +320,15 @@ Node *new_node_declare_lvar(Type *ty)
   Node *node = calloc(1, sizeof(Node));
 
   // find indent if it's already declared.
-  if (find_var(ty->core_ident_tok))
-    error_at(ty->core_ident_tok->pos, "the variable is already declared.");
+  if (find_var(ty->ident_name_tok))
+    error_at(ty->ident_name_tok->pos, "the variable is already declared.");
 
-  if (ty->core_ident_tok)
+  if (ty->ident_name_tok)
   {
     Ident *idt = calloc(1, sizeof(Ident));
     idt->is_global = false;
-    idt->name_len = ty->core_ident_tok->len;
-    idt->name = strndup(ty->core_ident_tok->pos, sizeof(char) * idt->name_len);
+    idt->name_len = ty->ident_name_tok->len;
+    idt->name = strndup(ty->ident_name_tok->pos, sizeof(char) * idt->name_len);
     idt->ty = ty;
 
     if (locals)
@@ -299,7 +350,7 @@ Node *new_node_declare_lvar(Type *ty)
       idt->offset = calc_sizeof(idt->ty);
       locals = idt;
     }
-
+    add_varscope(idt);
     node->kind = ND_LVAR;
     node->ident_name = idt->name;
     node->offset = idt->offset;
@@ -385,6 +436,7 @@ Ident *parse(Token *tok)
   label_cnt = 0;
   globals = NULL;
   Ident *tmp_global;
+  enter_scope();
 
   while (!at_eof(tok))
   {
@@ -398,33 +450,39 @@ Ident *parse(Token *tok)
 }
 
 /*
-global ::= core_type (declaration_global_var|declaration_function)
+global ::= base_type (declaration_global_var|declaration_function)
 */
 Ident *global(Token **rest, Token *tok)
 {
 
-  Type *core_ty = core_type(&tok, tok);
+  Type *base_ty = base_type(&tok, tok);
 
-  // first it try to create variable ident from current token.
-  // if it isn't,next try to function ident.
+  // first,try to create variable ident from current token.
+  // if coundn't,next try to function ident.
 
   // create global variable ident.
-  Ident *glb = declaration_global_var(&tok, tok, core_ty);
+  Ident *glb = declaration_global_var(&tok, tok, base_ty);
 
   // create function ident.
   if (!glb)
-    glb = declaration_function(&tok, tok, core_ty);
+    glb = declaration_function(&tok, tok, base_ty);
+  
+  add_varscope(glb);
 
   *rest = tok;
   return glb;
 }
 
 // declaration_global_var ::= declarator("," declarator)* ";"
-Ident *declaration_global_var(Token **rest, Token *tok, Type *core_ty)
+Ident *declaration_global_var(Token **rest, Token *tok, Type *base_ty)
 {
 
   Token *tmp_tok;
-  Type *ty = declarator(&tmp_tok, tok, core_ty);
+  Type *ty = declarator(&tmp_tok, tok, base_ty);
+
+  if (find_var(ty->ident_name_tok))
+    error_at(ty->ident_name_tok->pos, "the variable is already declared.");
+
 
   // if it's function syntax.return NULL;
   if (consume(&tmp_tok, tmp_tok, "("))
@@ -437,8 +495,8 @@ Ident *declaration_global_var(Token **rest, Token *tok, Type *core_ty)
   Ident *idt = calloc(1, sizeof(Ident));
   idt->is_global = true;
   idt->is_function = false;
-  idt->name_len = ty->core_ident_tok->len;
-  idt->name = strndup(ty->core_ident_tok->pos, sizeof(char) * idt->name_len);
+  idt->name_len = ty->ident_name_tok->len;
+  idt->name = strndup(ty->ident_name_tok->pos, sizeof(char) * idt->name_len);
   idt->ty = ty;
 
   // todo declaration multi variables
@@ -449,10 +507,14 @@ Ident *declaration_global_var(Token **rest, Token *tok, Type *core_ty)
 }
 
 // declaration_function ::= declarator "(" (declaration_local("," declaration_local)?)? ")" "{" statment* "}"
-Ident *declaration_function(Token **rest, Token *tok, Type *core_ty)
+Ident *declaration_function(Token **rest, Token *tok, Type *base_ty)
 {
 
-  Type *ty = declarator(&tok, tok, core_ty);
+  Type *ty = declarator(&tok, tok, base_ty);
+
+  if (find_var(ty->ident_name_tok))
+    error_at(ty->ident_name_tok->pos, "the function is already declared.");
+
 
   // if array_type is  in declarator raise error.
   for (Type *tmp_ty = ty; tmp_ty; tmp_ty = tmp_ty->ptr_to)
@@ -464,9 +526,11 @@ Ident *declaration_function(Token **rest, Token *tok, Type *core_ty)
   Ident *idt = calloc(1, sizeof(Ident));
   idt->is_global = true;
   idt->is_function = true;
-  idt->name_len = ty->core_ident_tok->len;
-  idt->name = strndup(ty->core_ident_tok->pos, sizeof(char) * idt->name_len);
+  idt->name_len = ty->ident_name_tok->len;
+  idt->name = strndup(ty->ident_name_tok->pos, sizeof(char) * idt->name_len);
   idt->ty = ty;
+
+  enter_scope();
 
   expect(&tok, tok, "(");
 
@@ -515,16 +579,17 @@ Ident *declaration_function(Token **rest, Token *tok, Type *core_ty)
   consume(&tok, tok, "}");
   idt->body = head_body;
 
+  leave_scope();
   *rest = tok;
   return idt;
 }
 
 // declarator ::= declarator_prefix ident declarator_suffix
-Type *declarator(Token **rest, Token *tok, Type *core_ty)
+Type *declarator(Token **rest, Token *tok, Type *base_ty)
 {
 
   Type *ty_prefix, *ty_suffix, *tmp_ty;
-  Token *core_idt_tok;
+  Token *tmp_ident_name_tok;
 
   // get prefix type
   ty_prefix = declarator_prefix(&tok, tok);
@@ -532,7 +597,7 @@ Type *declarator(Token **rest, Token *tok, Type *core_ty)
   // get core ident.
   if (tok->kind != TK_IDENT)
     error_at(tok->pos, "it isn't ident.");
-  core_idt_tok = tok;
+  tmp_ident_name_tok = tok;
   tok = tok->next;
 
   // get suffix type
@@ -549,8 +614,8 @@ Type *declarator(Token **rest, Token *tok, Type *core_ty)
     }
     else
     {
-      tmp_ty->ptr_to = core_ty;
-      core_ty = ty_prefix;
+      tmp_ty->ptr_to = base_ty;
+      base_ty = ty_prefix;
       break;
     }
   }
@@ -566,15 +631,15 @@ Type *declarator(Token **rest, Token *tok, Type *core_ty)
     }
     else
     {
-      tmp_ty->ptr_to = core_ty;
-      core_ty = ty_suffix;
+      tmp_ty->ptr_to = base_ty;
+      base_ty = ty_suffix;
       break;
     }
   }
 
-  core_ty->core_ident_tok = core_idt_tok;
+  base_ty->ident_name_tok = tmp_ident_name_tok;
   *rest = tok;
-  return core_ty;
+  return base_ty;
 }
 
 // declarator_prefix := ("*" declarator_prefix)?
@@ -738,7 +803,7 @@ Node *statement(Token **rest, Token *tok)
   }
   else
   {
-p√    if (is_core_type_token(tok))
+    if (is_base_type_token(tok))
       n = declaration_local(&tok, tok);
     else
       n = expr(&tok, tok);
@@ -757,12 +822,12 @@ Node *expr(Token **rest, Token *tok)
 }
 
 /*
-declaration_local ::= core_type declarator ("," declarator)*
+declaration_local ::= base_type declarator ("," declarator)*
 */
 Node *declaration_local(Token **rest, Token *tok)
 {
 
-  Type *ty = core_type(&tok, tok);
+  Type *ty = base_type(&tok, tok);
   ty = declarator(&tok, tok, ty);
 
   // todo declaration multi declaration

@@ -172,9 +172,8 @@ int main()
     ASSERT(6,({ 1; }) + ({ 2; }) + ({ 3; }));        
     ASSERT(10,({ 1;5; }) + ({ 2; }) + ({ 3; }));
     //assert 1 'int main() { ({ 0; return 1; 2; }); return 3; }'
-    my_printf("##end1##\n");    
     ASSERT(18,({x; x = 3;18;}));
-    my_printf("##end2##\n");
+    my_printf("##end##\n");
 
     return 0;
 }
