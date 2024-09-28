@@ -436,7 +436,7 @@ Ident *parse(Token *tok)
   label_cnt = 0;
   globals = NULL;
   Ident *tmp_global;
-  enter_scope();
+  enter_scope();//make global scope
 
   while (!at_eof(tok))
   {
@@ -697,7 +697,7 @@ Node *statement(Token **rest, Token *tok)
 
     if (equal_token(tok, ";"))
     {
-      consume(&tok, tok, ";");
+      ;
       *rest = tok;
       return new_node(ND_BLOCK, NULL, NULL);
     }
@@ -706,7 +706,7 @@ Node *statement(Token **rest, Token *tok)
     {
       consume(&tok, tok, "{");
       n = new_node(ND_BLOCK, NULL, NULL);
-
+      enter_scope();
       while (!consume(&tok, tok, "}"))
       {
         if (n->block_head)
@@ -720,6 +720,7 @@ Node *statement(Token **rest, Token *tok)
           n_block_cur = n->block_head;
         }
       }
+      leave_scope();
       *rest = tok;
       return n;
     }
@@ -1061,6 +1062,7 @@ Node *primary(Token **rest, Token *tok)
     if (consume(&tok, tok, "{"))
     {
       n = new_node(ND_BLOCK, NULL, NULL);
+      enter_scope();      
       Node *n_block_cur;
       while (!consume(&tok, tok, "}"))
       {
@@ -1075,6 +1077,7 @@ Node *primary(Token **rest, Token *tok)
           n_block_cur = n->block_head;
         }
       }
+      leave_scope();
     }
     else
     {

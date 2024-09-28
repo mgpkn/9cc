@@ -1,7 +1,7 @@
 #include "test.h"
 
 int glob;
-int sub;
+//int sub;
 
 int sub()
 {
@@ -20,20 +20,23 @@ int main()
     x=1;
     glob=2;
 
-/*
+
     while(x<10){
-        int i;
+        int i; //1
+        i=20;
+        ASSERT(20, i);                
         x = x+1;
     }
 
-    while(x<10){
-        int i;
-        i=10;
+    if(x>=10){
+        int i;//2
+        i=13;
+        ASSERT(13, i);        
         x = x+1;
     }
-*/
 
-    ASSERT(1, x);
+
+    ASSERT(x, x);
     ASSERT(2, glob);
     ASSERT(100, sub());
     return 0;
