@@ -238,8 +238,7 @@ void codegen_func(Ident *func)
     return;
 
   Node *cur_code, *cur_arg;
-  Ident *cur_localvar = NULL;
-  int cur_offset;
+  int total_offset;
 
   // 関数名のラベルを作成
   printf("%s:\n", func->name);
@@ -247,18 +246,14 @@ void codegen_func(Ident *func)
   // 変数領域の確保。
   printf("  push rbp\n");
   printf("  mov rbp, rsp\n");
-  cur_offset = 0;
-  cur_localvar = func->locals;
-  while (cur_localvar)
-  {
-    cur_offset = cur_localvar->offset;
-    cur_localvar = cur_localvar->next;
-  }
-
+  total_offset = 0;
+  if(func->locals)
+    total_offset = func->locals->offset;
+    
   int i = 0;
   while (true)
   {
-    if (cur_offset <= i * BASE_ALIGNMENTSIZE)
+    if (total_offset <= i * BASE_ALIGNMENTSIZE)
       break;
     i++;
   }

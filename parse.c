@@ -5,7 +5,6 @@ typedef struct VarScope VarScope;
 struct VarScope
 {
   VarScope *next;
-  // char *name;
   Ident *var;
 };
 
@@ -181,13 +180,13 @@ void *leave_scope()
   cur_scope = cur_scope->next;
 }
 
-void add_varscope(Ident *var){
+void add_varscope(Ident *var)
+{
 
   VarScope *vs = calloc(1, sizeof(VarScope));
   vs->var = var;
   vs->next = cur_scope->vars;
-  cur_scope -> vars = vs;
-
+  cur_scope->vars = vs;
 }
 
 // check if the variable is already declared
@@ -197,30 +196,14 @@ Ident *find_var(Token *tok)
   Type *decl = declarator(&dummy, tok, calloc(1, sizeof(Type)));
   target = decl->ident_name_tok;
 
-  for(Scope *sc = cur_scope;sc;sc = sc->next){
-    for(VarScope *vsc = sc->vars;vsc;vsc = vsc->next){
+  for (Scope *sc = cur_scope; sc; sc = sc->next)
+  {
+    for (VarScope *vsc = sc->vars; vsc; vsc = vsc->next)
+    {
       if (equal(target->pos, vsc->var->name, target->len))
         return vsc->var;
     }
   }
-
-  /*
-
-  // search locals
-  for (Ident *v = locals; v; v = v->next)
-  {
-    if (equal(target->pos, v->name, target->len))
-      return v;
-  }
-
-  // search globals
-  for (Ident *v = globals; v; v = v->next)
-  {
-    if (equal(target->pos, v->name, target->len))
-      return v;
-  }
-
-  */
 
   return NULL;
 }
@@ -257,7 +240,7 @@ static Ident *declaration_str(Token *tok)
   Ident *idt = calloc(1, sizeof(Ident));
   idt->is_global = true;
   idt->is_function = false;
-  
+
   idt->name = calloc(1, sizeof(char) * 50);
   idt->name_len = sprintf(idt->name, ".LC%d", str_id);
   idt->str = tok->str;
@@ -331,25 +314,15 @@ Node *new_node_declare_lvar(Type *ty)
     idt->name = strndup(ty->ident_name_tok->pos, sizeof(char) * idt->name_len);
     idt->ty = ty;
 
-    if (locals)
-    {
-      // after 2nd locals declare.
-      for (Ident *v = locals;; v = v->next)
-      {
-        if (!v->next)
-        {
-          idt->offset = v->offset + calc_sizeof(idt->ty);
-          v->next = idt;
-          break;
-        }
-      }
-    }
-    else
-    {
-      // 1st locals declare.
-      idt->offset = calc_sizeof(idt->ty);
-      locals = idt;
-    }
+
+    idt->next = locals;
+    locals = idt;
+    idt->offset = calc_sizeof(idt->ty);    
+
+    if (locals->next)
+      //accumulate local variable offset.
+      idt->offset = idt->offset + locals->next->offset;
+
     add_varscope(idt);
     node->kind = ND_LVAR;
     node->ident_name = idt->name;
@@ -409,9 +382,8 @@ Node *new_node_function(Token **rest, Token *tok)
   while (true)
   {
     if (i >= FUNC_ARG_NUM)
-    {
       error("function aguments limit is %d", FUNC_ARG_NUM);
-    }
+      
     node->func_arg[i] = expr(&tok, tok);
     if (!consume(&tok, tok, ","))
       break;
@@ -436,7 +408,7 @@ Ident *parse(Token *tok)
   label_cnt = 0;
   globals = NULL;
   Ident *tmp_global;
-  enter_scope();//make global scope
+  enter_scope(); // make global scope
 
   while (!at_eof(tok))
   {
@@ -466,7 +438,7 @@ Ident *global(Token **rest, Token *tok)
   // create function ident.
   if (!glb)
     glb = declaration_function(&tok, tok, base_ty);
-  
+
   add_varscope(glb);
 
   *rest = tok;
@@ -482,7 +454,6 @@ Ident *declaration_global_var(Token **rest, Token *tok, Type *base_ty)
 
   if (find_var(ty->ident_name_tok))
     error_at(ty->ident_name_tok->pos, "the variable is already declared.");
-
 
   // if it's function syntax.return NULL;
   if (consume(&tmp_tok, tmp_tok, "("))
@@ -514,7 +485,6 @@ Ident *declaration_function(Token **rest, Token *tok, Type *base_ty)
 
   if (find_var(ty->ident_name_tok))
     error_at(ty->ident_name_tok->pos, "the function is already declared.");
-
 
   // if array_type is  in declarator raise error.
   for (Type *tmp_ty = ty; tmp_ty; tmp_ty = tmp_ty->ptr_to)
@@ -695,16 +665,14 @@ Node *statement(Token **rest, Token *tok)
   if (tok->kind == TK_KEYWORD)
   {
 
-    if (equal_token(tok, ";"))
+    if (consume(&tok, tok, ";"))
     {
-      ;
       *rest = tok;
       return new_node(ND_BLOCK, NULL, NULL);
     }
 
-    if (equal_token(tok, "{"))
+    if (consume(&tok, tok, "{"))
     {
-      consume(&tok, tok, "{");
       n = new_node(ND_BLOCK, NULL, NULL);
       enter_scope();
       while (!consume(&tok, tok, "}"))
@@ -1062,7 +1030,7 @@ Node *primary(Token **rest, Token *tok)
     if (consume(&tok, tok, "{"))
     {
       n = new_node(ND_BLOCK, NULL, NULL);
-      enter_scope();      
+      enter_scope();
       Node *n_block_cur;
       while (!consume(&tok, tok, "}"))
       {
