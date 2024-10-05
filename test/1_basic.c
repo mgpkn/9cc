@@ -31,6 +31,11 @@ int myadd2(int a, int b)
     return a + b;
 }
 
+int ret_arg2(int a, int b,int c,int d,int e)
+{
+    return b;
+}
+
 int sum_all_param(int p1, int p2, int p3, int p4, int p5, int p6)
 {
     return p1 + p2 + p3 + p4 + p5 + p6;
@@ -116,6 +121,7 @@ int main()
     glob = 15;
     ASSERT(150, glob * 10);
 
+    ASSERT(32, ret_arg2(100,32,48,3,58));
 
     y = &x;
     *y = 32;
@@ -138,6 +144,7 @@ int main()
     ASSERT(22,*(y+1));    
     ASSERT(49,*(y+3)+1);
     ASSERT(1,(z+2)-(z+1));    
+
 
     ASSERT(4, sizeof(x));
     ASSERT(4, sizeof(x + 100));

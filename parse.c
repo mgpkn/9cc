@@ -314,13 +314,12 @@ Node *new_node_declare_lvar(Type *ty)
     idt->name = strndup(ty->ident_name_tok->pos, sizeof(char) * idt->name_len);
     idt->ty = ty;
 
-
     idt->next = locals;
     locals = idt;
-    idt->offset = calc_sizeof(idt->ty);    
+    idt->offset = calc_sizeof(idt->ty);
 
     if (locals->next)
-      //accumulate local variable offset.
+      // accumulate local variable offset.
       idt->offset = idt->offset + locals->next->offset;
 
     add_varscope(idt);
@@ -383,7 +382,7 @@ Node *new_node_function(Token **rest, Token *tok)
   {
     if (i >= FUNC_ARG_NUM)
       error("function aguments limit is %d", FUNC_ARG_NUM);
-      
+
     node->func_arg[i] = expr(&tok, tok);
     if (!consume(&tok, tok, ","))
       break;
@@ -504,23 +503,20 @@ Ident *declaration_function(Token **rest, Token *tok, Type *base_ty)
 
   expect(&tok, tok, "(");
 
-  Node *head_arg = NULL, *cur_arg = NULL, *head_body = NULL, *cur_body = NULL;
+  Node *head_arg = NULL, *cur_arg = calloc(1, sizeof(Node));
+  Node *head_body = NULL, *cur_body = calloc(1, sizeof(Node));
 
   // agument
   while (true)
   {
     if (equal_token(tok, ")"))
       break;
-    if (head_arg)
-    {
-      cur_arg->next = declaration_local(&tok, tok);
-      cur_arg = cur_arg->next;
-    }
-    else
-    {
-      head_arg = declaration_local(&tok, tok);
-      cur_arg = head_arg;
-    }
+
+    cur_arg->next = declaration_local(&tok, tok);
+    if (!head_arg)
+      head_arg = cur_arg->next;
+    cur_arg = cur_arg->next;
+
     init_nodetype(cur_arg);
     if (!consume(&tok, tok, ","))
       break;
@@ -534,16 +530,11 @@ Ident *declaration_function(Token **rest, Token *tok, Type *base_ty)
   {
     if (equal_token(tok, "}"))
       break;
-    if (head_body)
-    {
-      cur_body->next = statement(&tok, tok);
-      cur_body = cur_body->next;
-    }
-    else
-    {
-      head_body = statement(&tok, tok);
-      cur_body = head_body;
-    }
+
+    cur_body->next = statement(&tok, tok);
+    if (!head_body)
+      head_body = cur_body->next;
+    cur_body = cur_body->next;      
     init_nodetype(cur_body);
   }
   consume(&tok, tok, "}");
@@ -660,7 +651,7 @@ statement ::= (declaration_local|expr)? ";"
 Node *statement(Token **rest, Token *tok)
 {
   Node *n;
-  Node *n_block_cur;
+  Node *n_block_cur=calloc(1,sizeof(Node));
 
   if (tok->kind == TK_KEYWORD)
   {
@@ -677,16 +668,12 @@ Node *statement(Token **rest, Token *tok)
       enter_scope();
       while (!consume(&tok, tok, "}"))
       {
-        if (n->block_head)
-        {
-          n_block_cur->next = statement(&tok, tok);
-          n_block_cur = n_block_cur->next;
-        }
-        else
-        {
-          n->block_head = statement(&tok, tok);
-          n_block_cur = n->block_head;
-        }
+
+        n_block_cur->next = statement(&tok, tok);        
+        if (!n->block_head)
+          n->block_head = n_block_cur->next;
+        n_block_cur = n_block_cur->next;
+        
       }
       leave_scope();
       *rest = tok;
@@ -1031,19 +1018,13 @@ Node *primary(Token **rest, Token *tok)
     {
       n = new_node(ND_BLOCK, NULL, NULL);
       enter_scope();
-      Node *n_block_cur;
+      Node *n_block_cur=calloc(1,sizeof(Node));
       while (!consume(&tok, tok, "}"))
       {
-        if (n->block_head)
-        {
-          n_block_cur->next = statement(&tok, tok);
-          n_block_cur = n_block_cur->next;
-        }
-        else
-        {
-          n->block_head = statement(&tok, tok);
-          n_block_cur = n->block_head;
-        }
+        n_block_cur->next = statement(&tok, tok);
+        if (!(n->block_head))
+          n->block_head = n_block_cur->next;
+        n_block_cur = n_block_cur->next;
       }
       leave_scope();
     }

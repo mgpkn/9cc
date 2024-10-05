@@ -1,43 +1,16 @@
 #include "test.h"
 
-int glob;
-//int sub;
 
-int sub()
+int sum_all_param(int p1, int p2, int p3, int p4, int p5, int p6)
 {
-    int x;
-    int y;
-    x=100;
-
-
-    return x;
+    return p1 + p2 + p3 + p4 + p5 + p6;
 }
 
 int main()
 {
     int x;
-    int y;
-    x=1;
-    glob=2;
+    x=3;
+    ASSERT(32, sum_all_param((x + 1) * x, 2, 3, 4, 5, 6));
 
-
-    while(x<10){
-        int i; //1
-        i=20;
-        ASSERT(20, i);                
-        x = x+1;
-    }
-
-    if(x>=10){
-        int i;//2
-        i=13;
-        ASSERT(13, i);        
-        x = x+1;
-    }
-
-
-    ASSERT(x, x);
-    ASSERT(2, glob);
-    ASSERT(100, sub());
     return 0;
 }
