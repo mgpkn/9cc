@@ -12,7 +12,7 @@ statement ::= (declaration_local|expr)? ";"
 		| "if" "(" expr ")" statement "else" statement
 		| "while" "(" expr ")"  statement
 		| "for" "(" (declaration_local|expr)? ";" expr? ";" expr? ";" ")"  statement
-declaration_local ::= core_type declarator ("," declarator)*
+declaration_local ::= base_type declarator ("=" expr )? ("," declarator("=" expr )? )*
 expr ::= assgin
 assign ::= equality ("=" assign )?
 equality ::= relational ("==" relational |"!=" relational )*

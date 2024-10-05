@@ -86,8 +86,8 @@ int main()
     x = (3 + 3) * 5;
     ASSERT(30, x);
 
-    x = (13 - 3) / 5;
     ASSERT(23, 11 + 3 * 4);
+
 
     ASSERT(1, 100 < 101);
     ASSERT(0, 100 < 100);
@@ -171,7 +171,12 @@ int main()
     ASSERT(50, aba(50));
     ASSERT(13, myadd(3, 10));
     
-    ASSERT(13, 13);
+    int xx=123*2;
+
+    ASSERT(246, xx);
+
+    char c_ini = 'A';
+    ASSERT(c_ini, 'A');
 
     ASSERT(0,({ 0; }));
     ASSERT(12,({ 0; 1; 2*6; }));    
@@ -180,6 +185,8 @@ int main()
     ASSERT(10,({ 1;5; }) + ({ 2; }) + ({ 3; }));
     //assert 1 'int main() { ({ 0; return 1; 2; }); return 3; }'
     ASSERT(18,({x; x = 3;18;}));
+    ASSERT(24,({x; x = 3;18+3*2;}));
+
     my_printf("##end##\n");
 
     return 0;

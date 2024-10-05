@@ -192,15 +192,11 @@ void add_varscope(Ident *var)
 // check if the variable is already declared
 Ident *find_var(Token *tok)
 {
-  Token *target, *dummy;
-  Type *decl = declarator(&dummy, tok, calloc(1, sizeof(Type)));
-  target = decl->ident_name_tok;
-
   for (Scope *sc = cur_scope; sc; sc = sc->next)
   {
     for (VarScope *vsc = sc->vars; vsc; vsc = vsc->next)
     {
-      if (equal(target->pos, vsc->var->name, target->len))
+      if (equal_token(tok, vsc->var->name))
         return vsc->var;
     }
   }
@@ -297,40 +293,6 @@ Node *new_node_str(Token **rest, Token *tok)
   return node;
 }
 
-// create lvar node
-Node *new_node_declare_lvar(Type *ty)
-{
-  Node *node = calloc(1, sizeof(Node));
-
-  // find indent if it's already declared.
-  if (find_var(ty->ident_name_tok))
-    error_at(ty->ident_name_tok->pos, "the variable is already declared.");
-
-  if (ty->ident_name_tok)
-  {
-    Ident *idt = calloc(1, sizeof(Ident));
-    idt->is_global = false;
-    idt->name_len = ty->ident_name_tok->len;
-    idt->name = strndup(ty->ident_name_tok->pos, sizeof(char) * idt->name_len);
-    idt->ty = ty;
-
-    idt->next = locals;
-    locals = idt;
-    idt->offset = calc_sizeof(idt->ty);
-
-    if (locals->next)
-      // accumulate local variable offset.
-      idt->offset = idt->offset + locals->next->offset;
-
-    add_varscope(idt);
-    node->kind = ND_LVAR;
-    node->ident_name = idt->name;
-    node->offset = idt->offset;
-    node->ty = idt->ty;
-  }
-  return node;
-}
-
 // create variable node
 Node *new_node_var(Token **rest, Token *tok)
 {
@@ -359,6 +321,34 @@ Node *new_node_var(Token **rest, Token *tok)
   }
   *rest = tok->next;
   return n;
+}
+
+// create lvar node
+Node *new_node_declare_lvar(Type *ty)
+{
+
+  // find indent if it's already declared.
+  if (find_var(ty->ident_name_tok))
+    error_at(ty->ident_name_tok->pos, "the variable is already declared.");
+
+  Ident *idt = calloc(1, sizeof(Ident));
+  idt->is_global = false;
+  idt->name_len = ty->ident_name_tok->len;
+  idt->name = strndup(ty->ident_name_tok->pos, sizeof(char) * idt->name_len);
+  idt->ty = ty;
+
+  idt->next = locals;
+  locals = idt;
+  idt->offset = calc_sizeof(idt->ty);
+
+  if (locals->next)
+    // accumulate local variable offset.
+    idt->offset = idt->offset + locals->next->offset;
+
+  add_varscope(idt);
+
+  return new_node_var(&(ty->ident_name_tok), ty->ident_name_tok);
+  ;
 }
 
 // create function node
@@ -534,7 +524,7 @@ Ident *declaration_function(Token **rest, Token *tok, Type *base_ty)
     cur_body->next = statement(&tok, tok);
     if (!head_body)
       head_body = cur_body->next;
-    cur_body = cur_body->next;      
+    cur_body = cur_body->next;
     init_nodetype(cur_body);
   }
   consume(&tok, tok, "}");
@@ -555,7 +545,7 @@ Type *declarator(Token **rest, Token *tok, Type *base_ty)
   // get prefix type
   ty_prefix = declarator_prefix(&tok, tok);
 
-  // get core ident.
+  // get ident name
   if (tok->kind != TK_IDENT)
     error_at(tok->pos, "it isn't ident.");
   tmp_ident_name_tok = tok;
@@ -651,7 +641,7 @@ statement ::= (declaration_local|expr)? ";"
 Node *statement(Token **rest, Token *tok)
 {
   Node *n;
-  Node *n_block_cur=calloc(1,sizeof(Node));
+  Node *n_block_cur = calloc(1, sizeof(Node));
 
   if (tok->kind == TK_KEYWORD)
   {
@@ -669,11 +659,10 @@ Node *statement(Token **rest, Token *tok)
       while (!consume(&tok, tok, "}"))
       {
 
-        n_block_cur->next = statement(&tok, tok);        
+        n_block_cur->next = statement(&tok, tok);
         if (!n->block_head)
           n->block_head = n_block_cur->next;
         n_block_cur = n_block_cur->next;
-        
       }
       leave_scope();
       *rest = tok;
@@ -778,18 +767,22 @@ Node *expr(Token **rest, Token *tok)
 }
 
 /*
-declaration_local ::= base_type declarator ("," declarator)*
+declaration_local ::= base_type declarator ("=" expr )? ("," declarator("=" expr )? )*
 */
 Node *declaration_local(Token **rest, Token *tok)
 {
 
-  Type *ty = base_type(&tok, tok);
-  ty = declarator(&tok, tok, ty);
+  Type *base_ty = base_type(&tok, tok);
+  Type *ty = declarator(&tok, tok, base_ty);
+
+  Node *n = new_node_declare_lvar(ty);
+  if (consume(&tok, tok, "="))
+    n = new_node(ND_ASSIGN, n, expr(&tok, tok));
 
   // todo declaration multi declaration
 
   *rest = tok;
-  return new_node_declare_lvar(ty);
+  return n;
 }
 
 // assign ::= equality ("=" assign )?
@@ -1018,7 +1011,7 @@ Node *primary(Token **rest, Token *tok)
     {
       n = new_node(ND_BLOCK, NULL, NULL);
       enter_scope();
-      Node *n_block_cur=calloc(1,sizeof(Node));
+      Node *n_block_cur = calloc(1, sizeof(Node));
       while (!consume(&tok, tok, "}"))
       {
         n_block_cur->next = statement(&tok, tok);
