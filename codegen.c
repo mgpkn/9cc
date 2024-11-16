@@ -52,7 +52,7 @@ void gennode_addr(Node *cur_node)
     printf("  lea rax,%s[rip]\n", cur_node->ident_name);
     return;
   case ND_DEREF:
-    gennode_stmt(cur_node->lhs);
+    gennode_expr(cur_node->lhs);
     return;
   default:
     break;
@@ -74,7 +74,7 @@ void gennode_expr(Node *cur_node)
     return;
   case ND_FUNC:
     for (argn = 0; cur_node->func_arg[argn]; argn++){
-      gennode_stmt(cur_node->func_arg[argn]);
+      gennode_expr(cur_node->func_arg[argn]);
       push();
     }
     for (argn--; argn >= 0; argn--)
@@ -92,11 +92,11 @@ void gennode_expr(Node *cur_node)
     gennode_addr(cur_node->lhs);
     return;
   case ND_DEREF:
-    gennode_stmt(cur_node->lhs);
+    gennode_expr(cur_node->lhs);
     load_val(cur_node->ty);
     return;
   case ND_ASSIGN:
-    gennode_stmt(cur_node->rhs);    
+    gennode_expr(cur_node->rhs);    
     push();
     gennode_addr(cur_node->lhs);
     pop("rdi");
@@ -113,6 +113,10 @@ void gennode_expr(Node *cur_node)
       printf("  mov [rax],rdi\n");
       break;
     }
+    return;
+  case ND_COMMA:
+    gennode_expr(cur_node->lhs);
+    gennode_expr(cur_node->rhs);
     return;
   default:
     break;
@@ -167,7 +171,6 @@ void gennode_expr(Node *cur_node)
   default:
     break;
   }
-  //push();
 }
 
 void gennode_stmt(Node *cur_node)
@@ -181,7 +184,6 @@ void gennode_stmt(Node *cur_node)
   {
   case ND_RETURN:
     gennode_stmt(cur_node->lhs);
-    //pop("rax");
     printf("  mov rsp, rbp\n");
     pop("rbp");
     printf("  ret\n");

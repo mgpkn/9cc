@@ -171,6 +171,7 @@ int main()
     ASSERT(50, aba(50));
     ASSERT(13, myadd(3, 10));
     
+    //declare and initialize 
     int xx=123*2;
 
     ASSERT(246, xx);
@@ -183,9 +184,15 @@ int main()
     ASSERT(18,({ x; x = 3; x*6;}));
     ASSERT(6,({ 1; }) + ({ 2; }) + ({ 3; }));        
     ASSERT(10,({ 1;5; }) + ({ 2; }) + ({ 3; }));
-    //assert 1 'int main() { ({ 0; return 1; 2; }); return 3; }'
+    //assert 1 'int main() { ({ 0; return 1; 2; }); return 3; }' //todo
     ASSERT(18,({x; x = 3;18;}));
     ASSERT(24,({x; x = 3;18+3*2;}));
+
+    ASSERT(24,({x; x = 3;18+3*2;}));    
+
+    //comma oparator
+    x=(3,10,305);
+    ASSERT(305,x);    
 
     my_printf("##end##\n");
 

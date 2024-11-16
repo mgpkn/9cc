@@ -13,7 +13,7 @@ statement ::= (declaration_local|expr)? ";"
 		| "while" "(" expr ")"  statement
 		| "for" "(" (declaration_local|expr)? ";" expr? ";" expr? ";" ")"  statement
 declaration_local ::= base_type declarator ("=" expr )? ("," declarator("=" expr )? )*
-expr ::= assgin
+expr ::= assgin ("," expr )?
 assign ::= equality ("=" assign )?
 equality ::= relational ("==" relational |"!=" relational )*
 relational ::= add (">" add | "<" add | ">=" add | "<=" add)*
@@ -24,6 +24,6 @@ unary ::= ("+"|"-"|"&"|"*"|"sizeof") unary
 postfix ::= primary ("[" & expr & "]")*	
 primary ::= "(" "{" statement+ "}" ")"
     |"(" expr ")"
-    |ident("(" expr? ("," expr)? ")")?
+    |ident ("(" assign? ("," assign)* ")")?
     |num|char|str
 ```

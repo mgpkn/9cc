@@ -111,6 +111,9 @@ void init_nodetype(Node *n)
     case ND_DEREF:
         n->ty = n->lhs->ty->ptr_to;
         return;
+    case ND_COMMA:
+        n->ty = n->rhs->ty;;
+        return;
     default:
         return;
     }

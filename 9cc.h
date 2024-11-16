@@ -49,6 +49,7 @@ typedef enum {
   ND_LLESSEQ,// <=
   ND_ASSIGN,//=
   ND_RETURN,  //return  
+  ND_COMMA,  //,
   ND_IF,  //if
   ND_WHILE, //while
   ND_FOR,  //for

@@ -373,7 +373,7 @@ Node *new_node_function(Token **rest, Token *tok)
     if (i >= FUNC_ARG_NUM)
       error("function aguments limit is %d", FUNC_ARG_NUM);
 
-    node->func_arg[i] = expr(&tok, tok);
+    node->func_arg[i] = assign(&tok, tok);
     if (!consume(&tok, tok, ","))
       break;
     i++;
@@ -758,10 +758,15 @@ Node *statement(Token **rest, Token *tok)
   return n;
 }
 
-// expr ::= assgin
+//expr ::= assgin ("," expr )?
 Node *expr(Token **rest, Token *tok)
 {
   Node *n = assign(&tok, tok);
+
+  if(consume(&tok,tok,",")){
+    n = new_node(ND_COMMA,n,expr(&tok,tok));
+  }
+
   *rest = tok;
   return n;
 }
@@ -998,7 +1003,7 @@ Node *postfix(Token **rest, Token *tok)
 /*
 primary ::= "(" "{" statement+ "}" ")"
     |"(" expr ")"
-    |ident("(" expr? ("," expr)? ")")?
+    |ident ("(" assign? ("," assign)* ")")?
     |num|char|str
 */
 Node *primary(Token **rest, Token *tok)
