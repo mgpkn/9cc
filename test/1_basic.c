@@ -152,6 +152,9 @@ int main()
     ASSERT(8, sizeof(&x));
     ASSERT(40, sizeof(arr));
     ASSERT(4, sizeof(arr[1]));
+    ASSERT(1, sizeof('a'));    
+    //ASSERT(4, sizeof("abc"));  //todo
+    //ASSERT(1, sizeof("abc"[0]));  //todo
 
     arr[0]=13;
     arr[1]=22;    

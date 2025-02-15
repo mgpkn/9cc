@@ -183,7 +183,7 @@ Token *tokenize(char *p)
         *p == '(' || *p == ')' || *p == '[' || *p == ']' ||
         *p == '{' || *p == '}' || *p == '&' ||
         *p == '<' || *p == '>' || *p == '=' ||
-        *p == ';' || *p == ',')
+        *p == ';' || *p == ',' || *p == '.')
     {
       cur = new_token(TK_KEYWORD, cur, p, 1);
       p += estamate_len;

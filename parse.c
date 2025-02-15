@@ -23,6 +23,7 @@ Ident *global(Token **rest, Token *tok);
 Ident *declaration_global_var(Token **rest, Token *tok, Type *base_ty);
 Ident *declaration_function(Token **rest, Token *tok, Type *base_ty);
 Type *declarator(Token **rest, Token *tok, Type *base_ty);
+Type *declarator_struct(Token **rest, Token *tok, Type *base_ty);
 Type *declarator_prefix(Token **rest, Token *tok);
 Type *declarator_suffix(Token **rest, Token *tok);
 Node *statement(Token **rest, Token *tok);
@@ -90,36 +91,46 @@ void error_at(char *loc, char *msg, ...)
   exit(1);
 }
 
-bool equal(char *tar_str, char *op_str, int tar_len)
+bool equal(Token *tok, char *op_str)
 {
-  return (strncmp(tar_str, op_str, tar_len) == 0 && op_str[tar_len] == '\0');
+  return (strncmp(tok->pos, op_str, tok->len) == 0 && op_str[tok->len] == '\0');
 }
 
-bool equal_token(Token *tok, char *op)
+bool equal_token(Token *tok1, Token *tok2)
 {
-  return equal(tok->pos, op, tok->len);
+  if(tok1->len == tok2->len)
+    return (strncmp(tok1->pos, tok2->pos, tok1->len) == 0);
+  return false;
 }
 
 bool is_base_type_token(Token *tok)
 {
-  if (equal_token(tok, "int"))
+  if (equal(tok, "int"))
     return true;
-  if (equal_token(tok, "char"))
+  if (equal(tok, "char"))
+    return true;
+
+  if (equal(tok, "struct"))
     return true;
 
   return false;
 }
 
+// base_type = "int"|"char"|"struct"
 Type *base_type(Token **rest, Token *tok)
 {
 
   Type *ty = calloc(1, sizeof(Type));
   ty->kind = -1;
 
-  if (equal_token(tok, "int"))
+  if (equal(tok, "int"))
     ty->kind = TY_INT;
-  if (equal_token(tok, "char"))
+  if (equal(tok, "char"))
     ty->kind = TY_CHAR;
+
+  // struct
+  if (equal(tok, "struct"))
+    ty->kind = TY_STRUCT;
 
   if (ty->kind == -1)
     error_at(tok->pos, "undefined type name;");
@@ -196,7 +207,7 @@ Ident *find_var(Token *tok)
   {
     for (VarScope *vsc = sc->vars; vsc; vsc = vsc->next)
     {
-      if (equal_token(tok, vsc->var->name))
+      if (equal(tok, vsc->var->name))
         return vsc->var;
     }
   }
@@ -232,6 +243,7 @@ static Ident *declaration_str(Token *tok)
   ty->kind = TY_ARRAY;
   ty->ptr_to = ty_char;
   ty->array_size = tok->len;
+  ty->total_size = calc_sizeof(ty);
 
   Ident *idt = calloc(1, sizeof(Ident));
   idt->is_global = true;
@@ -271,7 +283,6 @@ Node *new_node_char(Token **rest, Token *tok, int val)
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_CHAR;
   node->val = val;
-  init_nodetype(node);
 
   tok = tok->next;
   *rest = tok;
@@ -339,7 +350,7 @@ Node *new_node_declare_lvar(Type *ty)
 
   idt->next = locals;
   locals = idt;
-  idt->offset = calc_sizeof(idt->ty);
+  idt->offset = idt->ty->total_size;
 
   if (locals->next)
     // accumulate local variable offset.
@@ -499,7 +510,7 @@ Ident *declaration_function(Token **rest, Token *tok, Type *base_ty)
   // agument
   while (true)
   {
-    if (equal_token(tok, ")"))
+    if (equal(tok, ")"))
       break;
 
     cur_arg->next = declaration_local(&tok, tok);
@@ -518,7 +529,7 @@ Ident *declaration_function(Token **rest, Token *tok, Type *base_ty)
   expect(&tok, tok, "{");
   while (true)
   {
-    if (equal_token(tok, "}"))
+    if (equal(tok, "}"))
       break;
 
     cur_body->next = statement(&tok, tok);
@@ -535,15 +546,17 @@ Ident *declaration_function(Token **rest, Token *tok, Type *base_ty)
   return idt;
 }
 
-// declarator ::= declarator_prefix ident declarator_suffix
+// declarator ::= declarator_struct? declarator_prefix ident declarator_suffix
 Type *declarator(Token **rest, Token *tok, Type *base_ty)
 {
+  //perse strcut type
+  base_ty = declarator_struct(&tok, tok, base_ty);
 
-  Type *ty_prefix, *ty_suffix, *tmp_ty;
+  Type *head_ty = base_ty, *prefix_ty, *suffix_ty, *tmp_ty;
   Token *tmp_ident_name_tok;
 
   // get prefix type
-  ty_prefix = declarator_prefix(&tok, tok);
+  prefix_ty = declarator_prefix(&tok, tok);
 
   // get ident name
   if (tok->kind != TK_IDENT)
@@ -552,45 +565,75 @@ Type *declarator(Token **rest, Token *tok, Type *base_ty)
   tok = tok->next;
 
   // get suffix type
-  ty_suffix = declarator_suffix(&tok, tok);
+  suffix_ty = declarator_suffix(&tok, tok);
 
   // join prefix
-  tmp_ty = NULL;
-  tmp_ty = ty_prefix;
-  while (tmp_ty)
+  if (prefix_ty)
   {
-    if (tmp_ty->ptr_to)
-    {
-      tmp_ty = tmp_ty->ptr_to;
-    }
-    else
-    {
-      tmp_ty->ptr_to = base_ty;
-      base_ty = ty_prefix;
-      break;
-    }
+    for (tmp_ty = prefix_ty; tmp_ty->ptr_to; tmp_ty = tmp_ty->ptr_to);
+    tmp_ty->ptr_to = head_ty;
+    head_ty = prefix_ty;
   }
 
   // join suffix
-  tmp_ty = NULL;
-  tmp_ty = ty_suffix;
-  while (tmp_ty)
+  if (suffix_ty)
   {
-    if (tmp_ty->ptr_to)
-    {
-      tmp_ty = tmp_ty->ptr_to;
-    }
-    else
-    {
-      tmp_ty->ptr_to = base_ty;
-      base_ty = ty_suffix;
-      break;
-    }
+    for (tmp_ty = suffix_ty; tmp_ty->ptr_to; tmp_ty = tmp_ty->ptr_to);
+    tmp_ty->ptr_to = head_ty;
+    head_ty = suffix_ty;
   }
 
-  base_ty->ident_name_tok = tmp_ident_name_tok;
+  for (tmp_ty = head_ty; tmp_ty; tmp_ty = tmp_ty->ptr_to)
+  {
+    tmp_ty->total_size = calc_sizeof(tmp_ty);
+  }
+
+  // set indent name token;
+  head_ty->ident_name_tok = tmp_ident_name_tok;
+
   *rest = tok;
-  return base_ty;
+  return head_ty;
+}
+
+// declarator_struct ::= "{" ( base_type declarator ";")* "}"
+Type *declarator_struct(Token **rest, Token *tok, Type *parent_ty)
+{
+
+  if (parent_ty->kind != TY_STRUCT)
+    return parent_ty;
+
+  Member *head_mem=NULL, *tmp_mem= calloc(1, sizeof(Member));
+  int total_offset=0;
+
+  // create members defs
+  expect(&tok, tok, "{");
+  while (true)
+  {
+    if (equal(tok, "}"))
+      break;
+
+    tmp_mem->next = calloc(1, sizeof(Member));
+
+    Type *mem_ty = base_type(&tok, tok);
+    mem_ty = declarator(&tok, tok, mem_ty);
+
+    tmp_mem->next->ty = mem_ty;
+    tmp_mem->next->name = mem_ty->ident_name_tok;
+    tmp_mem->next->offset = total_offset;
+    total_offset += mem_ty->total_size;
+
+    expect(&tok, tok, ";");
+    if (head_mem == NULL)
+      head_mem = tmp_mem->next;
+    tmp_mem = tmp_mem->next;
+  }
+  consume(&tok, tok, "}");
+
+  parent_ty->members = head_mem;
+  parent_ty->total_size = total_offset;
+
+  *rest = tok;
+  return parent_ty;
 }
 
 // declarator_prefix := ("*" declarator_prefix)?
@@ -668,12 +711,12 @@ Node *statement(Token **rest, Token *tok)
       *rest = tok;
       return n;
     }
-    else if (equal_token(tok, "return"))
+    else if (equal(tok, "return"))
     {
       tok = tok->next;
       n = new_node(ND_RETURN, expr(&tok, tok), NULL);
     }
-    else if (equal_token(tok, "if"))
+    else if (equal(tok, "if"))
     {
 
       tok = tok->next;
@@ -688,7 +731,7 @@ Node *statement(Token **rest, Token *tok)
       n->then = statement(&tok, tok);
 
       // else
-      if (equal_token(tok, "else"))
+      if (equal(tok, "else"))
       {
         tok = tok->next;
         n->els = statement(&tok, tok);
@@ -697,7 +740,7 @@ Node *statement(Token **rest, Token *tok)
       *rest = tok;
       return n;
     }
-    else if (equal_token(tok, "while"))
+    else if (equal(tok, "while"))
     {
       tok = tok->next;
 
@@ -714,7 +757,7 @@ Node *statement(Token **rest, Token *tok)
       *rest = tok;
       return n;
     }
-    else if (equal_token(tok, "for"))
+    else if (equal(tok, "for"))
     {
 
       tok = tok->next;
@@ -725,15 +768,15 @@ Node *statement(Token **rest, Token *tok)
       if (consume(&tok, tok, "("))
       {
         // init
-        if (!equal_token(tok, ";"))
+        if (!equal(tok, ";"))
           n->init = expr(&tok, tok);
         expect(&tok, tok, ";");
         // condition
-        if (!equal_token(tok, ";"))
+        if (!equal(tok, ";"))
           n->cond = expr(&tok, tok);
         expect(&tok, tok, ";");
         // incriment
-        if (!equal_token(tok, ")"))
+        if (!equal(tok, ")"))
           n->inc = expr(&tok, tok);
         expect(&tok, tok, ")");
       }
@@ -758,22 +801,21 @@ Node *statement(Token **rest, Token *tok)
   return n;
 }
 
-//expr ::= assgin ("," expr )?
+// expr ::= assgin ("," expr )?
 Node *expr(Token **rest, Token *tok)
 {
   Node *n = assign(&tok, tok);
 
-  if(consume(&tok,tok,",")){
-    n = new_node(ND_COMMA,n,expr(&tok,tok));
+  if (consume(&tok, tok, ","))
+  {
+    n = new_node(ND_COMMA, n, expr(&tok, tok));
   }
 
   *rest = tok;
   return n;
 }
 
-/*
-declaration_local ::= base_type declarator ("=" expr )? ("," declarator("=" expr )? )*
-*/
+// declaration_local ::= base_type declarator ("=" expr )? ("," declarator("=" expr )? )*
 Node *declaration_local(Token **rest, Token *tok)
 {
 
@@ -893,7 +935,7 @@ Node *extra_add(Node *lhs, Node *rhs, Token *tok_dummy)
 
   if (is_ptr_node(lhs) && !is_ptr_node(rhs))
   {
-    Node *n = new_node(ND_MUL, rhs, new_node_num(calc_sizeof(lhs->ty->ptr_to)));
+    Node *n = new_node(ND_MUL, rhs, new_node_num(get_type_size(lhs->ty->ptr_to)));
     return new_node(ND_ADD, lhs, n);
   }
 
@@ -914,11 +956,11 @@ Node *extra_sub(Node *lhs, Node *rhs, Token *tok_dummy)
 
   // pointer - num (=num + pointer)の場合はオフセットの計算
   if (is_ptr_node(lhs) && !is_ptr_node(rhs))
-    return new_node(ND_SUB, lhs, new_node(ND_MUL, rhs, new_node_num(calc_sizeof(rhs->ty))));
+    return new_node(ND_SUB, lhs, new_node(ND_MUL, rhs, new_node_num(get_type_size(rhs->ty))));
 
   // pointer - pointerはアドレスの差
   if (is_ptr_node(lhs) && is_ptr_node(rhs))
-    return new_node(ND_DIV, new_node(ND_SUB, lhs, rhs), new_node_num(calc_sizeof(lhs->ty->ptr_to)));
+    return new_node(ND_DIV, new_node(ND_SUB, lhs, rhs), new_node_num(get_type_size(lhs->ty->ptr_to)));
 
   error("invalid types subtraction");
   return NULL;
@@ -966,7 +1008,7 @@ Node *unary(Token **rest, Token *tok)
   {
     n = unary(&tok, tok);
     init_nodetype(n);
-    n = new_node_num(calc_sizeof(n->ty));
+    n = new_node_num(n->ty->total_size);
   }
   else
     n = postfix(&tok, tok);
@@ -975,16 +1017,49 @@ Node *unary(Token **rest, Token *tok)
   return n;
 }
 
+
+Node *new_node_member(Node *lhs,Token **rest,Token *tok){
+
+  if (lhs->ty->kind != TY_STRUCT)
+    error("it's not struct type");
+
+  if (tok->kind != TK_IDENT)
+    error("token must be member ident");
+
+  Member *mem_target;
+  for(Member *mem_tmp = lhs->ty->members;mem_tmp;mem_tmp = mem_tmp->next){
+      if(equal_token(tok,mem_tmp->name)){
+        mem_target = mem_tmp;
+        break;
+      }
+  }
+  if(!mem_target)
+    error("not find such a member name");
+
+  Node *n = calloc(1,sizeof(Node));
+  n->kind = ND_MEMBER;
+  n->lhs = lhs;
+  n->ty = mem_target->ty;
+  n->offset = mem_target->offset;
+
+  tok = tok->next;
+
+  *rest = tok;
+  return n;
+}
+
 /*
-postfix ::= primary ("[" & expr & "]")*
+postfix ::= primary ("[" & expr & "]" | "." ident)*
 */
 Node *postfix(Token **rest, Token *tok)
 {
   Node *n, *idx;
   n = primary(&tok, tok);
 
-  for (;;)
+  while (true)
   {
+
+    // array parse
     // a[b] = *(a+(b*ty_size))
     if (consume(&tok, tok, "["))
     {
@@ -993,8 +1068,17 @@ Node *postfix(Token **rest, Token *tok)
       n = new_node(ND_DEREF, idx, NULL);
       continue;
     }
+
+    // struct_member
+    if (consume(&tok, tok, "."))
+    {
+      n = new_node_member(n,&tok,tok);
+    }
+
     break;
   }
+
+
 
   *rest = tok;
   return n;
@@ -1038,7 +1122,7 @@ Node *primary(Token **rest, Token *tok)
   if (tok->kind == TK_IDENT)
   {
     // todo:()の有無ではなくident listから今後は変数判定するように変更。
-    if (equal_token(tok->next, "("))
+    if (equal(tok->next, "("))
       n = new_node_function(&tok, tok);
     else
       n = new_node_var(&tok, tok);

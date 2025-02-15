@@ -14,39 +14,45 @@ bool is_ptr_node(Node *n)
     return false;
 }
 
-
 int get_type_size(Type *ty)
 {
 
-    if (ty->kind == TY_ARRAY)
+    switch (ty->kind){
+    case TY_PTR:
         return 8;
-    if (ty->kind == TY_PTR)
-        return 8;
-    if (ty->kind == TY_INT)
+    case TY_INT:
         return 4;
-    if (ty->kind == TY_CHAR)
+    case TY_CHAR:
         return 1;
-
-    error_at(NULL, "invalid data type.");
-    return 0;
+    case TY_STRUCT:
+        return ty->total_size;
+    default:
+        error("invalid data type.");
+    }
+    return -1;
 }
-
 
 int calc_sizeof(Type *ty)
 {
 
-    if (ty->kind == TY_ARRAY)
+    switch (ty->kind)
+    {
+    case TY_ARRAY:
         return ty->array_size * calc_sizeof(ty->ptr_to);
-    if (ty->kind == TY_PTR)
-        return 8;
-    if (ty->kind == TY_INT)
-        return 4;
-    if (ty->kind == TY_CHAR)
-        return 1;
+    case TY_STRUCT:
+        return ty->total_size;
+    case TY_PTR:
+    case TY_INT:    
+    case TY_CHAR:    
+        return get_type_size(ty);
+    default:
+        error("invalid data type.");
+    }
 
-    error_at(NULL, "invalid data type.");
-    return 0;
+    return -1;
 }
+
+
 
 // 各ノードの論理的な型を設定
 void init_nodetype(Node *n)
@@ -68,7 +74,8 @@ void init_nodetype(Node *n)
     for (Node *block_n = n->block_head; block_n; block_n = block_n->next)
     {
         init_nodetype(block_n);
-        if(!block_n->next){
+        if (!block_n->next)
+        {
             t = block_n->ty;
             n->ty = t;
             return;
@@ -97,14 +104,17 @@ void init_nodetype(Node *n)
     case ND_FUNC:
     case ND_NUM:
         t->kind = TY_INT;
+        t->total_size = calc_sizeof(t);
         n->ty = t;
         return;
     case ND_CHAR:
         t->kind = TY_CHAR;
+        t->total_size = calc_sizeof(t);
         n->ty = t;
         return;
     case ND_ADDR:
         t->kind = TY_PTR;
+        t->total_size = calc_sizeof(t);
         t->ptr_to = n->lhs->ty;
         n->ty = t;
         return;
@@ -112,7 +122,8 @@ void init_nodetype(Node *n)
         n->ty = n->lhs->ty->ptr_to;
         return;
     case ND_COMMA:
-        n->ty = n->rhs->ty;;
+        n->ty = n->rhs->ty;
+        ;
         return;
     default:
         return;

@@ -7,6 +7,7 @@ static char *argreg8[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
 
 int stack_depth;
 
+void gennode_expr(Node *cur_node);
 void gennode_stmt(Node *cur_node);
 
 void push()
@@ -54,6 +55,10 @@ void gennode_addr(Node *cur_node)
   case ND_DEREF:
     gennode_expr(cur_node->lhs);
     return;
+  case ND_MEMBER:  
+    gennode_addr(cur_node->lhs);
+    printf("  add rax, %d\n",cur_node->offset);
+    return;
   default:
     break;
   }
@@ -64,7 +69,7 @@ void gennode_addr(Node *cur_node)
 void gennode_expr(Node *cur_node)
 {
 
-  int argn = 0;
+  int argn = 0; //for ND_FUNC
 
   switch (cur_node->kind)
   {
@@ -82,6 +87,7 @@ void gennode_expr(Node *cur_node)
 
     printf("  call %s\n", cur_node->ident_name);
     return;
+  case ND_MEMBER:    
   case ND_LVAR:
   case ND_GVAR:
   case ND_STR:
@@ -286,11 +292,9 @@ void codegen_func(Ident *func)
 
   // 関数の本文を記述。
   cur_code = func->body;
-  while (cur_code)
-  {
+  for (Node *cur_code=func->body;cur_code;cur_code = cur_code->next)
     gennode_stmt(cur_code);
-    cur_code = cur_code->next;
-  }
+
 }
 
 void codegen(Ident *prog_list)
@@ -318,13 +322,13 @@ void codegen(Ident *prog_list)
         printf("  .byte %d\n", cur_prog->str[i]);
     }
     else
-      printf("  .zero %d\n", calc_sizeof(cur_prog->ty));
+      printf("  .zero %d\n", cur_prog->ty->total_size);
 
     cur_prog = cur_prog->next;
   }
   printf("\n");
 
-  // define functions
+  // gen globals
   printf(".section .text\n");
   printf("  .global ");
   cur_prog = prog_list;

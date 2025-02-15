@@ -6,7 +6,7 @@
 #include <string.h>
 
 #define BASE_OFFSETSIZE 8
-#define BASE_ALIGNMENTSIZE 16
+#define BASE_ALIGNMENTSIZE 8
 #define FUNC_ARG_NUM 6
 
 //CallError
@@ -56,6 +56,7 @@ typedef enum {
   ND_BLOCK,//{}
   ND_ADDR, //&（address）
   ND_DEREF, //*（dereferencer）
+  ND_MEMBER, //struct member(.)
   ND_LVAR,//local var
   ND_GVAR,//global var
   ND_FUNC,//function  
@@ -64,20 +65,31 @@ typedef enum {
   ND_CHAR //char value     
 } NodeKind;
 
-
-//データ型
+//struct members def
 typedef struct Type Type;
+typedef struct Member Member;
+struct Member{
+  Member *next;
+  Type *ty;
+  Token *name;
+  int offset;
+};
+
+
 struct Type {
   int kind;
   Type *ptr_to;
   size_t array_size;
+  int total_size;
   Token *ident_name_tok;
+  Member *members;//struct member
+
 };
 
-//データ型定義
 enum TypeKind{
   TY_PTR,
   TY_ARRAY,
+  TY_STRUCT,
   TY_INT,
   TY_CHAR
 };
