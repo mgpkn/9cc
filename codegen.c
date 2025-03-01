@@ -261,12 +261,12 @@ void codegen_func(Ident *func)
   int i = 0;
   while (true)
   {
-    if (total_offset <= i * BASE_ALIGNMENTSIZE)
+    if (total_offset <= i * BASE_ALIGN_SIZE)
       break;
     i++;
   }
 
-  printf("  sub rsp, %d\n", i * BASE_ALIGNMENTSIZE);
+  printf("  sub rsp, %d\n", i * BASE_ALIGN_SIZE);
 
   // 引数をレジスタからロード。
   cur_arg = func->arg;

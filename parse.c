@@ -504,8 +504,11 @@ Ident *declaration_function(Token **rest, Token *tok, Type *base_ty)
 
   expect(&tok, tok, "(");
 
-  Node *head_arg = NULL, *cur_arg = calloc(1, sizeof(Node));
-  Node *head_body = NULL, *cur_body = calloc(1, sizeof(Node));
+  Node head_arg, *cur_arg;
+  head_arg.next=NULL;cur_arg = &head_arg;
+
+  Node head_body, *cur_body;
+  head_body.next=NULL;cur_body = &head_body;
 
   // agument
   while (true)
@@ -514,16 +517,14 @@ Ident *declaration_function(Token **rest, Token *tok, Type *base_ty)
       break;
 
     cur_arg->next = declaration_local(&tok, tok);
-    if (!head_arg)
-      head_arg = cur_arg->next;
     cur_arg = cur_arg->next;
-
     init_nodetype(cur_arg);
+
     if (!consume(&tok, tok, ","))
       break;
   }
   consume(&tok, tok, ")");
-  idt->arg = head_arg;
+  idt->arg = head_arg.next;
 
   // body
   expect(&tok, tok, "{");
@@ -533,13 +534,11 @@ Ident *declaration_function(Token **rest, Token *tok, Type *base_ty)
       break;
 
     cur_body->next = statement(&tok, tok);
-    if (!head_body)
-      head_body = cur_body->next;
     cur_body = cur_body->next;
     init_nodetype(cur_body);
   }
   consume(&tok, tok, "}");
-  idt->body = head_body;
+  idt->body = head_body.next;
 
   leave_scope();
   *rest = tok;
@@ -602,8 +601,10 @@ Type *declarator_struct(Token **rest, Token *tok, Type *parent_ty)
   if (parent_ty->kind != TY_STRUCT)
     return parent_ty;
 
-  Member *head_mem=NULL, *tmp_mem= calloc(1, sizeof(Member));
+  Member head_mem, *tmp_mem;
   int total_offset=0;
+  head_mem.next = NULL;
+  tmp_mem = &head_mem;
 
   // create members defs
   expect(&tok, tok, "{");
@@ -623,13 +624,11 @@ Type *declarator_struct(Token **rest, Token *tok, Type *parent_ty)
     total_offset += mem_ty->total_size;
 
     expect(&tok, tok, ";");
-    if (head_mem == NULL)
-      head_mem = tmp_mem->next;
     tmp_mem = tmp_mem->next;
   }
   consume(&tok, tok, "}");
 
-  parent_ty->members = head_mem;
+  parent_ty->members = head_mem.next;
   parent_ty->total_size = total_offset;
 
   *rest = tok;

@@ -5,8 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define BASE_OFFSETSIZE 8
-#define BASE_ALIGNMENTSIZE 8
+//#define BASE_OFFSETSIZE 8
+#define BASE_ALIGN_SIZE 8
 #define FUNC_ARG_NUM 6
 
 //CallError
