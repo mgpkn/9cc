@@ -55,9 +55,9 @@ void gennode_addr(Node *cur_node)
   case ND_DEREF:
     gennode_expr(cur_node->lhs);
     return;
-  case ND_MEMBER:  
+  case ND_MEMBER:
     gennode_addr(cur_node->lhs);
-    printf("  add rax, %d\n",cur_node->offset);
+    printf("  add rax, %d\n", cur_node->offset);
     return;
   default:
     break;
@@ -69,7 +69,7 @@ void gennode_addr(Node *cur_node)
 void gennode_expr(Node *cur_node)
 {
 
-  int argn = 0; //for ND_FUNC
+  int argn = 0; // for ND_FUNC
 
   switch (cur_node->kind)
   {
@@ -78,7 +78,8 @@ void gennode_expr(Node *cur_node)
     printf("  mov rax,%d\n", cur_node->val);
     return;
   case ND_FUNC:
-    for (argn = 0; cur_node->func_arg[argn]; argn++){
+    for (argn = 0; cur_node->func_arg[argn]; argn++)
+    {
       gennode_expr(cur_node->func_arg[argn]);
       push();
     }
@@ -87,7 +88,7 @@ void gennode_expr(Node *cur_node)
 
     printf("  call %s\n", cur_node->ident_name);
     return;
-  case ND_MEMBER:    
+  case ND_MEMBER:
   case ND_LVAR:
   case ND_GVAR:
   case ND_STR:
@@ -102,7 +103,7 @@ void gennode_expr(Node *cur_node)
     load_val(cur_node->ty);
     return;
   case ND_ASSIGN:
-    gennode_expr(cur_node->rhs);    
+    gennode_expr(cur_node->rhs);
     push();
     gennode_addr(cur_node->lhs);
     pop("rdi");
@@ -129,7 +130,7 @@ void gennode_expr(Node *cur_node)
   }
 
   // compare left-right node
-  gennode_stmt(cur_node->rhs);  
+  gennode_stmt(cur_node->rhs);
   push();
   gennode_stmt(cur_node->lhs);
   pop("rdi");
@@ -255,9 +256,9 @@ void codegen_func(Ident *func)
   printf("  push rbp\n");
   printf("  mov rbp, rsp\n");
   total_offset = 0;
-  if(func->locals)
+  if (func->locals)
     total_offset = func->locals->offset;
-    
+
   int i = 0;
   while (true)
   {
@@ -292,9 +293,8 @@ void codegen_func(Ident *func)
 
   // 関数の本文を記述。
   cur_code = func->body;
-  for (Node *cur_code=func->body;cur_code;cur_code = cur_code->next)
+  for (Node *cur_code = func->body; cur_code; cur_code = cur_code->next)
     gennode_stmt(cur_code);
-
 }
 
 void codegen(Ident *prog_list)

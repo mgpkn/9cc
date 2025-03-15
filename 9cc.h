@@ -5,87 +5,92 @@
 #include <stdlib.h>
 #include <string.h>
 
-//#define BASE_OFFSETSIZE 8
+// #define BASE_OFFSETSIZE 8
 #define BASE_ALIGN_SIZE 8
 #define FUNC_ARG_NUM 6
 
-//CallError
+// CallError
 void error(char *fmt, ...);
 void error_at(char *loc, char *fmt, ...);
 
 // トークンの種類
-typedef enum {
-  TK_KEYWORD, //any syntax word(if,while etc..)
-  TK_IDENT,  //ident,function name
-  TK_NUM,      //digit value 
-  TK_CHAR,      //char    
-  TK_STR,      //string  
+typedef enum
+{
+  TK_KEYWORD, // any syntax word(if,while etc..)
+  TK_IDENT,   // ident,function name
+  TK_NUM,     // digit value
+  TK_CHAR,    // char
+  TK_STR,     // string
   TK_EOF
 } TokenKind;
 
 typedef struct Token Token;
 
-struct Token {
+struct Token
+{
   TokenKind kind;
   Token *next;
-  int val; //numeric value 
-  char *str; //string value
-  int len; //token length
-  char *pos; //token word position(string) 
+  int val;   // numeric value
+  char *str; // string value
+  int len;   // token length
+  char *pos; // token word position(string)
 };
 
 Token *tokenize(char *p);
 
-//Node
-typedef enum {
-  ND_ADD, // +
-  ND_SUB, // -
-  ND_MUL, // *
-  ND_DIV, // /
-  ND_MOD, // %
-  ND_EQ, // ==
-  ND_NOTEQ, // !=
-  ND_LLESS,// <
-  ND_LLESSEQ,// <=
-  ND_ASSIGN,//=
-  ND_RETURN,  //return  
-  ND_COMMA,  //,
-  ND_IF,  //if
-  ND_WHILE, //while
-  ND_FOR,  //for
-  ND_BLOCK,//{}
-  ND_ADDR, //&（address）
-  ND_DEREF, //*（dereferencer）
-  ND_MEMBER, //struct member(.)
-  ND_LVAR,//local var
-  ND_GVAR,//global var
-  ND_FUNC,//function  
-  ND_NUM, //num value 
-  ND_STR, //string value   
-  ND_CHAR //char value     
+// Node
+typedef enum
+{
+  ND_ADD,     // +
+  ND_SUB,     // -
+  ND_MUL,     // *
+  ND_DIV,     // /
+  ND_MOD,     // %
+  ND_EQ,      // ==
+  ND_NOTEQ,   // !=
+  ND_LLESS,   // <
+  ND_LLESSEQ, // <=
+  ND_ASSIGN,  //=
+  ND_RETURN,  // return
+  ND_COMMA,   //,
+  ND_IF,      // if
+  ND_WHILE,   // while
+  ND_FOR,     // for
+  ND_BLOCK,   //{}
+  ND_ADDR,    //&（address）
+  ND_DEREF,   //*（dereferencer）
+  ND_MEMBER,  // struct member(.)
+  ND_LVAR,    // local var
+  ND_GVAR,    // global var
+  ND_FUNC,    // function
+  ND_NUM,     // num value
+  ND_STR,     // string value
+  ND_CHAR     // char value
 } NodeKind;
 
-//struct members def
+// struct members def
 typedef struct Type Type;
 typedef struct Member Member;
-struct Member{
+struct Member
+{
   Member *next;
   Type *ty;
   Token *name;
   int offset;
 };
 
-struct Type {
+struct Type
+{
   int kind;
   Type *ptr_to;
   size_t array_size;
   int total_size;
   Token *ident_name_tok;
-  Member *members;//struct member
-
+  Member *members; // struct member
 };
 
-enum TypeKind{
+enum TypeKind
+{
   TY_PTR,
   TY_ARRAY,
   TY_STRUCT,
@@ -93,61 +98,60 @@ enum TypeKind{
   TY_CHAR
 };
 
-
 // 抽象構文木のノードの型
 typedef struct Node Node;
-struct Node {
-  NodeKind kind; // ノードの型
-  Node *lhs;     // 左辺
-  Node *rhs;     // 右辺
-  Type *ty; //ノードの論理的なデータ型
-  char *ident_name; //識別子名
-  int val;       // kindがND_NUMの場合のみ使う
-  int offset; //kindがND_VAL系の場合のみ扱う
-  Node *init; //初期化(for)
-  Node *cond; //条件(if,for,while)
-  Node *inc; //後処理(for)
-  Node *then; //cond==Trueの制御
-  Node *els;  //cond==Falseの制御
-  Node *block_head;//入れ子となっている{}内のコード（先頭）
+struct Node
+{
+  NodeKind kind;    // ノードの型
+  Node *lhs;        // 左辺
+  Node *rhs;        // 右辺
+  Type *ty;         // ノードの論理的なデータ型
+  char *ident_name; // 識別子名
+  int val;          // kindがND_NUMの場合のみ使う
+  int offset;       // kindがND_VAL系の場合のみ扱う
+  Node *init;       // 初期化(for)
+  Node *cond;       // 条件(if,for,while)
+  Node *inc;        // 後処理(for)
+  Node *then;       // cond==Trueの制御
+  Node *els;        // cond==Falseの制御
+  Node *block_head; // 入れ子となっている{}内のコード（先頭）
   Node *func_arg[FUNC_ARG_NUM];
-  int label_num;//ラベル
-  Node *next;//次のstatement
+  int label_num; // ラベル
+  Node *next;    // 次のstatement
 };
 
 typedef struct Ident Ident;
-struct Ident{
+struct Ident
+{
 
   bool is_function;
   bool is_global;
-  
-  //common
+
+  // common
   char *name;
-  int name_len;//変数名の長さ  
-  Ident *next; //next ident
-  Type *ty;//型
+  int name_len; // 変数名の長さ
+  Ident *next;  // next ident
+  Type *ty;     // 型
 
-  //for variable
-  int offset; //RBPからのオフセット
+  // for variable
+  int offset; // RBPからのオフセット
 
-  //for global string.
+  // for global string.
   char *str;
 
-  //for function
+  // for function
   Node *arg;
   Node *body;
-  Ident *locals;   
-
+  Ident *locals;
 };
 
-
-//parse
+// parse
 Ident *parse(Token *token);
 
-//codegen
+// codegen
 void codegen(Ident *func_list);
 
-//type
+// type
 int get_type_size(Type *ty);
 int calc_sizeof(Type *ty);
 void init_nodetype(Node *n);
@@ -157,5 +161,5 @@ bool is_ptr_node(Node *n);
 extern Type *ty_char;
 extern Type *ty_int;
 
-//read_file
+// read_file
 char *read_file(char *path);

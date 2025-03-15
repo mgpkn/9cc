@@ -25,5 +25,8 @@ int main()
     ASSERT(65, y.b);
     ASSERT(68, y.c);
 
+    //chxa z;
+    //z =10;
+
     return 0;
 }

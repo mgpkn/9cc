@@ -112,19 +112,6 @@ bool equal_token(Token *tok1, Token *tok2)
   return false;
 }
 
-bool is_base_type_token(Token *tok)
-{
-  if (equal(tok, "int"))
-    return true;
-  if (equal(tok, "char"))
-    return true;
-
-  if (equal(tok, "struct"))
-    return true;
-
-  return false;
-}
-
 // check if tag is already declared
 Type *find_tag(Token *tok)
 {
@@ -136,28 +123,31 @@ Type *find_tag(Token *tok)
         return tsc->ty;
     }
   }
-
   return NULL;
 }
 
-// base_type = "int"|"char"|"struct"|ident
+// base_type = "int"|"char"|"struct"
 Type *base_type(Token **rest, Token *tok)
 {
 
-  Type *ty = calloc(1, sizeof(Type));
-  ty->kind = -1;
+  Type *ty = NULL;
 
   if (equal(tok, "int"))
+  {
+    ty = calloc(1, sizeof(Type));
     ty->kind = TY_INT;
+  }
   if (equal(tok, "char"))
+  {
+    ty = calloc(1, sizeof(Type));
     ty->kind = TY_CHAR;
-
+  }
   // struct
   if (equal(tok, "struct"))
+  {
+    ty = calloc(1, sizeof(Type));
     ty->kind = TY_STRUCT;
-
-  if (ty->kind == -1)
-    error_at(tok->pos, "undefined type name;");
+  }
 
   *rest = tok->next;
   return ty;
@@ -459,19 +449,24 @@ global ::= base_type (declaration_global_var|declaration_function)
 Ident *global(Token **rest, Token *tok)
 {
 
+  Ident *glb = NULL;
   Type *base_ty = base_type(&tok, tok);
 
-  // first,try to create variable ident from current token.
-  // if coundn't it,next try to create function ident.
+  if (base_ty)
+  {
 
-  // create global variable ident.
-  Ident *glb = declaration_global_var(&tok, tok, base_ty);
+    // first,try to create variable ident from current token.
+    // if coundn't it,next try to create function ident.
 
-  // create function ident.
-  if (!glb)
-    glb = declaration_function(&tok, tok, base_ty);
+    // create global variable ident.
+    glb = declaration_global_var(&tok, tok, base_ty);
 
-  add_varscope(glb);
+    // create function ident.
+    if (!glb)
+      glb = declaration_function(&tok, tok, base_ty);
+
+    add_varscope(glb);
+  }
 
   *rest = tok;
   return glb;
@@ -671,6 +666,8 @@ Type *declarator_struct(Token **rest, Token *tok, Type *parent_ty)
     tmp_mem->next = calloc(1, sizeof(Member));
 
     Type *mem_ty = base_type(&tok, tok);
+    if (!mem_ty)
+      error_at(tok->pos, "undefined data type");
     mem_ty = declarator(&tok, tok, mem_ty);
 
     tmp_mem->next->ty = mem_ty;
@@ -848,12 +845,11 @@ Node *statement(Token **rest, Token *tok)
   }
   else
   {
-    // Token *dummy;
-    // Type *ty;
-    // ty = base_type(&dummy,tok);
+    Token *dummy;
+    Type *ty;
+    ty = base_type(&dummy, tok);
 
-    // if (ty->kind>=0)
-    if (is_base_type_token(tok))
+    if (ty)
       n = declaration_local(&tok, tok);
     else
       n = expr(&tok, tok);
@@ -882,6 +878,9 @@ Node *declaration_local(Token **rest, Token *tok)
 {
 
   Type *base_ty = base_type(&tok, tok);
+  if (!base_ty)
+    error_at(tok->pos, "undefined data type");
+
   Type *ty = declarator(&tok, tok, base_ty);
 
   Node *n = new_node_declare_lvar(ty);
