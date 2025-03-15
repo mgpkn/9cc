@@ -75,7 +75,6 @@ struct Member{
   int offset;
 };
 
-
 struct Type {
   int kind;
   Type *ptr_to;

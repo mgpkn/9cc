@@ -4,8 +4,16 @@
 typedef struct VarScope VarScope;
 struct VarScope
 {
-  VarScope *next;
   Ident *var;
+  VarScope *next;
+};
+
+typedef struct TagScope TagScope;
+struct TagScope
+{
+  char *name;
+  Type *ty;
+  TagScope *next;
 };
 
 typedef struct Scope Scope;
@@ -13,6 +21,7 @@ struct Scope
 {
   Scope *next;
   VarScope *vars;
+  TagScope *tags;
 };
 
 static Scope *cur_scope;
@@ -98,7 +107,7 @@ bool equal(Token *tok, char *op_str)
 
 bool equal_token(Token *tok1, Token *tok2)
 {
-  if(tok1->len == tok2->len)
+  if (tok1->len == tok2->len)
     return (strncmp(tok1->pos, tok2->pos, tok1->len) == 0);
   return false;
 }
@@ -116,7 +125,22 @@ bool is_base_type_token(Token *tok)
   return false;
 }
 
-// base_type = "int"|"char"|"struct"
+// check if tag is already declared
+Type *find_tag(Token *tok)
+{
+  for (Scope *sc = cur_scope; sc; sc = sc->next)
+  {
+    for (TagScope *tsc = sc->tags; tsc; tsc = tsc->next)
+    {
+      if (equal(tok, tsc->name))
+        return tsc->ty;
+    }
+  }
+
+  return NULL;
+}
+
+// base_type = "int"|"char"|"struct"|ident
 Type *base_type(Token **rest, Token *tok)
 {
 
@@ -193,11 +217,19 @@ void *leave_scope()
 
 void add_varscope(Ident *var)
 {
-
   VarScope *vs = calloc(1, sizeof(VarScope));
   vs->var = var;
   vs->next = cur_scope->vars;
   cur_scope->vars = vs;
+}
+
+void add_tagscope(Token *tok, Type *ty)
+{
+  TagScope *ts = calloc(1, sizeof(TagScope));
+  ts->name = strndup(tok->pos, sizeof(char) * (tok->len));
+  ts->ty = ty;
+  ts->next = cur_scope->tags;
+  cur_scope->tags = ts;
 }
 
 // check if the variable is already declared
@@ -430,7 +462,7 @@ Ident *global(Token **rest, Token *tok)
   Type *base_ty = base_type(&tok, tok);
 
   // first,try to create variable ident from current token.
-  // if coundn't,next try to function ident.
+  // if coundn't it,next try to create function ident.
 
   // create global variable ident.
   Ident *glb = declaration_global_var(&tok, tok, base_ty);
@@ -505,10 +537,12 @@ Ident *declaration_function(Token **rest, Token *tok, Type *base_ty)
   expect(&tok, tok, "(");
 
   Node head_arg, *cur_arg;
-  head_arg.next=NULL;cur_arg = &head_arg;
+  head_arg.next = NULL;
+  cur_arg = &head_arg;
 
   Node head_body, *cur_body;
-  head_body.next=NULL;cur_body = &head_body;
+  head_body.next = NULL;
+  cur_body = &head_body;
 
   // agument
   while (true)
@@ -548,7 +582,7 @@ Ident *declaration_function(Token **rest, Token *tok, Type *base_ty)
 // declarator ::= declarator_struct? declarator_prefix ident declarator_suffix
 Type *declarator(Token **rest, Token *tok, Type *base_ty)
 {
-  //perse strcut type
+  // perse strcut type
   base_ty = declarator_struct(&tok, tok, base_ty);
 
   Type *head_ty = base_ty, *prefix_ty, *suffix_ty, *tmp_ty;
@@ -569,7 +603,8 @@ Type *declarator(Token **rest, Token *tok, Type *base_ty)
   // join prefix
   if (prefix_ty)
   {
-    for (tmp_ty = prefix_ty; tmp_ty->ptr_to; tmp_ty = tmp_ty->ptr_to);
+    for (tmp_ty = prefix_ty; tmp_ty->ptr_to; tmp_ty = tmp_ty->ptr_to)
+      ;
     tmp_ty->ptr_to = head_ty;
     head_ty = prefix_ty;
   }
@@ -577,7 +612,8 @@ Type *declarator(Token **rest, Token *tok, Type *base_ty)
   // join suffix
   if (suffix_ty)
   {
-    for (tmp_ty = suffix_ty; tmp_ty->ptr_to; tmp_ty = tmp_ty->ptr_to);
+    for (tmp_ty = suffix_ty; tmp_ty->ptr_to; tmp_ty = tmp_ty->ptr_to)
+      ;
     tmp_ty->ptr_to = head_ty;
     head_ty = suffix_ty;
   }
@@ -594,19 +630,38 @@ Type *declarator(Token **rest, Token *tok, Type *base_ty)
   return head_ty;
 }
 
-// declarator_struct ::= "{" ( base_type declarator ";")* "}"
+// declarator_struct ::=  ident? "{" ( base_type declarator ";")* "}"
 Type *declarator_struct(Token **rest, Token *tok, Type *parent_ty)
 {
 
   if (parent_ty->kind != TY_STRUCT)
     return parent_ty;
 
+  // if has struct tag,create tag scope
+  Token *tag = NULL;
+  if (tok->kind == TK_IDENT)
+  {
+    tag = tok;
+    tok = tok->next;
+  }
+
+  // if not declare struct defs,find tag
   Member head_mem, *tmp_mem;
-  int total_offset=0;
+  int total_offset = 0;
   head_mem.next = NULL;
   tmp_mem = &head_mem;
 
-  // create members defs
+  if (tag && !equal(tok, "{"))
+  {
+    if (find_tag(tag))
+    {
+      *rest = tok;
+      return find_tag(tag);
+    }
+    error("undefined struct name.");
+  }
+
+  // define struct member
   expect(&tok, tok, "{");
   while (true)
   {
@@ -630,6 +685,9 @@ Type *declarator_struct(Token **rest, Token *tok, Type *parent_ty)
 
   parent_ty->members = head_mem.next;
   parent_ty->total_size = total_offset;
+
+  if (tag)
+    add_tagscope(tag, parent_ty);
 
   *rest = tok;
   return parent_ty;
@@ -790,6 +848,11 @@ Node *statement(Token **rest, Token *tok)
   }
   else
   {
+    // Token *dummy;
+    // Type *ty;
+    // ty = base_type(&dummy,tok);
+
+    // if (ty->kind>=0)
     if (is_base_type_token(tok))
       n = declaration_local(&tok, tok);
     else
@@ -889,7 +952,7 @@ Node *relational(Token **rest, Token *tok)
 Node *add(Token **rest, Token *tok)
 {
 
-  Token *tok_dummy = tok; // extra_に渡すダミーのトークン。
+  Token *tok_dummy = tok; // dummy token to send extra~ functions.
   Node *n = mul(&tok, tok);
 
   for (;;)
@@ -922,8 +985,8 @@ Node *extra_add(Node *lhs, Node *rhs, Token *tok_dummy)
   if (!is_ptr_node(lhs) && !is_ptr_node(rhs))
     return new_node(ND_ADD, lhs, rhs);
 
-  // pointer + num (=num + pointer)の場合はオフセットの計算
-  // 逆だった場合正規化を行う。
+  // pointer + num (=num + pointer) then calc offset
+  // if reverse order,swap node.
   if (!is_ptr_node(lhs) && is_ptr_node(rhs))
   {
     Node *swp;
@@ -1016,8 +1079,8 @@ Node *unary(Token **rest, Token *tok)
   return n;
 }
 
-
-Node *new_node_member(Node *lhs,Token **rest,Token *tok){
+Node *new_node_member(Node *lhs, Token **rest, Token *tok)
+{
 
   if (lhs->ty->kind != TY_STRUCT)
     error("it's not struct type");
@@ -1026,16 +1089,18 @@ Node *new_node_member(Node *lhs,Token **rest,Token *tok){
     error("token must be member ident");
 
   Member *mem_target;
-  for(Member *mem_tmp = lhs->ty->members;mem_tmp;mem_tmp = mem_tmp->next){
-      if(equal_token(tok,mem_tmp->name)){
-        mem_target = mem_tmp;
-        break;
-      }
+  for (Member *mem_tmp = lhs->ty->members; mem_tmp; mem_tmp = mem_tmp->next)
+  {
+    if (equal_token(tok, mem_tmp->name))
+    {
+      mem_target = mem_tmp;
+      break;
+    }
   }
-  if(!mem_target)
+  if (!mem_target)
     error("not find such a member name");
 
-  Node *n = calloc(1,sizeof(Node));
+  Node *n = calloc(1, sizeof(Node));
   n->kind = ND_MEMBER;
   n->lhs = lhs;
   n->ty = mem_target->ty;
@@ -1071,13 +1136,11 @@ Node *postfix(Token **rest, Token *tok)
     // struct_member
     if (consume(&tok, tok, "."))
     {
-      n = new_node_member(n,&tok,tok);
+      n = new_node_member(n, &tok, tok);
     }
 
     break;
   }
-
-
 
   *rest = tok;
   return n;

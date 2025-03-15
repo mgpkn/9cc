@@ -5,9 +5,8 @@ declaration_function ::= declarator "(" (declaration_local("," declaration_local
 declaration_global_var ::= declarator("," declarator)* ";"
 declaration_local ::= base_type declarator ("=" expr )? ("," declarator("=" expr )? )*
 base_type ::= "int"|"char"|"struct"
-declarator ::= (declarator_basic | declarator_struct )
-declarator_basic ::= declarator_prefix ident declarator_suffix
-declarator_struct ::= "{" ( declarator ";")* "} declarator_prefix ident declarator_suffix"
+declarator ::= declarator_struct? declarator_prefix ident declarator_suffix
+declarator_struct ::= "struct" ident "{" ( base_type declarator ";")* "}"
 declarator_prefix := ("*" declarator_prefix)? 
 declarator_suffix ::= ("[" num "]" declarator_suffix)?
 statement ::= (declaration_local|expr)? ";"
