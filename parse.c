@@ -574,13 +574,11 @@ Ident *declaration_function(Token **rest, Token *tok, Type *base_ty)
   return idt;
 }
 
-// declarator ::= declarator_struct? declarator_prefix ident declarator_suffix
-Type *declarator(Token **rest, Token *tok, Type *base_ty)
+//declarator ::= declarator_prefix ident declarator_suffix
+Type *declarator(Token **rest, Token *tok, Type *ty)
 {
-  // perse strcut type
-  base_ty = declarator_struct(&tok, tok, base_ty);
 
-  Type *head_ty = base_ty, *prefix_ty, *suffix_ty, *tmp_ty;
+  Type *head_ty = ty, *prefix_ty, *suffix_ty, *tmp_ty;
   Token *tmp_ident_name_tok;
 
   // get prefix type
@@ -728,12 +726,15 @@ Type *declarator_suffix(Token **rest, Token *tok)
 }
 
 /*
-statement ::= (declaration_local|expr)? ";"
+statement ::=
+    |";"
     |"{" statement? "}"
     | "return " expr ";"
     | "if" "(" expr ")" statement "else" statement
     | "while" "(" expr ")"  statement
     | "for" "(" (declaration_local|expr)? ";" expr? ";" expr? ";" ")"  statement
+    |declaration_local    
+    |expr ";"
 */
 Node *statement(Token **rest, Token *tok)
 {
@@ -842,6 +843,7 @@ Node *statement(Token **rest, Token *tok)
     {
       n = expr(&tok, tok);
     }
+    expect(&tok, tok, ";");
   }
   else
   {
@@ -849,12 +851,15 @@ Node *statement(Token **rest, Token *tok)
     Type *ty;
     ty = base_type(&dummy, tok);
 
-    if (ty)
+    if (ty){
       n = declaration_local(&tok, tok);
-    else
+    }
+    else{
       n = expr(&tok, tok);
+      expect(&tok, tok, ";");
+    }
+
   }
-  expect(&tok, tok, ";");
   *rest = tok;
   return n;
 }
@@ -873,7 +878,7 @@ Node *expr(Token **rest, Token *tok)
   return n;
 }
 
-// declaration_local ::= base_type declarator ("=" expr )? ("," declarator("=" expr )? )*
+// declaration_local ::= base_type declarator_struct? (declarator ("=" expr )? ("," declarator("=" expr )? )*)? ";"
 Node *declaration_local(Token **rest, Token *tok)
 {
 
@@ -881,17 +886,26 @@ Node *declaration_local(Token **rest, Token *tok)
   if (!base_ty)
     error_at(tok->pos, "undefined data type");
 
-  Type *ty = declarator(&tok, tok, base_ty);
+  // perse strcut type
+  base_ty = declarator_struct(&tok, tok, base_ty);
 
-  Node *n = new_node_declare_lvar(ty);
-  if (consume(&tok, tok, "="))
+  Node *n = new_node(ND_BLOCK,NULL,NULL);
+  if(!equal(tok,";"))
+  {
+    // todo declaration multi declaration
+    Type *ty = declarator(&tok, tok, base_ty);
+
+    n = new_node_declare_lvar(ty);
+    if (consume(&tok, tok, "="))
     n = new_node(ND_ASSIGN, n, expr(&tok, tok));
 
-  // todo declaration multi declaration
+  }
+  consume(&tok,tok,";");  
 
   *rest = tok;
   return n;
 }
+
 
 // assign ::= equality ("=" assign )?
 Node *assign(Token **rest, Token *tok)

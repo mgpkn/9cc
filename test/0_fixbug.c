@@ -2,6 +2,7 @@
 
 int main()
 {
+
     struct mystr
     {
         int a;
@@ -24,9 +25,8 @@ int main()
     ASSERT(30, y.a);
     ASSERT(65, y.b);
     ASSERT(68, y.c);
+    
 
-    //chxa z;
-    //z =10;
-
+    
     return 0;
 }
