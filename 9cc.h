@@ -153,7 +153,6 @@ Ident *parse(Token *token);
 void codegen(Ident *func_list);
 
 // type
-int get_type_size(Type *ty);
 int calc_sizeof(Type *ty);
 void init_nodetype(Node *n);
 bool is_num_node(Node *n);

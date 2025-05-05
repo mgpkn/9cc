@@ -14,24 +14,6 @@ bool is_ptr_node(Node *n)
     return false;
 }
 
-int get_type_size(Type *ty)
-{
-
-    switch (ty->kind){
-    case TY_PTR:
-        return 8;
-    case TY_INT:
-        return 4;
-    case TY_CHAR:
-        return 1;
-    case TY_STRUCT:
-        return ty->size;
-    default:
-        error("invalid data type.");
-    }
-    return -1;
-}
-
 int calc_sizeof(Type *ty)
 {
 
@@ -42,9 +24,11 @@ int calc_sizeof(Type *ty)
     case TY_STRUCT:
         return ty->size;
     case TY_PTR:
+        return 8;
     case TY_INT:    
+        return 4;
     case TY_CHAR:    
-        return get_type_size(ty);
+        return 1;
     default:
         error("invalid data type.");
     }

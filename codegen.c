@@ -26,7 +26,7 @@ void load_val(Type *ty)
   if (ty->kind == TY_ARRAY)
     return;
 
-  switch (get_type_size(ty))
+  switch (ty->size)
   {
   case 1:
     printf("  movsx rax, BYTE PTR [rax]\n");
@@ -107,7 +107,7 @@ void gennode_expr(Node *cur_node)
     push();
     gennode_addr(cur_node->lhs);
     pop("rdi");
-    switch (get_type_size(cur_node->ty))
+    switch (cur_node->ty->size)
     {
     case 1:
       printf("  mov [rax],dil\n");
@@ -275,7 +275,7 @@ void codegen_func(Ident *func)
   {
     gennode_addr(cur_arg);
 
-    switch (get_type_size(cur_arg->ty))
+    switch (cur_arg->ty->size)
     {
     case 1:
       printf("  mov [rax],%s\n", argreg1[i]);

@@ -1010,7 +1010,7 @@ Node *extra_add(Node *lhs, Node *rhs, Token *tok_dummy)
 
   if (is_ptr_node(lhs) && !is_ptr_node(rhs))
   {
-    Node *n = new_node(ND_MUL, rhs, new_node_num(get_type_size(lhs->ty->ptr_to)));
+    Node *n = new_node(ND_MUL, rhs, new_node_num(lhs->ty->ptr_to->size));
     return new_node(ND_ADD, lhs, n);
   }
 
@@ -1031,11 +1031,11 @@ Node *extra_sub(Node *lhs, Node *rhs, Token *tok_dummy)
 
   // pointer - num (=num + pointer)の場合はオフセットの計算
   if (is_ptr_node(lhs) && !is_ptr_node(rhs))
-    return new_node(ND_SUB, lhs, new_node(ND_MUL, rhs, new_node_num(get_type_size(rhs->ty))));
+    return new_node(ND_SUB, lhs, new_node(ND_MUL, rhs, new_node_num(rhs->ty->size)));
 
   // pointer - pointerはアドレスの差
   if (is_ptr_node(lhs) && is_ptr_node(rhs))
-    return new_node(ND_DIV, new_node(ND_SUB, lhs, rhs), new_node_num(get_type_size(lhs->ty->ptr_to)));
+    return new_node(ND_DIV, new_node(ND_SUB, lhs, rhs), new_node_num(lhs->ty->ptr_to->size));
 
   error("invalid types subtraction");
   return NULL;
