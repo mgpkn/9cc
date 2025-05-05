@@ -265,7 +265,7 @@ static Ident *declaration_str(Token *tok)
   ty->kind = TY_ARRAY;
   ty->ptr_to = ty_char;
   ty->array_size = tok->len;
-  ty->total_size = calc_sizeof(ty);
+  ty->size = calc_sizeof(ty);
 
   Ident *idt = calloc(1, sizeof(Ident));
   idt->is_global = true;
@@ -372,7 +372,7 @@ Node *new_node_declare_lvar(Type *ty)
 
   idt->next = locals;
   locals = idt;
-  idt->offset = idt->ty->total_size;
+  idt->offset = idt->ty->size;
 
   if (locals->next)
     // accumulate local variable offset.
@@ -613,7 +613,7 @@ Type *declarator(Token **rest, Token *tok, Type *ty)
 
   for (tmp_ty = head_ty; tmp_ty; tmp_ty = tmp_ty->ptr_to)
   {
-    tmp_ty->total_size = calc_sizeof(tmp_ty);
+    tmp_ty->size = calc_sizeof(tmp_ty);
   }
 
   // set indent name token;
@@ -671,7 +671,7 @@ Type *declarator_struct(Token **rest, Token *tok, Type *parent_ty)
     tmp_mem->next->ty = mem_ty;
     tmp_mem->next->name = mem_ty->ident_name_tok;
     tmp_mem->next->offset = total_offset;
-    total_offset += mem_ty->total_size;
+    total_offset += mem_ty->size;
 
     expect(&tok, tok, ";");
     tmp_mem = tmp_mem->next;
@@ -679,7 +679,7 @@ Type *declarator_struct(Token **rest, Token *tok, Type *parent_ty)
   consume(&tok, tok, "}");
 
   parent_ty->members = head_mem.next;
-  parent_ty->total_size = total_offset;
+  parent_ty->size = total_offset;
 
   if (tag)
     add_tagscope(tag, parent_ty);
@@ -1083,7 +1083,7 @@ Node *unary(Token **rest, Token *tok)
   {
     n = unary(&tok, tok);
     init_nodetype(n);
-    n = new_node_num(n->ty->total_size);
+    n = new_node_num(n->ty->size);
   }
   else
     n = postfix(&tok, tok);

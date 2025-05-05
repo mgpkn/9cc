@@ -322,7 +322,7 @@ void codegen(Ident *prog_list)
         printf("  .byte %d\n", cur_prog->str[i]);
     }
     else
-      printf("  .zero %d\n", cur_prog->ty->total_size);
+      printf("  .zero %d\n", cur_prog->ty->size);
 
     cur_prog = cur_prog->next;
   }

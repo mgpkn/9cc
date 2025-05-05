@@ -1,7 +1,7 @@
 #include "9cc.h"
 
 Type *ty_char = &(Type){TY_CHAR};
-Type *ty_int = &(Type){TY_INT};
+//Type *ty_int = &(Type){TY_INT};
 
 void init_nodetype(Node *n);
 
@@ -25,7 +25,7 @@ int get_type_size(Type *ty)
     case TY_CHAR:
         return 1;
     case TY_STRUCT:
-        return ty->total_size;
+        return ty->size;
     default:
         error("invalid data type.");
     }
@@ -40,7 +40,7 @@ int calc_sizeof(Type *ty)
     case TY_ARRAY:
         return ty->array_size * calc_sizeof(ty->ptr_to);
     case TY_STRUCT:
-        return ty->total_size;
+        return ty->size;
     case TY_PTR:
     case TY_INT:    
     case TY_CHAR:    
@@ -104,17 +104,17 @@ void init_nodetype(Node *n)
     case ND_FUNC:
     case ND_NUM:
         t->kind = TY_INT;
-        t->total_size = calc_sizeof(t);
+        t->size = calc_sizeof(t);
         n->ty = t;
         return;
     case ND_CHAR:
         t->kind = TY_CHAR;
-        t->total_size = calc_sizeof(t);
+        t->size = calc_sizeof(t);
         n->ty = t;
         return;
     case ND_ADDR:
         t->kind = TY_PTR;
-        t->total_size = calc_sizeof(t);
+        t->size = calc_sizeof(t);
         t->ptr_to = n->lhs->ty;
         n->ty = t;
         return;

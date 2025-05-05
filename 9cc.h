@@ -82,9 +82,10 @@ struct Member
 struct Type
 {
   int kind;
+  int size;
+  int align;  
   Type *ptr_to;
   size_t array_size;
-  int total_size;
   Token *ident_name_tok;
   Member *members; // struct member
 };
