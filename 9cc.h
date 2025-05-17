@@ -154,6 +154,8 @@ void codegen(Ident *func_list);
 
 // type
 int calc_sizeof(Type *ty);
+int calc_alignof(Type *ty);
+int align_to(int offset, int align);
 void init_nodetype(Node *n);
 bool is_num_node(Node *n);
 bool is_ptr_node(Node *n);

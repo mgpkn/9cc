@@ -1,7 +1,6 @@
 #include "9cc.h"
 
 Type *ty_char = &(Type){TY_CHAR};
-//Type *ty_int = &(Type){TY_INT};
 
 void init_nodetype(Node *n);
 
@@ -14,21 +13,38 @@ bool is_ptr_node(Node *n)
     return false;
 }
 
+// Round up `n` to the nearest multiple of `align`. For instance,
+// align_to(0, 1) returns 0 and align_to(11, 4) returns 12.
+int align_to(int offset, int align)
+{
+    // if offset is already a multiple of align, return the current offset.
+    if ((offset % align) == 0)
+        return offset;
+
+    // otherwise, return the next larger multiple of align from the current offset.
+    int i;
+    for (i = 0; i * align < offset; i++)
+        ;
+    return i * align;
+};
+
 int calc_sizeof(Type *ty)
 {
 
     switch (ty->kind)
     {
     case TY_ARRAY:
+        //return multiple of array size and base type size.
         return ty->array_size * calc_sizeof(ty->ptr_to);
-    case TY_STRUCT:
-        return ty->size;
     case TY_PTR:
         return 8;
-    case TY_INT:    
+    case TY_INT:
         return 4;
-    case TY_CHAR:    
+    case TY_CHAR:
         return 1;
+    case TY_STRUCT:
+        return ty->size;
+
     default:
         error("invalid data type.");
     }
@@ -36,7 +52,27 @@ int calc_sizeof(Type *ty)
     return -1;
 }
 
+int calc_alignof(Type *ty)
+{
+    switch (ty->kind)
+    {
+    case TY_ARRAY:
+        //return base type align.
+        return calc_alignof(ty->ptr_to);
+    case TY_PTR:
+        return 8;
+    case TY_INT:
+        return 4;
+    case TY_CHAR:
+        return 1;
+    case TY_STRUCT:
+        return ty->align;
+    default:
+        error("invalid data type.");
+    }
 
+    return -1;
+}
 
 // 各ノードの論理的な型を設定
 void init_nodetype(Node *n)
@@ -89,16 +125,19 @@ void init_nodetype(Node *n)
     case ND_NUM:
         t->kind = TY_INT;
         t->size = calc_sizeof(t);
+        t->align = calc_alignof(t);
         n->ty = t;
         return;
     case ND_CHAR:
         t->kind = TY_CHAR;
         t->size = calc_sizeof(t);
+        t->align = calc_alignof(t);
         n->ty = t;
         return;
     case ND_ADDR:
         t->kind = TY_PTR;
         t->size = calc_sizeof(t);
+        t->align = calc_alignof(t);
         t->ptr_to = n->lhs->ty;
         n->ty = t;
         return;

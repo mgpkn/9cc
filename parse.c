@@ -266,6 +266,7 @@ static Ident *declaration_str(Token *tok)
   ty->ptr_to = ty_char;
   ty->array_size = tok->len;
   ty->size = calc_sizeof(ty);
+  ty->align = calc_alignof(ty);
 
   Ident *idt = calloc(1, sizeof(Ident));
   idt->is_global = true;
@@ -614,6 +615,7 @@ Type *declarator(Token **rest, Token *tok, Type *ty)
   for (tmp_ty = head_ty; tmp_ty; tmp_ty = tmp_ty->ptr_to)
   {
     tmp_ty->size = calc_sizeof(tmp_ty);
+    tmp_ty->align = calc_alignof(tmp_ty);    
   }
 
   // set indent name token;
@@ -630,7 +632,7 @@ Type *declarator_struct(Token **rest, Token *tok, Type *parent_ty)
   if (parent_ty->kind != TY_STRUCT)
     return parent_ty;
 
-  // if has struct tag,create tag scope
+  // if found struct tag,create tag scope
   Token *tag = NULL;
   if (tok->kind == TK_IDENT)
   {
@@ -640,7 +642,7 @@ Type *declarator_struct(Token **rest, Token *tok, Type *parent_ty)
 
   // if not declare struct defs,find tag
   Member head_mem, *tmp_mem;
-  int total_offset = 0;
+  int cur_offset = 0;
   head_mem.next = NULL;
   tmp_mem = &head_mem;
 
@@ -670,8 +672,8 @@ Type *declarator_struct(Token **rest, Token *tok, Type *parent_ty)
 
     tmp_mem->next->ty = mem_ty;
     tmp_mem->next->name = mem_ty->ident_name_tok;
-    tmp_mem->next->offset = total_offset;
-    total_offset += mem_ty->size;
+    tmp_mem->next->offset = align_to(cur_offset,mem_ty->align);
+    cur_offset = tmp_mem->next->offset + mem_ty->size;
 
     expect(&tok, tok, ";");
     tmp_mem = tmp_mem->next;
@@ -679,7 +681,19 @@ Type *declarator_struct(Token **rest, Token *tok, Type *parent_ty)
   consume(&tok, tok, "}");
 
   parent_ty->members = head_mem.next;
-  parent_ty->size = total_offset;
+
+  //set struct align and size.
+  ////align -> largetst align in struct member.
+  int largest_align =1;
+  for(Member *tmp_mem = parent_ty->members;tmp_mem;tmp_mem = tmp_mem->next){
+      if(tmp_mem->ty->align >= largest_align)
+          largest_align = tmp_mem->ty->align;
+  }  
+  parent_ty->align = largest_align;
+  
+  ////size -> align to total offset to members 
+  parent_ty->size = align_to(cur_offset,parent_ty->align);
+  
 
   if (tag)
     add_tagscope(tag, parent_ty);

@@ -17,7 +17,7 @@ int main()
     y.b = 'A';
     y.c = 'D';
 
-    ASSERT(sizeof(x), 6);
+    ASSERT(sizeof(x), 8);
     ASSERT(50, x.a);
     ASSERT(99, x.b);
     ASSERT(97, x.c);
@@ -27,15 +27,15 @@ int main()
 
     struct mystr2
     {
-        int a;
         char b;
+        int a;        
         char c;
     };
 
     struct mystr2 x2;
     x2.a = 68;
     ASSERT(68, x2.a);    
-    
+    ASSERT(12,sizeof(x2));    
 
     return 0;
 }
