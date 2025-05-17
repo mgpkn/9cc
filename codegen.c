@@ -269,7 +269,7 @@ void codegen_func(Ident *func)
 
   printf("  sub rsp, %d\n", i * BASE_ALIGN_SIZE);
 
-  // 引数をレジスタからロード。
+  //load aguments from register.
   cur_arg = func->arg;
   for (int i = 0; cur_arg; i++)
   {
@@ -291,73 +291,65 @@ void codegen_func(Ident *func)
     cur_arg = cur_arg->next;
   }
 
-  // 関数の本文を記述。
+  //output function payload.
   cur_code = func->body;
   for (Node *cur_code = func->body; cur_code; cur_code = cur_code->next)
     gennode_stmt(cur_code);
 }
 
-void codegen(Ident *prog_list)
-{
+void emit_data(Ident *prog_list){
 
-  Ident *cur_prog = prog_list;
-
-  // プロローグ
+  // prologue
   printf(".intel_syntax noprefix\n");
 
-  // define global variable
+  // gen data
   printf(".section .data\n");
-  cur_prog = prog_list;
-  while (cur_prog)
+  for (Ident *cur_prog = prog_list; cur_prog; cur_prog = cur_prog->next)
   {
     if ((cur_prog->is_function))
-    {
-      cur_prog = cur_prog->next;
       continue;
-    }
+
     printf("%s:\n", cur_prog->name);
     if (cur_prog->str)
-    {
       for (int i = 0; i < cur_prog->ty->array_size; i++)
         printf("  .byte %d\n", cur_prog->str[i]);
-    }
     else
       printf("  .zero %d\n", cur_prog->ty->size);
-
-    cur_prog = cur_prog->next;
   }
-  printf("\n");
+  puts("");
 
   // gen globals
   printf(".section .text\n");
   printf("  .global ");
-  cur_prog = prog_list;
-  bool is_first_function = true;
 
-  while (cur_prog)
+  bool is_first_function = true;
+  for (Ident *cur_prog = prog_list; cur_prog; cur_prog = cur_prog->next)
   {
     if (!(cur_prog->is_function))
-    {
-      cur_prog = cur_prog->next;
       continue;
-    }
 
-    if (cur_prog->is_function && !is_first_function)
+    if (!is_first_function)
       printf(",");
 
     printf("%s", cur_prog->name);
-    cur_prog = cur_prog->next;
     is_first_function = false;
-  }
+    }
   puts("");
 
-  // gen functions
-  cur_prog = prog_list;
-  while (cur_prog)
-  {
-    codegen_func(cur_prog);
-    cur_prog = cur_prog->next;
-  }
+}
 
-  return;
+void emit_text(Ident *prog_list){
+
+  // gen functions
+  for (Ident *cur_prog = prog_list; cur_prog; cur_prog = cur_prog->next)
+    codegen_func(cur_prog);
+
+}
+
+void codegen(Ident *prog_list)
+{
+
+  emit_data(prog_list);
+  emit_text(prog_list);  
+
 }

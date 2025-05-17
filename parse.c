@@ -361,10 +361,11 @@ Node *new_node_var(Token **rest, Token *tok)
 Node *new_node_declare_lvar(Type *ty)
 {
 
-  // find indent if it's already declared.
+  // search indent if it's already declared.
   if (find_var(ty->ident_name_tok))
     error_at(ty->ident_name_tok->pos, "the variable is already declared.");
 
+  //if first deaclared,create locals indet. 
   Ident *idt = calloc(1, sizeof(Ident));
   idt->is_global = false;
   idt->name_len = ty->ident_name_tok->len;
@@ -373,10 +374,10 @@ Node *new_node_declare_lvar(Type *ty)
 
   idt->next = locals;
   locals = idt;
-  idt->offset = idt->ty->size;
 
+  // accumulate local variable offset.
+  idt->offset = idt->ty->size;      
   if (locals->next)
-    // accumulate local variable offset.
     idt->offset = idt->offset + locals->next->offset;
 
   add_varscope(idt);
