@@ -46,7 +46,7 @@ void gennode_addr(Node *cur_node)
   switch (cur_node->kind)
   {
   case ND_LVAR:
-    printf("  lea rax,[rbp - %d]\n", cur_node->offset);
+    printf("  lea rax,[rbp - %d]\n", cur_node->var->offset);
     return;
   case ND_STR:
   case ND_GVAR:
@@ -57,7 +57,7 @@ void gennode_addr(Node *cur_node)
     return;
   case ND_MEMBER:
     gennode_addr(cur_node->lhs);
-    printf("  add rax, %d\n", cur_node->offset);
+    printf("  add rax, %d\n", cur_node->mem->offset);
     return;
   default:
     break;
@@ -269,7 +269,7 @@ void codegen_func(Ident *func)
 
   printf("  sub rsp, %d\n", i * BASE_ALIGN_SIZE);
 
-  //load aguments from register.
+  // load aguments from register.
   cur_arg = func->arg;
   for (int i = 0; cur_arg; i++)
   {
@@ -291,13 +291,14 @@ void codegen_func(Ident *func)
     cur_arg = cur_arg->next;
   }
 
-  //output function payload.
+  // output function payload.
   cur_code = func->body;
   for (Node *cur_code = func->body; cur_code; cur_code = cur_code->next)
     gennode_stmt(cur_code);
 }
 
-void emit_data(Ident *prog_list){
+void emit_data(Ident *prog_list)
+{
 
   // prologue
   printf(".intel_syntax noprefix\n");
@@ -333,23 +334,21 @@ void emit_data(Ident *prog_list){
 
     printf("%s", cur_prog->name);
     is_first_function = false;
-    }
+  }
   puts("");
-
 }
 
-void emit_text(Ident *prog_list){
+void emit_text(Ident *prog_list)
+{
 
   // gen functions
   for (Ident *cur_prog = prog_list; cur_prog; cur_prog = cur_prog->next)
     codegen_func(cur_prog);
-
 }
 
 void codegen(Ident *prog_list)
 {
 
   emit_data(prog_list);
-  emit_text(prog_list);  
-
+  emit_text(prog_list);
 }

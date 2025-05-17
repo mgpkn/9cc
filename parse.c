@@ -344,13 +344,11 @@ Node *new_node_var(Token **rest, Token *tok)
     n->ty = var->ty;
 
     if (var->is_global)
-    {
       n->kind = ND_GVAR;
-    }
     else
     {
       n->kind = ND_LVAR;
-      n->offset = var->offset;
+      n->var = var;
     }
   }
   *rest = tok->next;
@@ -374,6 +372,7 @@ Node *new_node_declare_lvar(Type *ty)
 
   idt->next = locals;
   locals = idt;
+
 
   // accumulate local variable offset.
   idt->offset = idt->ty->size;      
@@ -1132,7 +1131,7 @@ Node *new_node_member(Node *lhs, Token **rest, Token *tok)
   n->kind = ND_MEMBER;
   n->lhs = lhs;
   n->ty = mem_target->ty;
-  n->offset = mem_target->offset;
+  n->mem = mem_target;
 
   tok = tok->next;
 

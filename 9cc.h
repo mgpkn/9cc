@@ -9,6 +9,13 @@
 #define BASE_ALIGN_SIZE 8
 #define FUNC_ARG_NUM 6
 
+typedef struct Token Token;
+typedef struct Node Node;
+typedef struct Type Type;
+typedef struct Ident Ident;
+typedef struct Member Member;
+
+
 // CallError
 void error(char *fmt, ...);
 void error_at(char *loc, char *fmt, ...);
@@ -24,7 +31,6 @@ typedef enum
   TK_EOF
 } TokenKind;
 
-typedef struct Token Token;
 
 struct Token
 {
@@ -69,8 +75,6 @@ typedef enum
 } NodeKind;
 
 // struct members def
-typedef struct Type Type;
-typedef struct Member Member;
 struct Member
 {
   Member *next;
@@ -100,7 +104,7 @@ enum TypeKind
 };
 
 // 抽象構文木のノードの型
-typedef struct Node Node;
+
 struct Node
 {
   NodeKind kind;    // ノードの型
@@ -109,7 +113,8 @@ struct Node
   Type *ty;         // ノードの論理的なデータ型
   char *ident_name; // 識別子名
   int val;          // kindがND_NUMの場合のみ使う
-  int offset;       // kindがND_VAL系の場合のみ扱う
+  Ident *var;       // kindがND_VAL系の場合のみ扱う
+  Member *mem;       // kindがND_MEMBER系の場合のみ扱う  
   Node *init;       // 初期化(for)
   Node *cond;       // 条件(if,for,while)
   Node *inc;        // 後処理(for)
@@ -121,7 +126,6 @@ struct Node
   Node *next;    // 次のstatement
 };
 
-typedef struct Ident Ident;
 struct Ident
 {
 
