@@ -374,11 +374,6 @@ Node *new_node_declare_lvar(Type *ty)
   locals = idt;
 
 
-  // accumulate local variable offset.
-  idt->offset = idt->ty->size;      
-  if (locals->next)
-    idt->offset = idt->offset + locals->next->offset;
-
   add_varscope(idt);
 
   return new_node_var(&(ty->ident_name_tok), ty->ident_name_tok);

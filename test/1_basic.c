@@ -38,7 +38,7 @@ int ret_arg2(int a, int b,int c,int d,int e)
 
 int sum_all_param(int p1, int p2, int p3, int p4, int p5, int p6)
 {
-    return p1 + p2 + p3 + p4 + p5 + p6;
+    return (p1*2) + p2 + p3 + p4 + p5 + p6;
 }
 
 int araara()
@@ -103,7 +103,7 @@ int main()
     ASSERT(13, araara());
     ASSERT(7, ufufu());
     x = 3;
-    ASSERT(32, sum_all_param((x + 1) * x, 2, 3, 4, 5, 6));
+    ASSERT(44, sum_all_param((x + 1) * x, 2, 3, 4, 5, 6));
 
     if (0)
         x = 13;

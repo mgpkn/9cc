@@ -255,19 +255,8 @@ void codegen_func(Ident *func)
   // 変数領域の確保。
   printf("  push rbp\n");
   printf("  mov rbp, rsp\n");
-  total_offset = 0;
-  if (func->locals)
-    total_offset = func->locals->offset;
 
-  int i = 0;
-  while (true)
-  {
-    if (total_offset <= i * BASE_ALIGN_SIZE)
-      break;
-    i++;
-  }
-
-  printf("  sub rsp, %d\n", i * BASE_ALIGN_SIZE);
+  printf("  sub rsp, %d\n", func->offset);
 
   // load aguments from register.
   cur_arg = func->arg;
@@ -295,6 +284,41 @@ void codegen_func(Ident *func)
   cur_code = func->body;
   for (Node *cur_code = func->body; cur_code; cur_code = cur_code->next)
     gennode_stmt(cur_code);
+}
+
+
+void assign_lvar_offsets(Ident *prog_list)
+{
+
+  for (Ident *cur_func = prog_list; cur_func; cur_func = cur_func->next)
+  {
+    if (!(cur_func->is_function))
+      continue;
+
+
+    /*
+    idt->next = locals;
+    locals = idt;
+  
+    // accumulate local variable offset.
+    idt->offset = idt->ty->size;      
+    if (locals->next)
+      idt->offset = idt->offset + locals->next->offset;
+    */
+
+
+
+    int offset = 0;
+    for (Ident *cur_lvar = cur_func->locals; cur_lvar; cur_lvar = cur_lvar->next)
+    {
+      // accumulate local variable offset.
+      cur_lvar -> offset = offset + cur_lvar->ty->size;
+      cur_lvar -> offset = align_to(cur_lvar -> offset, cur_lvar->ty->align);
+      offset = cur_lvar -> offset;
+    }
+    cur_func->offset = align_to(offset, 16);//なぜ16かは不明。IBM仕様？
+
+  }
 }
 
 void emit_data(Ident *prog_list)
@@ -338,17 +362,16 @@ void emit_data(Ident *prog_list)
   puts("");
 }
 
-void emit_text(Ident *prog_list)
+void emit_text(Ident *func_list)
 {
-
   // gen functions
-  for (Ident *cur_prog = prog_list; cur_prog; cur_prog = cur_prog->next)
-    codegen_func(cur_prog);
+  for (Ident *cur_func = func_list; cur_func; cur_func = cur_func->next)
+    codegen_func(cur_func);
 }
 
 void codegen(Ident *prog_list)
 {
-
+  assign_lvar_offsets(prog_list);
   emit_data(prog_list);
   emit_text(prog_list);
 }

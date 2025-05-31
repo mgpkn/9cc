@@ -31,7 +31,7 @@ test/%.exe:$(OBJ_COMMON) $(TEST_ASSMBLES)
 	$(CC) -o $@ test/$*.s $(OBJ_COMMON)
 
 test: $(TESTS)
-	for i in $^; do echo $$i; ./$$i || exit 1; echo; done
+	for i in $$(echo $^ | tr ' ' '\n' | sort); do echo $$i; ./$$i || exit 1; echo; done
 	test/driver.sh
 
 clean:
