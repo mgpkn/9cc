@@ -169,7 +169,10 @@ Token *tokenize(char *p)
 
     // 2 length token.
     estamate_len = 2;
-    if (strncmp(p, "<=", estamate_len) == 0 || strncmp(p, ">=", estamate_len) == 0 || strncmp(p, "==", estamate_len) == 0 || strncmp(p, "!=", estamate_len) == 0)
+    if (strncmp(p, "<=", estamate_len) == 0 || strncmp(p, ">=", estamate_len) == 0 ||
+        strncmp(p, "==", estamate_len) == 0 || strncmp(p, "!=", estamate_len) == 0 ||
+        strncmp(p, "->", estamate_len) == 0
+      )
     {
       cur = new_token(TK_KEYWORD, cur, p, estamate_len);
       p += estamate_len;

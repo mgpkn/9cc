@@ -380,6 +380,40 @@ Node *new_node_declare_lvar(Type *ty)
   ;
 }
 
+Node *new_node_member(Token **rest, Token *tok,Node *lhs)
+{
+  init_nodetype(lhs);
+  if (lhs->ty->kind != TY_STRUCT)
+    error("it's not struct type");
+
+  if (tok->kind != TK_IDENT)
+    error("token must be member ident");
+
+  Member *mem_target;
+  for (Member *mem_tmp = lhs->ty->members; mem_tmp; mem_tmp = mem_tmp->next)
+  {
+    if (equal_token(tok, mem_tmp->name))
+    {
+      mem_target = mem_tmp;
+      break;
+    }
+  }
+  if (!mem_target)
+    error("not find such a member name");
+
+  Node *n = calloc(1, sizeof(Node));
+  n->kind = ND_MEMBER;
+  n->lhs = lhs;
+  n->ty = mem_target->ty;
+  n->mem = mem_target;
+
+  tok = tok->next;
+
+  *rest = tok;
+  return n;
+}
+
+
 // create function node
 Node *new_node_function(Token **rest, Token *tok)
 {
@@ -1101,41 +1135,8 @@ Node *unary(Token **rest, Token *tok)
   return n;
 }
 
-Node *new_node_member(Node *lhs, Token **rest, Token *tok)
-{
-
-  if (lhs->ty->kind != TY_STRUCT)
-    error("it's not struct type");
-
-  if (tok->kind != TK_IDENT)
-    error("token must be member ident");
-
-  Member *mem_target;
-  for (Member *mem_tmp = lhs->ty->members; mem_tmp; mem_tmp = mem_tmp->next)
-  {
-    if (equal_token(tok, mem_tmp->name))
-    {
-      mem_target = mem_tmp;
-      break;
-    }
-  }
-  if (!mem_target)
-    error("not find such a member name");
-
-  Node *n = calloc(1, sizeof(Node));
-  n->kind = ND_MEMBER;
-  n->lhs = lhs;
-  n->ty = mem_target->ty;
-  n->mem = mem_target;
-
-  tok = tok->next;
-
-  *rest = tok;
-  return n;
-}
-
 /*
-postfix ::= primary ("[" & expr & "]" | "." ident)*
+postfix ::= primary ("[" & expr & "]" | "." ident | "->" ident )*
 */
 Node *postfix(Token **rest, Token *tok)
 {
@@ -1155,10 +1156,21 @@ Node *postfix(Token **rest, Token *tok)
       continue;
     }
 
-    // struct_member
+    //struct member
     if (consume(&tok, tok, "."))
     {
-      n = new_node_member(n, &tok, tok);
+      n = new_node_member(&tok, tok,n);
+      continue;
+    }
+
+    // struct member(arrow operator) 
+    // "a -> b" == "(*a).b"
+    if (consume(&tok, tok, "->"))
+    {
+      n = new_node(ND_DEREF, n, NULL);
+      ;
+      n = new_node_member(&tok, tok,n);      
+      continue;
     }
 
     break;

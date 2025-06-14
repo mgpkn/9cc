@@ -27,7 +27,7 @@ add ::= mul ("+" mul | "-" mul)*
 mul ::= unary ("*" unary|"/" unary|"%" unary)*
 unary ::= ("+"|"-"|"&"|"*"|"sizeof") unary
     |postfix
-postfix ::= primary ("[" & expr & "]")*	
+postfix ::= primary ("[" & expr & "]" | "." ident | "->" ident )*
 primary ::= "(" "{" statement+ "}" ")"
     |"(" expr ")"
     |ident ("(" assign? ("," assign)* ")")?
