@@ -363,7 +363,7 @@ Node *new_node_declare_lvar(Type *ty)
   if (find_var(ty->ident_name_tok))
     error_at(ty->ident_name_tok->pos, "the variable is already declared.");
 
-  //if first deaclared,create locals indet. 
+  // if first deaclared,create locals indet.
   Ident *idt = calloc(1, sizeof(Ident));
   idt->is_global = false;
   idt->name_len = ty->ident_name_tok->len;
@@ -373,14 +373,13 @@ Node *new_node_declare_lvar(Type *ty)
   idt->next = locals;
   locals = idt;
 
-
   add_varscope(idt);
 
   return new_node_var(&(ty->ident_name_tok), ty->ident_name_tok);
   ;
 }
 
-Node *new_node_member(Token **rest, Token *tok,Node *lhs)
+Node *new_node_member(Token **rest, Token *tok, Node *lhs)
 {
   init_nodetype(lhs);
   if (lhs->ty->kind != TY_STRUCT)
@@ -412,7 +411,6 @@ Node *new_node_member(Token **rest, Token *tok,Node *lhs)
   *rest = tok;
   return n;
 }
-
 
 // create function node
 Node *new_node_function(Token **rest, Token *tok)
@@ -604,7 +602,7 @@ Ident *declaration_function(Token **rest, Token *tok, Type *base_ty)
   return idt;
 }
 
-//declarator ::= declarator_prefix ident declarator_suffix
+// declarator ::= declarator_prefix ident declarator_suffix
 Type *declarator(Token **rest, Token *tok, Type *ty)
 {
 
@@ -644,7 +642,7 @@ Type *declarator(Token **rest, Token *tok, Type *ty)
   for (tmp_ty = head_ty; tmp_ty; tmp_ty = tmp_ty->ptr_to)
   {
     tmp_ty->size = calc_sizeof(tmp_ty);
-    tmp_ty->align = calc_alignof(tmp_ty);    
+    tmp_ty->align = calc_alignof(tmp_ty);
   }
 
   // set indent name token;
@@ -661,7 +659,7 @@ Type *declarator_struct(Token **rest, Token *tok, Type *parent_ty)
   if (parent_ty->kind != TY_STRUCT)
     return parent_ty;
 
-  // if found struct tag,create tag scope
+  // if not called tag name,create scope.
   Token *tag = NULL;
   if (tok->kind == TK_IDENT)
   {
@@ -669,20 +667,26 @@ Type *declarator_struct(Token **rest, Token *tok, Type *parent_ty)
     tok = tok->next;
   }
 
-  // if not declare struct defs,find tag
+  // if not declare defs,find tag
   Member head_mem, *tmp_mem;
   int cur_offset = 0;
   head_mem.next = NULL;
   tmp_mem = &head_mem;
 
-  if (tag && !equal(tok, "{"))
+  if (tag)
   {
-    if (find_tag(tag))
-    {
+
+    if (find_tag(tag) && !equal(tok, "{")){
       *rest = tok;
       return find_tag(tag);
     }
-    error("undefined struct name.");
+
+    if (find_tag(tag) && equal(tok, "{"))
+      error_at(tag->pos,"the struct is already declared.");
+
+    if (!find_tag(tag) && !equal(tok, "{"))
+      error_at(tag->pos,"undefined struct name.");
+    
   }
 
   // define struct member
@@ -701,7 +705,7 @@ Type *declarator_struct(Token **rest, Token *tok, Type *parent_ty)
 
     tmp_mem->next->ty = mem_ty;
     tmp_mem->next->name = mem_ty->ident_name_tok;
-    tmp_mem->next->offset = align_to(cur_offset,mem_ty->align);
+    tmp_mem->next->offset = align_to(cur_offset, mem_ty->align);
     cur_offset = tmp_mem->next->offset + mem_ty->size;
 
     expect(&tok, tok, ";");
@@ -711,18 +715,18 @@ Type *declarator_struct(Token **rest, Token *tok, Type *parent_ty)
 
   parent_ty->members = head_mem.next;
 
-  //set struct align and size.
+  // set struct align and size.
   ////align -> largetst align in struct member.
-  int largest_align =1;
-  for(Member *tmp_mem = parent_ty->members;tmp_mem;tmp_mem = tmp_mem->next){
-      if(tmp_mem->ty->align >= largest_align)
-          largest_align = tmp_mem->ty->align;
-  }  
+  int largest_align = 1;
+  for (Member *tmp_mem = parent_ty->members; tmp_mem; tmp_mem = tmp_mem->next)
+  {
+    if (tmp_mem->ty->align >= largest_align)
+      largest_align = tmp_mem->ty->align;
+  }
   parent_ty->align = largest_align;
-  
-  ////size -> align to total offset to members 
-  parent_ty->size = align_to(cur_offset,parent_ty->align);
-  
+
+  ////size -> align to total offset to members
+  parent_ty->size = align_to(cur_offset, parent_ty->align);
 
   if (tag)
     add_tagscope(tag, parent_ty);
@@ -776,7 +780,7 @@ statement ::=
     | "if" "(" expr ")" statement "else" statement
     | "while" "(" expr ")"  statement
     | "for" "(" (declaration_local|expr)? ";" expr? ";" expr? ";" ")"  statement
-    |declaration_local    
+    |declaration_local
     |expr ";"
 */
 Node *statement(Token **rest, Token *tok)
@@ -894,14 +898,15 @@ Node *statement(Token **rest, Token *tok)
     Type *ty;
     ty = base_type(&dummy, tok);
 
-    if (ty){
+    if (ty)
+    {
       n = declaration_local(&tok, tok);
     }
-    else{
+    else
+    {
       n = expr(&tok, tok);
       expect(&tok, tok, ";");
     }
-
   }
   *rest = tok;
   return n;
@@ -932,23 +937,21 @@ Node *declaration_local(Token **rest, Token *tok)
   // perse strcut type
   base_ty = declarator_struct(&tok, tok, base_ty);
 
-  Node *n = new_node(ND_BLOCK,NULL,NULL);
-  if(!equal(tok,";"))
+  Node *n = new_node(ND_BLOCK, NULL, NULL);
+  if (!equal(tok, ";"))
   {
     // todo declaration multi declaration
     Type *ty = declarator(&tok, tok, base_ty);
 
     n = new_node_declare_lvar(ty);
     if (consume(&tok, tok, "="))
-    n = new_node(ND_ASSIGN, n, expr(&tok, tok));
-
+      n = new_node(ND_ASSIGN, n, expr(&tok, tok));
   }
-  consume(&tok,tok,";");  
+  consume(&tok, tok, ";");
 
   *rest = tok;
   return n;
 }
-
 
 // assign ::= equality ("=" assign )?
 Node *assign(Token **rest, Token *tok)
@@ -1156,20 +1159,20 @@ Node *postfix(Token **rest, Token *tok)
       continue;
     }
 
-    //struct member
+    // struct member
     if (consume(&tok, tok, "."))
     {
-      n = new_node_member(&tok, tok,n);
+      n = new_node_member(&tok, tok, n);
       continue;
     }
 
-    // struct member(arrow operator) 
+    // struct member(arrow operator)
     // "a -> b" == "(*a).b"
     if (consume(&tok, tok, "->"))
     {
       n = new_node(ND_DEREF, n, NULL);
       ;
-      n = new_node_member(&tok, tok,n);      
+      n = new_node_member(&tok, tok, n);
       continue;
     }
 
