@@ -3,10 +3,12 @@ parse ::= global*
 global ::= base_type (declaration_global_var|declaration_function)
 declaration_function ::= declarator "(" (declaration_local("," declaration_local)?)? ")" "{" statment* "}"
 declaration_global_var ::= declarator("," declarator)* ";"
-declaration_local ::= base_type declarator_struct? (declarator ("=" expr )? ("," declarator("=" expr )? )*)? ";"
-base_type ::= "int"|"char"|"struct"
+declaration_local ::=
+     base_type (declarator_struct|declarator_union)? (declarator ("=" expr )? ("," declarator("=" expr )? )*)? ";"
+base_type ::= "int"|"char"|"struct"|"union"
 declarator ::= declarator_prefix ident declarator_suffix
-declarator_struct ::= "struct" ident "{" ( base_type declarator ";")* "}"
+declarator_struct ::=  ident? "{" ( base_type declarator ";")* "}"
+declarator_union  ::=  ident? "{" ( base_type declarator ";")* "}"
 declarator_prefix := ("*" declarator_prefix)? 
 declarator_suffix ::= ("[" num "]" declarator_suffix)?
 statement ::=

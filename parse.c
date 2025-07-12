@@ -126,31 +126,29 @@ Type *find_tag(Token *tok)
   return NULL;
 }
 
-// base_type = "int"|"char"|"struct"
+//base_type ::= "int"|"char"|"struct"|"union"
 Type *base_type(Token **rest, Token *tok)
 {
 
-  Type *ty = NULL;
+  Type *ty = calloc(1, sizeof(Type));
 
   if (equal(tok, "int"))
-  {
-    ty = calloc(1, sizeof(Type));
     ty->kind = TY_INT;
-  }
+
   if (equal(tok, "char"))
-  {
-    ty = calloc(1, sizeof(Type));
     ty->kind = TY_CHAR;
-  }
-  // struct
+
   if (equal(tok, "struct"))
-  {
-    ty = calloc(1, sizeof(Type));
     ty->kind = TY_STRUCT;
-  }
+
+  if (equal(tok, "union"))
+    ty->kind = TY_UNION;
 
   *rest = tok->next;
-  return ty;
+  if(ty->kind)
+    return ty;
+  else 
+    return NULL;  
 }
 
 // if token has expect value,read next token and return true.
@@ -382,7 +380,7 @@ Node *new_node_declare_lvar(Type *ty)
 Node *new_node_member(Token **rest, Token *tok, Node *lhs)
 {
   init_nodetype(lhs);
-  if (lhs->ty->kind != TY_STRUCT)
+  if (!(lhs->ty->kind == TY_STRUCT || lhs->ty->kind == TY_UNION))
     error("it's not struct type");
 
   if (tok->kind != TK_IDENT)
@@ -735,6 +733,88 @@ Type *declarator_struct(Token **rest, Token *tok, Type *parent_ty)
   return parent_ty;
 }
 
+
+// declarator_union ::=  ident? "{" ( base_type declarator ";")* "}"
+Type *declarator_union(Token **rest, Token *tok, Type *parent_ty)
+{
+
+  if (parent_ty->kind != TY_UNION)
+    return parent_ty;
+
+  // if not called tag name,create scope.
+  Token *tag = NULL;
+  if (tok->kind == TK_IDENT)
+  {
+    tag = tok;
+    tok = tok->next;
+  }
+
+  // if not declare defs,find tag
+  Member head_mem, *tmp_mem;
+  head_mem.next = NULL;
+  tmp_mem = &head_mem;
+
+  if (tag)
+  {
+
+    if (find_tag(tag) && !equal(tok, "{")){
+      *rest = tok;
+      return find_tag(tag);
+    }
+
+    if (find_tag(tag) && equal(tok, "{"))
+      error_at(tag->pos,"the union is already declared.");
+
+    if (!find_tag(tag) && !equal(tok, "{"))
+      error_at(tag->pos,"undefined uninon name.");
+    
+  }
+
+  // define union member
+  expect(&tok, tok, "{");
+  while (true)
+  {
+    if (equal(tok, "}"))
+      break;
+
+    tmp_mem->next = calloc(1, sizeof(Member));
+
+    Type *mem_ty = base_type(&tok, tok);
+    if (!mem_ty)
+      error_at(tok->pos, "undefined data type");
+    mem_ty = declarator(&tok, tok, mem_ty);
+
+    tmp_mem->next->ty = mem_ty;
+    tmp_mem->next->name = mem_ty->ident_name_tok;
+    tmp_mem->next->offset = 0;
+
+    expect(&tok, tok, ";");
+    tmp_mem = tmp_mem->next;
+  }
+  consume(&tok, tok, "}");
+
+  parent_ty->members = head_mem.next;
+
+  // set union align and size.
+  ////align -> largetst align in union member.
+  int largest_align = 1;
+  for (Member *tmp_mem = parent_ty->members; tmp_mem; tmp_mem = tmp_mem->next)
+  {
+    if (tmp_mem->ty->align >= largest_align)
+      largest_align = tmp_mem->ty->align;
+  }
+  parent_ty->align = largest_align;
+
+  ////size -> align of union
+  parent_ty->size = parent_ty->align;
+
+  if (tag)
+    add_tagscope(tag, parent_ty);
+
+  *rest = tok;
+  return parent_ty;
+}
+
 // declarator_prefix := ("*" declarator_prefix)?
 Type *declarator_prefix(Token **rest, Token *tok)
 {
@@ -926,7 +1006,10 @@ Node *expr(Token **rest, Token *tok)
   return n;
 }
 
-// declaration_local ::= base_type declarator_struct? (declarator ("=" expr )? ("," declarator("=" expr )? )*)? ";"
+/*
+declaration_local ::=
+     base_type (declarator_struct|declarator_union)? (declarator ("=" expr )? ("," declarator("=" expr )? )*)? ";"
+*/
 Node *declaration_local(Token **rest, Token *tok)
 {
 
@@ -934,8 +1017,9 @@ Node *declaration_local(Token **rest, Token *tok)
   if (!base_ty)
     error_at(tok->pos, "undefined data type");
 
-  // perse strcut type
+  // perse strcut or union type
   base_ty = declarator_struct(&tok, tok, base_ty);
+  base_ty = declarator_union(&tok, tok, base_ty);  
 
   Node *n = new_node(ND_BLOCK, NULL, NULL);
   if (!equal(tok, ";"))
@@ -1159,19 +1243,18 @@ Node *postfix(Token **rest, Token *tok)
       continue;
     }
 
-    // struct member
+    // struct or union member
     if (consume(&tok, tok, "."))
     {
       n = new_node_member(&tok, tok, n);
       continue;
     }
 
-    // struct member(arrow operator)
+    // struct or union member(arrow operator)
     // "a -> b" == "(*a).b"
     if (consume(&tok, tok, "->"))
     {
       n = new_node(ND_DEREF, n, NULL);
-      ;
       n = new_node_member(&tok, tok, n);
       continue;
     }

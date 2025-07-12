@@ -44,7 +44,8 @@ int calc_sizeof(Type *ty)
         return 1;
     case TY_STRUCT:
         return ty->size;
-
+    case TY_UNION:
+        return ty->size;
     default:
         error("invalid data type.");
     }
@@ -66,6 +67,8 @@ int calc_alignof(Type *ty)
     case TY_CHAR:
         return 1;
     case TY_STRUCT:
+        return ty->align;
+    case TY_UNION:
         return ty->align;
     default:
         error("invalid data type.");
