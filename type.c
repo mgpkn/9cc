@@ -42,6 +42,8 @@ int calc_sizeof(Type *ty)
         return 4;
     case TY_CHAR:
         return 1;
+    case TY_LONG:
+        return 8;
     case TY_STRUCT:
         return ty->size;
     case TY_UNION:
@@ -66,6 +68,8 @@ int calc_alignof(Type *ty)
         return 4;
     case TY_CHAR:
         return 1;
+    case TY_LONG:
+        return 8;
     case TY_STRUCT:
         return ty->align;
     case TY_UNION:
@@ -126,7 +130,7 @@ void init_nodetype(Node *n)
     case ND_LVAR:
     case ND_FUNC:
     case ND_NUM:
-        t->kind = TY_INT;
+        t->kind = TY_LONG;
         t->size = calc_sizeof(t);
         t->align = calc_alignof(t);
         n->ty = t;

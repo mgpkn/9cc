@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <inttypes.h>
 
 // #define BASE_OFFSETSIZE 8
 #define BASE_ALIGN_SIZE 8
@@ -36,7 +37,7 @@ struct Token
 {
   TokenKind kind;
   Token *next;
-  int val;   // numeric value
+  int64_t val;   // numeric value
   char *str; // string value
   int len;   // token length
   char *pos; // token word position(string)
@@ -101,7 +102,8 @@ enum TypeKind
   TY_STRUCT,
   TY_UNION,  
   TY_INT,
-  TY_CHAR
+  TY_CHAR,
+  TY_LONG
 };
 
 // 抽象構文木のノードの型
@@ -166,7 +168,6 @@ bool is_num_node(Node *n);
 bool is_ptr_node(Node *n);
 
 extern Type *ty_char;
-extern Type *ty_int;
 
 // read_file
 char *read_file(char *path);

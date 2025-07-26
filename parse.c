@@ -126,7 +126,7 @@ Type *find_tag(Token *tok)
   return NULL;
 }
 
-//base_type ::= "int"|"char"|"struct"|"union"
+// base_type ::= "int"|"char"|"long"|"struct"|"union"
 Type *base_type(Token **rest, Token *tok)
 {
 
@@ -138,6 +138,9 @@ Type *base_type(Token **rest, Token *tok)
   if (equal(tok, "char"))
     ty->kind = TY_CHAR;
 
+  if (equal(tok, "long"))
+    ty->kind = TY_LONG;
+
   if (equal(tok, "struct"))
     ty->kind = TY_STRUCT;
 
@@ -145,10 +148,10 @@ Type *base_type(Token **rest, Token *tok)
     ty->kind = TY_UNION;
 
   *rest = tok->next;
-  if(ty->kind)
+  if (ty->kind)
     return ty;
-  else 
-    return NULL;  
+  else
+    return NULL;
 }
 
 // if token has expect value,read next token and return true.
@@ -674,17 +677,17 @@ Type *declarator_struct(Token **rest, Token *tok, Type *parent_ty)
   if (tag)
   {
 
-    if (find_tag(tag) && !equal(tok, "{")){
+    if (find_tag(tag) && !equal(tok, "{"))
+    {
       *rest = tok;
       return find_tag(tag);
     }
 
     if (find_tag(tag) && equal(tok, "{"))
-      error_at(tag->pos,"the struct is already declared.");
+      error_at(tag->pos, "the struct is already declared.");
 
     if (!find_tag(tag) && !equal(tok, "{"))
-      error_at(tag->pos,"undefined struct name.");
-    
+      error_at(tag->pos, "undefined struct name.");
   }
 
   // define struct member
@@ -733,7 +736,6 @@ Type *declarator_struct(Token **rest, Token *tok, Type *parent_ty)
   return parent_ty;
 }
 
-
 // declarator_union ::=  ident? "{" ( base_type declarator ";")* "}"
 Type *declarator_union(Token **rest, Token *tok, Type *parent_ty)
 {
@@ -757,17 +759,17 @@ Type *declarator_union(Token **rest, Token *tok, Type *parent_ty)
   if (tag)
   {
 
-    if (find_tag(tag) && !equal(tok, "{")){
+    if (find_tag(tag) && !equal(tok, "{"))
+    {
       *rest = tok;
       return find_tag(tag);
     }
 
     if (find_tag(tag) && equal(tok, "{"))
-      error_at(tag->pos,"the union is already declared.");
+      error_at(tag->pos, "the union is already declared.");
 
     if (!find_tag(tag) && !equal(tok, "{"))
-      error_at(tag->pos,"undefined uninon name.");
-    
+      error_at(tag->pos, "undefined uninon name.");
   }
 
   // define union member
@@ -1019,7 +1021,7 @@ Node *declaration_local(Token **rest, Token *tok)
 
   // perse strcut or union type
   base_ty = declarator_struct(&tok, tok, base_ty);
-  base_ty = declarator_union(&tok, tok, base_ty);  
+  base_ty = declarator_union(&tok, tok, base_ty);
 
   Node *n = new_node(ND_BLOCK, NULL, NULL);
   if (!equal(tok, ";"))
@@ -1161,7 +1163,7 @@ Node *extra_sub(Node *lhs, Node *rhs, Token *tok_dummy)
 
   // pointer - num (=num + pointer)の場合はオフセットの計算
   if (is_ptr_node(lhs) && !is_ptr_node(rhs))
-    return new_node(ND_SUB, lhs, new_node(ND_MUL, rhs, new_node_num(rhs->ty->size)));
+    return new_node(ND_SUB, lhs, new_node(ND_MUL, rhs, new_node_num(lhs->ty->ptr_to->size)));
 
   // pointer - pointerはアドレスの差
   if (is_ptr_node(lhs) && is_ptr_node(rhs))

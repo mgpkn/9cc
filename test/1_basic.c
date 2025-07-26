@@ -128,9 +128,12 @@ int main()
     ASSERT(32, x);
 
     y = &x;
+    int *y2;
+    //y2 = &y+32; todo
     z = &y;
     **z = 13;
     ASSERT(13, x);
+    //ASSERT(32,y2 - &y); todo
 
     arr[0]=22;
     arr[1]=13;
@@ -169,7 +172,7 @@ int main()
     y=y+3;
     ASSERT(48,*y);
     ASSERT(22,*(y-2));
-    
+
     ASSERT(3, myadd(1, 2));
     ASSERT(50, aba(50));
     ASSERT(13, myadd(3, 10));
