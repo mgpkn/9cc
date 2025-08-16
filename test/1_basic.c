@@ -197,8 +197,7 @@ int main()
     ASSERT(24,({x; x = 3;18+3*2;}));    
 
     //comma oparator
-    x=(3,10,305);
-    ASSERT(305,x);    
+    ASSERT(305,({x=(3,10,305);}));    
 
     my_printf("##end##\n");
 
