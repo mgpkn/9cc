@@ -38,10 +38,12 @@ int calc_sizeof(Type *ty)
         return ty->array_size * calc_sizeof(ty->ptr_to);
     case TY_PTR:
         return 8;
-    case TY_INT:
-        return 4;
     case TY_CHAR:
         return 1;
+    case TY_SHORT:
+        return 2;
+    case TY_INT:
+        return 4;
     case TY_LONG:
         return 8;
     case TY_STRUCT:
@@ -64,10 +66,12 @@ int calc_alignof(Type *ty)
         return calc_alignof(ty->ptr_to);
     case TY_PTR:
         return 8;
-    case TY_INT:
-        return 4;
     case TY_CHAR:
         return 1;
+    case TY_SHORT:
+        return 2;
+    case TY_INT:
+        return 4;
     case TY_LONG:
         return 8;
     case TY_STRUCT:

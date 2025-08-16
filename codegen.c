@@ -1,7 +1,7 @@
 #include "9cc.h"
 
 static char *argreg1[] = {"dil", "sil", "dl", "cl", "r8b", "r9b"};
-// static char *argreg2[] = {"di" , "si", "dx", "cx", "r8w", "r9w"};
+static char *argreg2[] = {"di" , "si", "dx", "cx", "r8w", "r9w"};
 static char *argreg4[] = {"edi", "esi", "edx", "ecx", "r8d", "r9d"};
 static char *argreg8[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
 
@@ -30,6 +30,9 @@ void load_val(Type *ty)
   {
   case 1:
     printf("  movsx rax, BYTE PTR [rax]\n");
+    break;
+  case 2:
+    printf("  movsx rax, WORD PTR [rax]\n");
     break;
   case 4:
     printf("  movsxd rax, DWORD PTR [rax]\n");
@@ -268,6 +271,9 @@ void codegen_func(Ident *func)
     {
     case 1:
       printf("  mov [rax],%s\n", argreg1[i]);
+      break;
+    case 2:
+      printf("  mov [rax],%s\n", argreg2[i]);
       break;
     case 4:
       printf("  mov [rax],%s\n", argreg4[i]);

@@ -126,17 +126,20 @@ Type *find_tag(Token *tok)
   return NULL;
 }
 
-// base_type ::= "int"|"char"|"long"|"struct"|"union"
+// base_type ::= "char"|"short"|"int"|"long"|"struct"|"union"
 Type *base_type(Token **rest, Token *tok)
 {
 
   Type *ty = calloc(1, sizeof(Type));
 
-  if (equal(tok, "int"))
-    ty->kind = TY_INT;
-
   if (equal(tok, "char"))
     ty->kind = TY_CHAR;
+
+  if (equal(tok, "short"))
+    ty->kind = TY_SHORT;
+
+  if (equal(tok, "int"))
+    ty->kind = TY_INT;
 
   if (equal(tok, "long"))
     ty->kind = TY_LONG;

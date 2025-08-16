@@ -5,7 +5,7 @@ declaration_function ::= declarator "(" (declaration_local("," declaration_local
 declaration_global_var ::= declarator("," declarator)* ";"
 declaration_local ::=
      base_type (declarator_struct|declarator_union)? (declarator ("=" expr )? ("," declarator("=" expr )? )*)? ";"
-base_type ::= "int"|"char"|"long"|"struct"|"union"
+base_type ::= "char"|"short"|"int"|"long"|"struct"|"union"
 declarator ::= declarator_prefix ident declarator_suffix
 declarator_struct ::=  ident? "{" ( base_type declarator ";")* "}"
 declarator_union  ::=  ident? "{" ( base_type declarator ";")* "}"

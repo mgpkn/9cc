@@ -100,9 +100,10 @@ enum TypeKind
   TY_PTR,
   TY_ARRAY,
   TY_STRUCT,
-  TY_UNION,  
+  TY_UNION,
+  TY_CHAR,  
+  TY_SHORT,
   TY_INT,
-  TY_CHAR,
   TY_LONG
 };
 
