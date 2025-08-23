@@ -33,8 +33,8 @@ Ident *declaration_global_var(Token **rest, Token *tok, Type *base_ty);
 Ident *declaration_function(Token **rest, Token *tok, Type *base_ty);
 Type *declarator(Token **rest, Token *tok, Type *base_ty);
 Type *declarator_struct(Token **rest, Token *tok, Type *base_ty);
-Type *declarator_prefix(Token **rest, Token *tok);
-Type *declarator_suffix(Token **rest, Token *tok);
+Type *declarator_prefix(Token **rest, Token *tok, Type *ty);
+Type *declarator_suffix(Token **rest, Token *tok, Type *ty);
 Node *statement(Token **rest, Token *tok);
 Node *expr(Token **rest, Token *tok);
 Node *declaration_local(Token **rest, Token *tok);
@@ -606,15 +606,33 @@ Ident *declaration_function(Token **rest, Token *tok, Type *base_ty)
   return idt;
 }
 
-// declarator ::= declarator_prefix ident declarator_suffix
+// declarator ::= declarator_prefix ("(" declarator ")"|ident) declarator_suffix
 Type *declarator(Token **rest, Token *tok, Type *ty)
 {
 
-  Type *head_ty = ty, *prefix_ty, *suffix_ty, *tmp_ty;
+  Type  *prefix_ty, *suffix_ty, *tmp_ty;
   Token *tmp_ident_name_tok;
 
   // get prefix type
-  prefix_ty = declarator_prefix(&tok, tok);
+  ty = declarator_prefix(&tok, tok, ty);
+
+  /*
+  if (consume(&tok, tok, "("))
+  {
+    Token *start_tok = tok;
+
+    //skip tokens in nest and get suffix token
+    Type *dummy_ty = calloc(1,sizeof(Type)) ;
+    declarator(&tok,start_tok,dummy_ty);
+    expect(&tok, tok, ")");
+
+    suffix_ty = declarator_suffix(&tok, tok);
+    head_ty = declarator(&start_tok,start_tok,suffix_ty);
+
+    *rest = tok;
+    return head_ty;
+  }
+  */
 
   // get ident name
   if (tok->kind != TK_IDENT)
@@ -623,37 +641,19 @@ Type *declarator(Token **rest, Token *tok, Type *ty)
   tok = tok->next;
 
   // get suffix type
-  suffix_ty = declarator_suffix(&tok, tok);
+  ty = declarator_suffix(&tok, tok,ty);
 
-  // join prefix
-  if (prefix_ty)
-  {
-    for (tmp_ty = prefix_ty; tmp_ty->ptr_to; tmp_ty = tmp_ty->ptr_to)
-      ;
-    tmp_ty->ptr_to = head_ty;
-    head_ty = prefix_ty;
-  }
-
-  // join suffix
-  if (suffix_ty)
-  {
-    for (tmp_ty = suffix_ty; tmp_ty->ptr_to; tmp_ty = tmp_ty->ptr_to)
-      ;
-    tmp_ty->ptr_to = head_ty;
-    head_ty = suffix_ty;
-  }
-
-  for (tmp_ty = head_ty; tmp_ty; tmp_ty = tmp_ty->ptr_to)
+  for (tmp_ty = ty; tmp_ty; tmp_ty = tmp_ty->ptr_to)
   {
     tmp_ty->size = calc_sizeof(tmp_ty);
     tmp_ty->align = calc_alignof(tmp_ty);
   }
 
   // set indent name token;
-  head_ty->ident_name_tok = tmp_ident_name_tok;
+  ty->ident_name_tok = tmp_ident_name_tok;
 
   *rest = tok;
-  return head_ty;
+  return ty;
 }
 
 // declarator_struct ::=  ident? "{" ( base_type declarator ";")* "}"
@@ -821,36 +821,38 @@ Type *declarator_union(Token **rest, Token *tok, Type *parent_ty)
 }
 
 // declarator_prefix := ("*" declarator_prefix)?
-Type *declarator_prefix(Token **rest, Token *tok)
+Type *declarator_prefix(Token **rest, Token *tok, Type *ty)
 {
 
-  Type *ty = NULL;
+  Type *tmp_ty;
 
   // create dereferencer
   if (consume(&tok, tok, "*"))
   {
-    ty = calloc(1, sizeof(Type));
-    ty->kind = TY_PTR;
-    ty->ptr_to = declarator_prefix(&tok, tok);
+    tmp_ty = calloc(1, sizeof(Type));
+    tmp_ty->kind = TY_PTR;
+    tmp_ty->ptr_to = ty;
+    ty = declarator_prefix(&tok, tok, tmp_ty);
   }
   *rest = tok;
   return ty;
 }
 
 // declarator_suffix ::= ("[" num "]" declarator_suffix)?
-Type *declarator_suffix(Token **rest, Token *tok)
+Type *declarator_suffix(Token **rest, Token *tok,Type *ty)
 {
 
-  Type *ty = NULL;
+  Type *tmp_ty = NULL;
 
   // create array type
   if (consume(&tok, tok, "["))
   {
-    ty = calloc(1, sizeof(Type));
-    ty->kind = TY_ARRAY;
-    ty->array_size = expect_number(&tok, tok);
+    tmp_ty = calloc(1, sizeof(Type));
+    tmp_ty->kind = TY_ARRAY;
+    tmp_ty->array_size = expect_number(&tok, tok);
     expect(&tok, tok, "]");
-    ty->ptr_to = declarator_suffix(&tok, tok);
+    tmp_ty->ptr_to = ty;
+    ty = declarator_suffix(&tok, tok,tmp_ty);
   }
 
   *rest = tok;
