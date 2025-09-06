@@ -12,15 +12,17 @@ int main(int argc, char **argv)
     return 1;
   }
 
+  //read code string from file.
   filename = calloc(1,sizeof(char)*500);
   code = read_file(argv[1]);
 
+  //create token list.
   Token *tok = tokenize(code);
 
-  //ノードの集団を生成  
+  //create node list.
   Ident *prog_list = parse(tok);
   
-  //アセンブリの出力
+  //emit assemble code 
   codegen(prog_list);
   
   return 0;

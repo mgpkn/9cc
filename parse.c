@@ -610,29 +610,28 @@ Ident *declaration_function(Token **rest, Token *tok, Type *base_ty)
 Type *declarator(Token **rest, Token *tok, Type *ty)
 {
 
-  Type  *prefix_ty, *suffix_ty, *tmp_ty;
   Token *tmp_ident_name_tok;
 
   // get prefix type
   ty = declarator_prefix(&tok, tok, ty);
 
-  /*
+
   if (consume(&tok, tok, "("))
   {
-    Token *start_tok = tok;
+    Token *nest_start_tok = tok;
 
     //skip tokens in nest and get suffix token
     Type *dummy_ty = calloc(1,sizeof(Type)) ;
-    declarator(&tok,start_tok,dummy_ty);
+    declarator(&tok,nest_start_tok,dummy_ty);
     expect(&tok, tok, ")");
 
-    suffix_ty = declarator_suffix(&tok, tok);
-    head_ty = declarator(&start_tok,start_tok,suffix_ty);
+    ty = declarator_suffix(&tok, tok,ty);
+    ty = declarator(&nest_start_tok,nest_start_tok,ty);
 
     *rest = tok;
-    return head_ty;
+    return ty;
   }
-  */
+
 
   // get ident name
   if (tok->kind != TK_IDENT)
@@ -642,8 +641,8 @@ Type *declarator(Token **rest, Token *tok, Type *ty)
 
   // get suffix type
   ty = declarator_suffix(&tok, tok,ty);
-
-  for (tmp_ty = ty; tmp_ty; tmp_ty = tmp_ty->ptr_to)
+  
+  for (Type *tmp_ty = ty; tmp_ty; tmp_ty = tmp_ty->ptr_to)
   {
     tmp_ty->size = calc_sizeof(tmp_ty);
     tmp_ty->align = calc_alignof(tmp_ty);
