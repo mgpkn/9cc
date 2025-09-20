@@ -101,6 +101,7 @@ enum TypeKind
   TY_ARRAY,
   TY_STRUCT,
   TY_UNION,
+  TY_VOID,
   TY_CHAR,  
   TY_SHORT,
   TY_INT,

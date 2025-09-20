@@ -126,11 +126,14 @@ Type *find_tag(Token *tok)
   return NULL;
 }
 
-// base_type ::= "char"|"short"|"int"|"long"|"struct"|"union"
+// base_type ::= "void"|"char"|"short"|"int"|"long"|"struct"|"union"
 Type *base_type(Token **rest, Token *tok)
 {
 
   Type *ty = calloc(1, sizeof(Type));
+
+  if (equal(tok, "void"))
+    ty->kind = TY_VOID;
 
   if (equal(tok, "char"))
     ty->kind = TY_CHAR;
@@ -615,23 +618,21 @@ Type *declarator(Token **rest, Token *tok, Type *ty)
   // get prefix type
   ty = declarator_prefix(&tok, tok, ty);
 
-
   if (consume(&tok, tok, "("))
   {
     Token *nest_start_tok = tok;
 
-    //skip tokens in nest and get suffix token
-    Type *dummy_ty = calloc(1,sizeof(Type)) ;
-    declarator(&tok,nest_start_tok,dummy_ty);
+    // skip tokens in nest and get suffix token
+    Type *dummy_ty = calloc(1, sizeof(Type));
+    declarator(&tok, nest_start_tok, dummy_ty);
     expect(&tok, tok, ")");
 
-    ty = declarator_suffix(&tok, tok,ty);
-    ty = declarator(&nest_start_tok,nest_start_tok,ty);
+    ty = declarator_suffix(&tok, tok, ty);
+    ty = declarator(&nest_start_tok, nest_start_tok, ty);
 
     *rest = tok;
     return ty;
   }
-
 
   // get ident name
   if (tok->kind != TK_IDENT)
@@ -640,8 +641,8 @@ Type *declarator(Token **rest, Token *tok, Type *ty)
   tok = tok->next;
 
   // get suffix type
-  ty = declarator_suffix(&tok, tok,ty);
-  
+  ty = declarator_suffix(&tok, tok, ty);
+
   for (Type *tmp_ty = ty; tmp_ty; tmp_ty = tmp_ty->ptr_to)
   {
     tmp_ty->size = calc_sizeof(tmp_ty);
@@ -838,7 +839,7 @@ Type *declarator_prefix(Token **rest, Token *tok, Type *ty)
 }
 
 // declarator_suffix ::= ("[" num "]" declarator_suffix)?
-Type *declarator_suffix(Token **rest, Token *tok,Type *ty)
+Type *declarator_suffix(Token **rest, Token *tok, Type *ty)
 {
 
   Type *tmp_ty = NULL;
@@ -851,7 +852,7 @@ Type *declarator_suffix(Token **rest, Token *tok,Type *ty)
     tmp_ty->array_size = expect_number(&tok, tok);
     expect(&tok, tok, "]");
     tmp_ty->ptr_to = ty;
-    ty = declarator_suffix(&tok, tok,tmp_ty);
+    ty = declarator_suffix(&tok, tok, tmp_ty);
   }
 
   *rest = tok;
@@ -1035,7 +1036,11 @@ Node *declaration_local(Token **rest, Token *tok)
 
     n = new_node_declare_lvar(ty);
     if (consume(&tok, tok, "="))
+    {
+      if (ty->kind == TY_VOID)
+        error("can't assign value to void variable.");
       n = new_node(ND_ASSIGN, n, expr(&tok, tok));
+    }
   }
   consume(&tok, tok, ";");
 
@@ -1150,7 +1155,7 @@ Node *extra_add(Node *lhs, Node *rhs, Token *tok_dummy)
     return new_node(ND_ADD, lhs, n);
   }
 
-  error("invalid types addtion.");
+  error("invalid type addtion.");
   return NULL;
 }
 

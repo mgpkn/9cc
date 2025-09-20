@@ -197,7 +197,13 @@ int main()
     ASSERT(24,({x; x = 3;18+3*2;}));    
 
     //comma oparator
-    ASSERT(305,({x=(3,10,305);}));    
+    ASSERT(305,({x=(3,10,305);}));   
+    
+    //type void
+    void *vd;
+    ASSERT(8,sizeof(vd)); 
+    
+    //void *vd2 = 10;//asssing error
 
     my_printf("##end##\n");
 
