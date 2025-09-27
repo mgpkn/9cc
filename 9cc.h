@@ -157,6 +157,7 @@ struct Ident
 
 // parse
 Ident *parse(Token *token);
+bool equal(Token *tok, char *op_str);
 
 // codegen
 void codegen(Ident *func_list);
@@ -168,6 +169,7 @@ int align_to(int offset, int align);
 void init_nodetype(Node *n);
 bool is_num_node(Node *n);
 bool is_ptr_node(Node *n);
+bool is_typename(Token *tok);
 
 extern Type *ty_char;
 

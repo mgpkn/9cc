@@ -126,34 +126,88 @@ Type *find_tag(Token *tok)
   return NULL;
 }
 
-// base_type ::= "void"|"char"|"short"|"int"|"long"|"struct"|"union"
+// base_type ::= ("void"|"char"|"short"|"int"|"long"|"struct"|"union")+
 Type *base_type(Token **rest, Token *tok)
 {
 
+  enum
+  {
+    VOID = 1 << 0,
+    CHAR = 1 << 2,
+    SHORT = 1 << 4,
+    INT = 1 << 6,
+    LONG = 1 << 8,
+    OTHER = 1 << 10
+  };
+
   Type *ty = calloc(1, sizeof(Type));
+  int ty_counter = 0;
 
-  if (equal(tok, "void"))
-    ty->kind = TY_VOID;
+  // accumulate type token
+  while (is_typename(tok))
+  {
 
-  if (equal(tok, "char"))
-    ty->kind = TY_CHAR;
+    if (equal(tok, "struct"))
+    {
+      ty->kind = TY_STRUCT;
+      ty_counter += OTHER;
+      tok = tok->next;
+      break;
+    }
 
-  if (equal(tok, "short"))
-    ty->kind = TY_SHORT;
+    if (equal(tok, "union"))
+    {
+      ty->kind = TY_UNION;
+      ty_counter += OTHER;
+      tok = tok->next;
+      break;
+    }
 
-  if (equal(tok, "int"))
-    ty->kind = TY_INT;
+    // decide base type
+    if (equal(tok, "void"))
+      ty_counter += VOID;
 
-  if (equal(tok, "long"))
-    ty->kind = TY_LONG;
+    if (equal(tok, "char"))
+      ty_counter += CHAR;
 
-  if (equal(tok, "struct"))
-    ty->kind = TY_STRUCT;
+    if (equal(tok, "short"))
+      ty_counter += SHORT;
 
-  if (equal(tok, "union"))
-    ty->kind = TY_UNION;
+    if (equal(tok, "int"))
+      ty_counter += INT;
 
-  *rest = tok->next;
+    if (equal(tok, "long"))
+      ty_counter += LONG;
+
+    switch (ty_counter)
+    {
+    case OTHER: //"struct" || "union"
+      break;
+    case VOID:
+      ty->kind = TY_VOID;
+      break;
+    case CHAR:
+      ty->kind = TY_CHAR;
+      break;
+    case SHORT:
+    case SHORT+INT:
+      ty->kind = TY_SHORT;
+      break;
+    case INT:
+      ty->kind = TY_INT;
+      break;    
+    case LONG:
+    case LONG+INT:
+      ty->kind = TY_LONG;
+      break;
+    default:
+      error_at(tok->pos, "invalid type token.");
+    }
+
+    tok = tok->next;
+  }
+
+  *rest = tok;
   if (ty->kind)
     return ty;
   else

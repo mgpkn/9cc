@@ -34,7 +34,7 @@ int calc_sizeof(Type *ty)
     switch (ty->kind)
     {
     case TY_ARRAY:
-        //return multiple of array size and base type size.
+        // return multiple of array size and base type size.
         return ty->array_size * calc_sizeof(ty->ptr_to);
     case TY_PTR:
         return 8;
@@ -64,7 +64,7 @@ int calc_alignof(Type *ty)
     switch (ty->kind)
     {
     case TY_ARRAY:
-        //return base type align.
+        // return base type align.
         return calc_alignof(ty->ptr_to);
     case TY_PTR:
         return 8;
@@ -166,4 +166,25 @@ void init_nodetype(Node *n)
     default:
         return;
     }
+}
+
+bool is_typename(Token *tok)
+{
+
+    if (equal(tok, "struct"))
+        return true;
+    if (equal(tok, "union"))
+        return true;    
+    if (equal(tok, "void"))
+        return true;    
+    if (equal(tok, "char"))
+        return true;
+    if (equal(tok, "short"))
+        return true;
+    if (equal(tok, "int"))
+        return true;
+    if (equal(tok, "long"))
+        return true;
+
+    return false;
 }
