@@ -105,7 +105,8 @@ enum TypeKind
   TY_CHAR,  
   TY_SHORT,
   TY_INT,
-  TY_LONG
+  TY_LONG,
+  TY_LLONG
 };
 
 // 抽象構文木のノードの型

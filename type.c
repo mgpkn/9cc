@@ -48,6 +48,8 @@ int calc_sizeof(Type *ty)
         return 4;
     case TY_LONG:
         return 8;
+    case TY_LLONG:
+        return 8;
     case TY_STRUCT:
         return ty->size;
     case TY_UNION:
@@ -77,6 +79,8 @@ int calc_alignof(Type *ty)
     case TY_INT:
         return 4;
     case TY_LONG:
+        return 8;
+    case TY_LLONG:
         return 8;
     case TY_STRUCT:
         return ty->align;

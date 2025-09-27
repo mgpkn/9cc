@@ -200,6 +200,10 @@ Type *base_type(Token **rest, Token *tok)
     case LONG+INT:
       ty->kind = TY_LONG;
       break;
+    case LONG+LONG:
+    case LONG+LONG+INT:
+      ty->kind = TY_LLONG;
+      break;
     default:
       error_at(tok->pos, "invalid type token.");
     }
