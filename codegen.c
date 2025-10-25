@@ -301,19 +301,6 @@ void assign_lvar_offsets(Ident *prog_list)
     if (!(cur_func->is_function))
       continue;
 
-
-    /*
-    idt->next = locals;
-    locals = idt;
-  
-    // accumulate local variable offset.
-    idt->offset = idt->ty->size;      
-    if (locals->next)
-      idt->offset = idt->offset + locals->next->offset;
-    */
-
-
-
     int offset = 0;
     for (Ident *cur_lvar = cur_func->locals; cur_lvar; cur_lvar = cur_lvar->next)
     {

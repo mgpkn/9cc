@@ -1,10 +1,11 @@
 ```
 parse ::= global*
 global ::= base_type (declaration_global_var|declaration_function)
-declaration_function ::= declarator "(" (declaration_local("," declaration_local)?)? ")" "{" statment* "}"
+declaration_function ::= declarator "(" (declaration_param("," declaration_param)*)? ")" "{" statment* "}"
 declaration_global_var ::= declarator("," declarator)* ";"
 declaration_local ::=
-     base_type (declarator_struct|declarator_union)? (declarator ("=" expr )? ("," declarator("=" expr )? )*)? ";"
+     base_type (declarator_struct|declarator_union)? declarator ("=" expr )? ("," declarator("=" expr )? )* ";"
+declaration_param ::= base_type (declarator_struct|declarator_union)? declarator
 base_type ::= ("void"|"char"|"short"|"int"|"long"|"struct"|"union")+
 declarator ::= declarator_prefix ("(" declarator ")"|ident) declarator_suffix
 declarator_struct ::=  ident? "{" ( base_type declarator ";")* "}"
@@ -20,7 +21,6 @@ statement ::=
     | "for" "(" (declaration_local|expr)? ";" expr? ";" expr? ";" ")"  statement
     |declaration_local    
     |expr ";"
-declaration_local ::= base_type declarator ("=" expr )? ("," declarator("=" expr )? )*
 expr ::= assgin ("," expr )?
 assign ::= equality ("=" assign )?
 equality ::= relational ("==" relational |"!=" relational )*

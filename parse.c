@@ -38,6 +38,7 @@ Type *declarator_suffix(Token **rest, Token *tok, Type *ty);
 Node *statement(Token **rest, Token *tok);
 Node *expr(Token **rest, Token *tok);
 Node *declaration_local(Token **rest, Token *tok);
+Node *declaration_param(Token **rest, Token *tok);
 Type *declaration_suffix_array(Token **rest, Token *tok);
 Node *assign(Token **rest, Token *tok);
 Node *equality(Token **rest, Token *tok);
@@ -190,18 +191,18 @@ Type *base_type(Token **rest, Token *tok)
       ty->kind = TY_CHAR;
       break;
     case SHORT:
-    case SHORT+INT:
+    case SHORT + INT:
       ty->kind = TY_SHORT;
       break;
     case INT:
       ty->kind = TY_INT;
-      break;    
+      break;
     case LONG:
-    case LONG+INT:
+    case LONG + INT:
       ty->kind = TY_LONG;
       break;
-    case LONG+LONG:
-    case LONG+LONG+INT:
+    case LONG + LONG:
+    case LONG + LONG + INT:
       ty->kind = TY_LLONG;
       break;
     default:
@@ -597,7 +598,7 @@ Ident *declaration_global_var(Token **rest, Token *tok, Type *base_ty)
   return idt;
 }
 
-// declaration_function ::= declarator "(" (declaration_local("," declaration_local)?)? ")" "{" statment* "}"
+// declaration_function ::= declarator "(" (declaration_param("," declaration_param)*)? ")" "{" statment* "}"
 Ident *declaration_function(Token **rest, Token *tok, Type *base_ty)
 {
 
@@ -638,7 +639,7 @@ Ident *declaration_function(Token **rest, Token *tok, Type *base_ty)
     if (equal(tok, ")"))
       break;
 
-    cur_arg->next = declaration_local(&tok, tok);
+    cur_arg->next = declaration_param(&tok, tok);
     cur_arg = cur_arg->next;
     init_nodetype(cur_arg);
 
@@ -721,7 +722,7 @@ Type *declarator_struct(Token **rest, Token *tok, Type *parent_ty)
   if (parent_ty->kind != TY_STRUCT)
     return parent_ty;
 
-  // if not called tag name,create scope.
+  // if not set tag name,create new scope.
   Token *tag = NULL;
   if (tok->kind == TK_IDENT)
   {
@@ -1073,7 +1074,7 @@ Node *expr(Token **rest, Token *tok)
 
 /*
 declaration_local ::=
-     base_type (declarator_struct|declarator_union)? (declarator ("=" expr )? ("," declarator("=" expr )? )*)? ";"
+     base_type (declarator_struct|declarator_union)? declarator ("=" expr )? ("," declarator("=" expr )? )* ";"
 */
 Node *declaration_local(Token **rest, Token *tok)
 {
@@ -1087,7 +1088,7 @@ Node *declaration_local(Token **rest, Token *tok)
   base_ty = declarator_union(&tok, tok, base_ty);
 
   Node *n = new_node(ND_BLOCK, NULL, NULL);
-  if (!equal(tok, ";"))
+  while(!equal(tok, ";"))
   {
     // todo declaration multi declaration
     Type *ty = declarator(&tok, tok, base_ty);
@@ -1101,6 +1102,28 @@ Node *declaration_local(Token **rest, Token *tok)
     }
   }
   consume(&tok, tok, ";");
+
+  *rest = tok;
+  return n;
+}
+
+/*
+declaration_param ::= base_type (declarator_struct|declarator_union)? declarator
+*/
+Node *declaration_param(Token **rest, Token *tok)
+{
+
+  Type *base_ty = base_type(&tok, tok);
+  if (!base_ty)
+    error_at(tok->pos, "undefined data type");
+
+  // perse strcut or union type
+  base_ty = declarator_struct(&tok, tok, base_ty);
+  base_ty = declarator_union(&tok, tok, base_ty);
+
+  Node *n = new_node(ND_BLOCK, NULL, NULL);
+  Type *ty = declarator(&tok, tok, base_ty);
+  n = new_node_declare_lvar(ty);
 
   *rest = tok;
   return n;
