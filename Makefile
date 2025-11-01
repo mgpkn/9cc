@@ -1,4 +1,5 @@
-CFLAGS=-std=c11 -g -fno-common
+CC = gcc
+CFLAGS=-std=c11 -g -fno-common -static
 
 SRCS=$(wildcard *.c)
 SRC_COMMON=common/common.c
