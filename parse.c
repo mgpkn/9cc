@@ -1074,7 +1074,7 @@ Node *expr(Token **rest, Token *tok)
 
 /*
 declaration_local ::=
-     base_type (declarator_struct|declarator_union)? declarator ("=" expr )? ("," declarator("=" expr )? )* ";"
+    base_type (declarator_struct|declarator_union)? declarator ("=" assign )? ("," declarator("=" assign )? )* ";"
 */
 Node *declaration_local(Token **rest, Token *tok)
 {
@@ -1087,22 +1087,33 @@ Node *declaration_local(Token **rest, Token *tok)
   base_ty = declarator_struct(&tok, tok, base_ty);
   base_ty = declarator_union(&tok, tok, base_ty);
 
-  Node *n = new_node(ND_BLOCK, NULL, NULL);
-  while(!equal(tok, ";"))
+  Node *n = new_node(ND_BLOCK, NULL, NULL), block_head, *cur_n;
+  block_head.next = NULL;
+  cur_n = &block_head;
+
+  while (!equal(tok, ";"))
   {
-    // todo declaration multi declaration
+
+    if (block_head.next)
+      expect(&tok, tok, ",");
+
     Type *ty = declarator(&tok, tok, base_ty);
 
-    n = new_node_declare_lvar(ty);
+    Node *tmp_n = new_node_declare_lvar(ty);
     if (consume(&tok, tok, "="))
     {
       if (ty->kind == TY_VOID)
         error("can't assign value to void variable.");
-      n = new_node(ND_ASSIGN, n, expr(&tok, tok));
+      tmp_n = new_node(ND_ASSIGN, tmp_n, assign(&tok, tok));
     }
+
+    cur_n->next = tmp_n;
+    cur_n = cur_n->next;
   }
+
   consume(&tok, tok, ";");
 
+  n->block_head = block_head.next;
   *rest = tok;
   return n;
 }
