@@ -5,6 +5,8 @@ declaration_function ::= declarator "(" (declaration_param("," declaration_param
 declaration_global_var ::= declarator("," declarator)* ";"
 declaration_local ::=
     base_type (declarator_struct|declarator_union)? declarator ("=" assign )? ("," declarator("=" assign )? )* ";"
+type_def ::=
+    base_type  (declarator_struct|declarator_union)? declarator ("," declarator )*
 declaration_param ::= base_type (declarator_struct|declarator_union)? declarator
 base_type ::= ("void"|"char"|"short"|"int"|"long"|"struct"|"union")+
 declarator ::= declarator_prefix ("(" declarator ")"|ident) declarator_suffix
@@ -15,11 +17,12 @@ declarator_suffix ::= ("[" num "]" declarator_suffix)?
 statement ::=
     |";"
     |"{" statement? "}"
-    | "return" expr ";"
-    | "if" "(" expr ")" statement "else" statement
-    | "while" "(" expr ")"  statement
-    | "for" "(" (declaration_local|expr)? ";" expr? ";" expr? ";" ")"  statement
-    |declaration_local    
+    |"return " expr ";"
+    |"if" "(" expr ")" statement "else" statement
+    |"while" "(" expr ")"  statement
+    |"for" "(" (declaration_local|expr)? ";" expr? ";" expr? ";" ")"  statement
+    |type_def
+    |declaration_local
     |expr ";"
 expr ::= assgin ("," expr )?
 assign ::= equality ("=" assign )?

@@ -16,12 +16,21 @@ struct TagScope
   TagScope *next;
 };
 
+typedef struct TypeDefScope TypeDefScope;
+struct TypeDefScope
+{
+  char *name;
+  Type *org_ty;
+  TypeDefScope *next;
+};
+
 typedef struct Scope Scope;
 struct Scope
 {
   Scope *next;
   VarScope *vars;
   TagScope *tags;
+  TypeDefScope *tdfs;
 };
 
 static Scope *cur_scope;
@@ -37,6 +46,7 @@ Type *declarator_prefix(Token **rest, Token *tok, Type *ty);
 Type *declarator_suffix(Token **rest, Token *tok, Type *ty);
 Node *statement(Token **rest, Token *tok);
 Node *expr(Token **rest, Token *tok);
+Node *type_def(Token **rest, Token *tok);
 Node *declaration_local(Token **rest, Token *tok);
 Node *declaration_param(Token **rest, Token *tok);
 Type *declaration_suffix_array(Token **rest, Token *tok);
@@ -113,116 +123,11 @@ bool equal_token(Token *tok1, Token *tok2)
   return false;
 }
 
-// check if tag is already declared
-Type *find_tag(Token *tok)
-{
-  for (Scope *sc = cur_scope; sc; sc = sc->next)
-  {
-    for (TagScope *tsc = sc->tags; tsc; tsc = tsc->next)
-    {
-      if (equal(tok, tsc->name))
-        return tsc->ty;
-    }
-  }
-  return NULL;
-}
-
-// base_type ::= ("void"|"char"|"short"|"int"|"long"|"struct"|"union")+
-Type *base_type(Token **rest, Token *tok)
-{
-
-  enum
-  {
-    VOID = 1 << 0,
-    CHAR = 1 << 2,
-    SHORT = 1 << 4,
-    INT = 1 << 6,
-    LONG = 1 << 8,
-    OTHER = 1 << 10
-  };
-
-  Type *ty = calloc(1, sizeof(Type));
-  int ty_counter = 0;
-
-  // accumulate type token
-  while (is_typename(tok))
-  {
-
-    if (equal(tok, "struct"))
-    {
-      ty->kind = TY_STRUCT;
-      ty_counter += OTHER;
-      tok = tok->next;
-      break;
-    }
-
-    if (equal(tok, "union"))
-    {
-      ty->kind = TY_UNION;
-      ty_counter += OTHER;
-      tok = tok->next;
-      break;
-    }
-
-    // decide base type
-    if (equal(tok, "void"))
-      ty_counter += VOID;
-
-    if (equal(tok, "char"))
-      ty_counter += CHAR;
-
-    if (equal(tok, "short"))
-      ty_counter += SHORT;
-
-    if (equal(tok, "int"))
-      ty_counter += INT;
-
-    if (equal(tok, "long"))
-      ty_counter += LONG;
-
-    switch (ty_counter)
-    {
-    case OTHER: //"struct" || "union"
-      break;
-    case VOID:
-      ty->kind = TY_VOID;
-      break;
-    case CHAR:
-      ty->kind = TY_CHAR;
-      break;
-    case SHORT:
-    case SHORT + INT:
-      ty->kind = TY_SHORT;
-      break;
-    case INT:
-      ty->kind = TY_INT;
-      break;
-    case LONG:
-    case LONG + INT:
-      ty->kind = TY_LONG;
-      break;
-    case LONG + LONG:
-    case LONG + LONG + INT:
-      ty->kind = TY_LLONG;
-      break;
-    default:
-      error_at(tok->pos, "invalid type token.");
-    }
-
-    tok = tok->next;
-  }
-
-  *rest = tok;
-  if (ty->kind)
-    return ty;
-  else
-    return NULL;
-}
 
 // if token has expect value,read next token and return true.
 bool consume(Token **rest, Token *tok, char *op)
 {
-  if (tok->kind != TK_KEYWORD || strlen(op) != tok->len || strncmp(tok->pos, op, strlen(op)) != 0)
+  if (strlen(op) != tok->len || strncmp(tok->pos, op, strlen(op)) != 0)
     return false;
   *rest = tok->next;
   return true;
@@ -288,7 +193,6 @@ void add_tagscope(Token *tok, Type *ty)
   cur_scope->tags = ts;
 }
 
-// check if the variable is already declared
 Ident *find_var(Token *tok)
 {
   for (Scope *sc = cur_scope; sc; sc = sc->next)
@@ -301,6 +205,33 @@ Ident *find_var(Token *tok)
   }
 
   return NULL;
+}
+
+Type *find_tag(Token *tok)
+{
+  for (Scope *sc = cur_scope; sc; sc = sc->next)
+  {
+    for (TagScope *tsc = sc->tags; tsc; tsc = tsc->next)
+    {
+      if (equal(tok, tsc->name))
+        return tsc->ty;
+    }
+  }
+  return NULL;
+}
+
+Type *find_typedef(Token *tok){
+
+  for (Scope *sc = cur_scope; sc; sc = sc->next)
+  {
+    for (TypeDefScope *tdf = sc->tdfs; tdf; tdf = tdf->next)
+    {
+      if (equal(tok, tdf->name))
+        return tdf->org_ty;
+    }
+  }
+  return NULL;
+
 }
 
 Ident *add_globals(Ident *tar)
@@ -317,6 +248,112 @@ Ident *add_globals(Ident *tar)
     tmp = tmp->next;
   tmp->next = tar;
   return tmp->next;
+}
+
+// base_type ::= ("void"|"char"|"short"|"int"|"long"|"struct"|"union")+
+Type *base_type(Token **rest, Token *tok)
+{
+
+  enum
+  {
+    VOID = 1 << 0,
+    CHAR = 1 << 2,
+    SHORT = 1 << 4,
+    INT = 1 << 6,
+    LONG = 1 << 8,
+    OTHER = 1 << 10
+  };
+
+  Type *ty;
+  int ty_counter = 0;
+
+  bool is_first = true;
+
+  // accumulate type token
+  while (is_typename(tok))
+  {
+    is_first = false;
+
+    ty = calloc(1, sizeof(Type));
+    Type *def_ty =  find_typedef(tok);
+
+    if(def_ty){
+      ty = def_ty;
+      ty_counter += OTHER;
+      tok = tok->next;
+      break;
+    }
+
+    if (equal(tok, "struct"))
+    {
+      ty->kind = TY_STRUCT;
+      ty_counter += OTHER;
+      tok = tok->next;
+      break;
+    }
+
+    if (equal(tok, "union"))
+    {
+      ty->kind = TY_UNION;
+      ty_counter += OTHER;
+      tok = tok->next;
+      break;
+    }
+  
+    // decide base type
+    if (equal(tok, "void"))
+      ty_counter += VOID;
+
+    if (equal(tok, "char"))
+      ty_counter += CHAR;
+
+    if (equal(tok, "short"))
+      ty_counter += SHORT;
+
+    if (equal(tok, "int"))
+      ty_counter += INT;
+
+    if (equal(tok, "long"))
+      ty_counter += LONG;
+
+    switch (ty_counter)
+    {
+
+    case VOID:
+      ty->kind = TY_VOID;
+      break;
+    case CHAR:
+      ty->kind = TY_CHAR;
+      break;
+    case SHORT:
+    case SHORT + INT:
+      ty->kind = TY_SHORT;
+      break;
+    case INT:
+      ty->kind = TY_INT;
+      break;
+    case LONG:
+    case LONG + INT:
+      ty->kind = TY_LONG;
+      break;
+    case LONG + LONG:
+    case LONG + LONG + INT:
+      ty->kind = TY_LLONG;
+      break;
+    case OTHER: //"struct" || "union" || typedefs
+      error_at(tok->pos, "unreachalble case.");     
+    default:
+      error_at(tok->pos, "invalid type token.");
+    }
+
+    tok = tok->next;
+  }
+
+  if(is_first)
+    error_at(tok->pos, "invalid type token.");
+
+  *rest = tok;
+  return ty;
 }
 
 static Ident *declaration_str(Token *tok)
@@ -442,7 +479,7 @@ Node *new_node_declare_lvar(Type *ty)
   add_varscope(idt);
 
   return new_node_var(&(ty->ident_name_tok), ty->ident_name_tok);
-  ;
+  
 }
 
 Node *new_node_member(Token **rest, Token *tok, Node *lhs)
@@ -763,7 +800,7 @@ Type *declarator_struct(Token **rest, Token *tok, Type *parent_ty)
 
     Type *mem_ty = base_type(&tok, tok);
     if (!mem_ty)
-      error_at(tok->pos, "undefined data type");
+      error_at(tok->pos, "undefined data type.");
     mem_ty = declarator(&tok, tok, mem_ty);
 
     tmp_mem->next->ty = mem_ty;
@@ -845,7 +882,7 @@ Type *declarator_union(Token **rest, Token *tok, Type *parent_ty)
 
     Type *mem_ty = base_type(&tok, tok);
     if (!mem_ty)
-      error_at(tok->pos, "undefined data type");
+      error_at(tok->pos, "undefined data type.");
     mem_ty = declarator(&tok, tok, mem_ty);
 
     tmp_mem->next->ty = mem_ty;
@@ -922,10 +959,11 @@ Type *declarator_suffix(Token **rest, Token *tok, Type *ty)
 statement ::=
     |";"
     |"{" statement? "}"
-    | "return " expr ";"
-    | "if" "(" expr ")" statement "else" statement
-    | "while" "(" expr ")"  statement
-    | "for" "(" (declaration_local|expr)? ";" expr? ";" expr? ";" ")"  statement
+    |"return " expr ";"
+    |"if" "(" expr ")" statement "else" statement
+    |"while" "(" expr ")"  statement
+    |"for" "(" (declaration_local|expr)? ";" expr? ";" expr? ";" ")"  statement
+    |type_def
     |declaration_local
     |expr ";"
 */
@@ -1032,6 +1070,8 @@ Node *statement(Token **rest, Token *tok)
       *rest = tok;
       return n;
     }
+    else if (equal(tok, "typedef"))
+        n = type_def(&tok,tok);
     else
     {
       n = expr(&tok, tok);
@@ -1040,14 +1080,8 @@ Node *statement(Token **rest, Token *tok)
   }
   else
   {
-    Token *dummy;
-    Type *ty;
-    ty = base_type(&dummy, tok);
-
-    if (ty)
-    {
-      n = declaration_local(&tok, tok);
-    }
+    if (is_typename(tok))
+        n = declaration_local(&tok, tok);
     else
     {
       n = expr(&tok, tok);
@@ -1072,6 +1106,48 @@ Node *expr(Token **rest, Token *tok)
   return n;
 }
 
+
+/*
+type_def ::=
+    base_type  (declarator_struct|declarator_union)? declarator ("," declarator )*
+*/
+Node *type_def(Token **rest, Token *tok){
+
+  if(!consume(&tok, tok, "typedef"))
+    error_at(tok->pos, "invalid syntax.");
+
+  Type *base_ty = base_type(&tok, tok);
+  if (!base_ty)
+    error_at(tok->pos, "undefined data type.");
+
+  // perse strcut or union type
+  base_ty = declarator_struct(&tok, tok, base_ty);
+  base_ty = declarator_union(&tok, tok, base_ty);
+
+  bool is_first = true;
+  while (true)
+  {
+    if (!is_first)
+      expect(&tok, tok, ",");
+    is_first = false;    
+
+    Type *ty = declarator(&tok, tok, base_ty);
+    TypeDefScope *tdf = calloc(1, sizeof(TypeDefScope));
+    tdf->name = strndup(ty->ident_name_tok ->pos, ty->ident_name_tok ->len);
+    tdf->org_ty = ty;
+    tdf->next = cur_scope->tdfs;
+    cur_scope->tdfs = tdf;    
+
+    if(equal(tok,";"))
+      break;
+
+  }
+
+  Node *n = new_node(ND_BLOCK, NULL, NULL);
+  *rest = tok;
+  return n;
+}
+
 /*
 declaration_local ::=
     base_type (declarator_struct|declarator_union)? declarator ("=" assign )? ("," declarator("=" assign )? )* ";"
@@ -1081,7 +1157,7 @@ Node *declaration_local(Token **rest, Token *tok)
 
   Type *base_ty = base_type(&tok, tok);
   if (!base_ty)
-    error_at(tok->pos, "undefined data type");
+    error_at(tok->pos, "undefined data type.");
 
   // perse strcut or union type
   base_ty = declarator_struct(&tok, tok, base_ty);

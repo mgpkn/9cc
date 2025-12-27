@@ -158,14 +158,6 @@ Token *tokenize(char *p)
       continue;
     }
 
-    // 6 length token.
-    estamate_len = 6;
-    if (strncmp(p, "sizeof", estamate_len) == 0)
-    {
-      cur = new_token(TK_KEYWORD, cur, p, estamate_len);
-      p += estamate_len;
-      continue;
-    }
 
     // 2 length token.
     estamate_len = 2;
@@ -254,9 +246,28 @@ Token *tokenize(char *p)
     }
 
     // keyword tokens.
+
+    //typedef
+    estamate_len = 7;
+    if (strncmp(p, "typedef", estamate_len) == 0 && !is_alnum(*(p + estamate_len), true))
+    {
+      cur = new_token(TK_KEYWORD, cur, p, estamate_len);
+      p += estamate_len;
+      continue;
+    }
+
+
     // return
     estamate_len = 6;
     if (strncmp(p, "return", estamate_len) == 0 && !is_alnum(*(p + estamate_len), true))
+    {
+      cur = new_token(TK_KEYWORD, cur, p, estamate_len);
+      p += estamate_len;
+      continue;
+    }
+
+    //siezeof
+    if (strncmp(p, "sizeof", estamate_len) == 0)
     {
       cur = new_token(TK_KEYWORD, cur, p, estamate_len);
       p += estamate_len;
@@ -272,6 +283,7 @@ Token *tokenize(char *p)
       continue;
     }
 
+   
     // for
     estamate_len = 3;
     if (strncmp(p, "for", estamate_len) == 0 && !is_alnum(*(p + estamate_len), true))

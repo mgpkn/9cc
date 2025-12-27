@@ -175,6 +175,7 @@ void init_nodetype(Node *n)
 bool is_typename(Token *tok)
 {
 
+    //search basic type keywords.
     if (equal(tok, "struct"))
         return true;
     if (equal(tok, "union"))
@@ -188,6 +189,10 @@ bool is_typename(Token *tok)
     if (equal(tok, "int"))
         return true;
     if (equal(tok, "long"))
+        return true;
+    
+    //search typedef keywords.
+    if(find_typedef(tok))
         return true;
 
     return false;

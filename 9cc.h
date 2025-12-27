@@ -92,7 +92,7 @@ struct Type
   Type *ptr_to;
   size_t array_size;
   Token *ident_name_tok;
-  Member *members; // struct member
+  Member *members; // struct or union member
 };
 
 enum TypeKind
@@ -159,6 +159,7 @@ struct Ident
 // parse
 Ident *parse(Token *token);
 bool equal(Token *tok, char *op_str);
+Type *find_typedef(Token *tok);
 
 // codegen
 void codegen(Ident *func_list);
