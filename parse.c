@@ -220,7 +220,8 @@ Type *find_tag(Token *tok)
   return NULL;
 }
 
-Type *find_typedef(Token *tok){
+Type *find_typedef(Token *tok)
+{
 
   for (Scope *sc = cur_scope; sc; sc = sc->next)
   {
@@ -264,27 +265,31 @@ Type *base_type(Token **rest, Token *tok)
     OTHER = 1 << 10
   };
 
-  Type *ty;
+  Type *ty = NULL;
   int ty_counter = 0;
 
   bool is_first = true;
 
   // accumulate type token
+  if(consume(&tok,tok,"typedef"))
+    is_first = false;
+
   while (is_typename(tok))
   {
     is_first = false;
 
+    Type *def_ty = find_typedef(tok);
     ty = calloc(1, sizeof(Type));
-    Type *def_ty =  find_typedef(tok);
-
-    if(def_ty){
+  
+    if (def_ty && ty_counter == 0)
+    {
       ty = def_ty;
       ty_counter += OTHER;
       tok = tok->next;
       break;
     }
 
-    if (equal(tok, "struct"))
+    if (equal(tok, "struct") && ty_counter == 0)
     {
       ty->kind = TY_STRUCT;
       ty_counter += OTHER;
@@ -292,14 +297,14 @@ Type *base_type(Token **rest, Token *tok)
       break;
     }
 
-    if (equal(tok, "union"))
+    if (equal(tok, "union") && ty_counter == 0)
     {
       ty->kind = TY_UNION;
       ty_counter += OTHER;
       tok = tok->next;
       break;
     }
-  
+
     // decide base type
     if (equal(tok, "void"))
       ty_counter += VOID;
@@ -318,7 +323,6 @@ Type *base_type(Token **rest, Token *tok)
 
     switch (ty_counter)
     {
-
     case VOID:
       ty->kind = TY_VOID;
       break;
@@ -341,11 +345,10 @@ Type *base_type(Token **rest, Token *tok)
       ty->kind = TY_LLONG;
       break;
     case OTHER: //"struct" || "union" || typedefs
-      error_at(tok->pos, "unreachalble case.");     
+      error_at(tok->pos, "unreachalble case.");
     default:
       error_at(tok->pos, "invalid type token.");
     }
-
     tok = tok->next;
   }
 
@@ -479,7 +482,6 @@ Node *new_node_declare_lvar(Type *ty)
   add_varscope(idt);
 
   return new_node_var(&(ty->ident_name_tok), ty->ident_name_tok);
-  
 }
 
 Node *new_node_member(Token **rest, Token *tok, Node *lhs)
@@ -756,7 +758,12 @@ Type *declarator(Token **rest, Token *tok, Type *ty)
 Type *declarator_struct(Token **rest, Token *tok, Type *parent_ty)
 {
 
+  //not struct type.
   if (parent_ty->kind != TY_STRUCT)
+    return parent_ty;
+
+  // typedef pettern. (already has defined members.)
+  if (parent_ty->members)
     return parent_ty;
 
   // if not set tag name,create new scope.
@@ -839,7 +846,12 @@ Type *declarator_struct(Token **rest, Token *tok, Type *parent_ty)
 Type *declarator_union(Token **rest, Token *tok, Type *parent_ty)
 {
 
+  //not union type.
   if (parent_ty->kind != TY_UNION)
+    return parent_ty;
+
+  // typedef pettern. (already has defined members.)
+  if (parent_ty->members)
     return parent_ty;
 
   // if not called tag name,create scope.
@@ -1071,7 +1083,7 @@ Node *statement(Token **rest, Token *tok)
       return n;
     }
     else if (equal(tok, "typedef"))
-        n = type_def(&tok,tok);
+      n = type_def(&tok, tok);
     else
     {
       n = expr(&tok, tok);
@@ -1081,7 +1093,7 @@ Node *statement(Token **rest, Token *tok)
   else
   {
     if (is_typename(tok))
-        n = declaration_local(&tok, tok);
+      n = declaration_local(&tok, tok);
     else
     {
       n = expr(&tok, tok);
@@ -1106,19 +1118,20 @@ Node *expr(Token **rest, Token *tok)
   return n;
 }
 
-
 /*
 type_def ::=
-    base_type  (declarator_struct|declarator_union)? declarator ("," declarator )*
+    base_type?  (declarator_struct|declarator_union)? (declarator ("," declarator )*)?
 */
-Node *type_def(Token **rest, Token *tok){
-
-  if(!consume(&tok, tok, "typedef"))
-    error_at(tok->pos, "invalid syntax.");
+Node *type_def(Token **rest, Token *tok)
+{
 
   Type *base_ty = base_type(&tok, tok);
   if (!base_ty)
-    error_at(tok->pos, "undefined data type.");
+  {
+    //default int
+    base_ty = calloc(1, sizeof(Type)); 
+    base_ty->kind = TY_INT;
+  }
 
   // perse strcut or union type
   base_ty = declarator_struct(&tok, tok, base_ty);
@@ -1127,19 +1140,20 @@ Node *type_def(Token **rest, Token *tok){
   bool is_first = true;
   while (true)
   {
+
+    if (equal(tok, ";"))
+      break;
+          
     if (!is_first)
       expect(&tok, tok, ",");
-    is_first = false;    
+    is_first = false;
 
     Type *ty = declarator(&tok, tok, base_ty);
     TypeDefScope *tdf = calloc(1, sizeof(TypeDefScope));
-    tdf->name = strndup(ty->ident_name_tok ->pos, ty->ident_name_tok ->len);
+    tdf->name = strndup(ty->ident_name_tok->pos, ty->ident_name_tok->len);
     tdf->org_ty = ty;
     tdf->next = cur_scope->tdfs;
-    cur_scope->tdfs = tdf;    
-
-    if(equal(tok,";"))
-      break;
+    cur_scope->tdfs = tdf;
 
   }
 
