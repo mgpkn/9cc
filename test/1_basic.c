@@ -149,6 +149,7 @@ int main()
     ASSERT(1,(z+2)-(z+1));    
 
 
+    //sizeof 
     ASSERT(4, sizeof(x));
     ASSERT(4, sizeof(x + 100));
     ASSERT(8, sizeof(y));
@@ -158,6 +159,11 @@ int main()
     ASSERT(1, sizeof('a'));    
     //ASSERT(4, sizeof("abc"));  //todo
     //ASSERT(1, sizeof("abc"[0]));  //todo
+
+    //sizeof using typename
+    ASSERT(4, ({ sizeof(int); }));
+    ASSERT(5, ({ typedef struct {int a;char b;} st;sizeof(st);}));
+    ASSERT(13, ({ typedef struct {int a;char b;long c;} st;sizeof(st);}));    
 
     arr[0]=13;
     arr[1]=22;    

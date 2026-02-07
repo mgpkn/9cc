@@ -589,7 +589,7 @@ Ident *global(Token **rest, Token *tok)
   if (equal(tok, "typedef"))
   {
     type_def(&tok, tok);
-    consume(&tok,tok,";");
+    consume(&tok, tok, ";");
     *rest = tok;
     return NULL;
   }
@@ -1395,7 +1395,9 @@ Node *mul(Token **rest, Token *tok)
 
 /*
 数値などの正負の項、ポインタデリファレンサ
-unary ::= ("+"|"-"|"&"|"*"|"sizeof") unary
+unary ::= 
+    ("+"|"-"|"&"|"*"|"sizeof") unary
+    | "sizeof" "(" typename ")"
     |postfix
 */
 Node *unary(Token **rest, Token *tok)
@@ -1412,9 +1414,22 @@ Node *unary(Token **rest, Token *tok)
     n = new_node(ND_DEREF, unary(&tok, tok), NULL);
   else if (consume(&tok, tok, "sizeof"))
   {
-    n = unary(&tok, tok);
-    init_nodetype(n);
-    n = new_node_num(n->ty->size);
+    Type *ty;    
+    if (equal(tok,"(") && is_typename(tok->next))
+    {
+      // sizeof using typenmae
+      consume(&tok, tok, "(");
+      ty = base_type(&tok, tok);
+      n = new_node_num(ty->size);
+      consume(&tok, tok, ")");
+    }
+    else 
+    {
+      // sizeof using some value
+      n = unary(&tok, tok);
+      init_nodetype(n);
+      n = new_node_num(n->ty->size);
+    }
   }
   else
     n = postfix(&tok, tok);

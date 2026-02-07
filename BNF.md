@@ -33,7 +33,9 @@ equality ::= relational ("==" relational |"!=" relational )*
 relational ::= add (">" add | "<" add | ">=" add | "<=" add)*
 add ::= mul ("+" mul | "-" mul)*
 mul ::= unary ("*" unary|"/" unary|"%" unary)*
-unary ::= ("+"|"-"|"&"|"*"|"sizeof") unary
+unary ::= 
+    ("+"|"-"|"&"|"*"|"sizeof") unary
+    | "sizeof" "(" typename ")"
     |postfix
 postfix ::= primary ("[" & expr & "]" | "." ident | "->" ident )*
 primary ::= "(" "{" statement+ "}" ")"
