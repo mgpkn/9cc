@@ -38,8 +38,8 @@ static Ident *locals;
 static Ident *globals;
 
 Ident *global(Token **rest, Token *tok);
-Ident *declaration_global_var(Token **rest, Token *tok, Type *base_ty);
-Ident *declaration_function(Token **rest, Token *tok, Type *base_ty);
+Ident *declaration_global_var(Token **rest, Token *tok);
+Ident *declaration_function(Token **rest, Token *tok);
 Type *declarator(Token **rest, Token *tok, Type *base_ty);
 Type *declarator_struct(Token **rest, Token *tok, Type *base_ty);
 Type *declarator_prefix(Token **rest, Token *tok, Type *ty);
@@ -122,7 +122,6 @@ bool equal_token(Token *tok1, Token *tok2)
     return (strncmp(tok1->pos, tok2->pos, tok1->len) == 0);
   return false;
 }
-
 
 // if token has expect value,read next token and return true.
 bool consume(Token **rest, Token *tok, char *op)
@@ -232,7 +231,6 @@ Type *find_typedef(Token *tok)
     }
   }
   return NULL;
-
 }
 
 Ident *add_globals(Ident *tar)
@@ -251,7 +249,7 @@ Ident *add_globals(Ident *tar)
   return tmp->next;
 }
 
-// base_type ::= ("void"|"char"|"short"|"int"|"long"|"struct"|"union")+
+// base_type ::= ("void"|"char"|"short"|"int"|"long"|"struct"|"union","typedef")+
 Type *base_type(Token **rest, Token *tok)
 {
 
@@ -271,7 +269,7 @@ Type *base_type(Token **rest, Token *tok)
   bool is_first = true;
 
   // accumulate type token
-  if(consume(&tok,tok,"typedef"))
+  if (consume(&tok, tok, "typedef"))
     is_first = false;
 
   while (is_typename(tok))
@@ -280,7 +278,7 @@ Type *base_type(Token **rest, Token *tok)
 
     Type *def_ty = find_typedef(tok);
     ty = calloc(1, sizeof(Type));
-  
+
     if (def_ty && ty_counter == 0)
     {
       ty = def_ty;
@@ -352,7 +350,7 @@ Type *base_type(Token **rest, Token *tok)
     tok = tok->next;
   }
 
-  if(is_first)
+  if (is_first)
     error_at(tok->pos, "invalid type token.");
 
   *rest = tok;
@@ -567,50 +565,58 @@ Ident *parse(Token *tok)
 
   while (!at_eof(tok))
   {
-
     locals = NULL;
     tmp_global = global(&tok, tok);
-    tmp_global->locals = locals;
-    add_globals(tmp_global);
+    if (tmp_global)
+    {
+      tmp_global->locals = locals;
+      add_globals(tmp_global);
+    }
   }
   return globals;
 }
 
 /*
-global ::= base_type (declaration_global_var|declaration_function)
+global ::=
+  (type_def|declaration_global_var|declaration_function)
 */
 Ident *global(Token **rest, Token *tok)
 {
 
   Ident *glb = NULL;
-  Type *base_ty = base_type(&tok, tok);
 
-  if (base_ty)
+  // typedef.
+  if (equal(tok, "typedef"))
   {
-
-    // first,try to create variable ident from current token.
-    // if coundn't it,next try to create function ident.
-
-    // create global variable ident.
-    glb = declaration_global_var(&tok, tok, base_ty);
-
-    // create function ident.
-    if (!glb)
-      glb = declaration_function(&tok, tok, base_ty);
-
-    add_varscope(glb);
+    type_def(&tok, tok);
+    consume(&tok,tok,";");
+    *rest = tok;
+    return NULL;
   }
+
+  // attempt to create global var
+  glb = declaration_global_var(&tok, tok);
+
+  // if faild to create global var,next create function.
+  if (!glb)
+    glb = declaration_function(&tok, tok);
+
+  add_varscope(glb);
 
   *rest = tok;
   return glb;
 }
 
-// declaration_global_var ::= declarator("," declarator)* ";"
-Ident *declaration_global_var(Token **rest, Token *tok, Type *base_ty)
+/*
+declaration_global_var ::=
+    base_type declarator("," declarator)* ";"
+*/
+Ident *declaration_global_var(Token **rest, Token *tok)
 {
 
   Token *tmp_tok;
-  Type *ty = declarator(&tmp_tok, tok, base_ty);
+  Type *base_ty = base_type(&tmp_tok, tok);
+  Type *ty = declarator(&tmp_tok, tmp_tok, base_ty);
 
   if (find_var(ty->ident_name_tok))
     error_at(ty->ident_name_tok->pos, "the variable is already declared.");
@@ -619,9 +625,8 @@ Ident *declaration_global_var(Token **rest, Token *tok, Type *base_ty)
   if (consume(&tmp_tok, tmp_tok, "("))
     return NULL;
 
-  // since it was not function.create variable ident.
-  // apply tmp_tok to tok.
-  tok = tmp_tok;
+  // since it was global variable token(=not function),create it.
+  tok = tmp_tok; // apply tmp_tok to tok.
 
   Ident *idt = calloc(1, sizeof(Ident));
   idt->is_global = true;
@@ -637,10 +642,14 @@ Ident *declaration_global_var(Token **rest, Token *tok, Type *base_ty)
   return idt;
 }
 
-// declaration_function ::= declarator "(" (declaration_param("," declaration_param)*)? ")" "{" statment* "}"
-Ident *declaration_function(Token **rest, Token *tok, Type *base_ty)
+/*
+declaration_function ::=
+    base_type declarator "(" (declaration_param("," declaration_param)*)? ")" "{" statment* "}"
+*/
+Ident *declaration_function(Token **rest, Token *tok)
 {
 
+  Type *base_ty = base_type(&tok, tok);
   Type *ty = declarator(&tok, tok, base_ty);
 
   if (find_var(ty->ident_name_tok))
@@ -758,7 +767,7 @@ Type *declarator(Token **rest, Token *tok, Type *ty)
 Type *declarator_struct(Token **rest, Token *tok, Type *parent_ty)
 {
 
-  //not struct type.
+  // not struct type.
   if (parent_ty->kind != TY_STRUCT)
     return parent_ty;
 
@@ -846,7 +855,7 @@ Type *declarator_struct(Token **rest, Token *tok, Type *parent_ty)
 Type *declarator_union(Token **rest, Token *tok, Type *parent_ty)
 {
 
-  //not union type.
+  // not union type.
   if (parent_ty->kind != TY_UNION)
     return parent_ty;
 
@@ -1128,8 +1137,8 @@ Node *type_def(Token **rest, Token *tok)
   Type *base_ty = base_type(&tok, tok);
   if (!base_ty)
   {
-    //default int
-    base_ty = calloc(1, sizeof(Type)); 
+    // default int
+    base_ty = calloc(1, sizeof(Type));
     base_ty->kind = TY_INT;
   }
 
@@ -1143,7 +1152,7 @@ Node *type_def(Token **rest, Token *tok)
 
     if (equal(tok, ";"))
       break;
-          
+
     if (!is_first)
       expect(&tok, tok, ",");
     is_first = false;
@@ -1154,7 +1163,6 @@ Node *type_def(Token **rest, Token *tok)
     tdf->org_ty = ty;
     tdf->next = cur_scope->tdfs;
     cur_scope->tdfs = tdf;
-
   }
 
   Node *n = new_node(ND_BLOCK, NULL, NULL);
