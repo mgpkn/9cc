@@ -1,9 +1,42 @@
 #include "9cc.h"
 
 static char *argreg1[] = {"dil", "sil", "dl", "cl", "r8b", "r9b"};
-static char *argreg2[] = {"di" , "si", "dx", "cx", "r8w", "r9w"};
+static char *argreg2[] = {"di", "si", "dx", "cx", "r8w", "r9w"};
 static char *argreg4[] = {"edi", "esi", "edx", "ecx", "r8d", "r9d"};
 static char *argreg8[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+
+static char opi32toi8[] = "  movsx eax,al";
+static char opi32toi16[] = "  movsx eax,ax";
+static char opi32toi64[] = "  movsxd rax,eax";
+
+enum
+{
+  I8,
+  I16,
+  I32,
+  I64
+};
+
+static char *cast_op[4][4] = {
+    {NULL, NULL, NULL, opi32toi64},            // i8
+    {opi32toi8, NULL, NULL, opi32toi64},       // i16
+    {opi32toi8, opi32toi16, NULL, opi32toi64}, // i32
+    {opi32toi8, opi32toi16, NULL, NULL}        // i64
+};
+
+static int get_cast_type_id(Type *ty)
+{
+  switch (ty->kind)
+  {
+  case TY_CHAR:
+    return I8;
+  case TY_SHORT:
+    return I16;
+  case TY_INT:
+    return I32;
+  }
+  return I64;
+}
 
 int stack_depth;
 
@@ -42,6 +75,19 @@ void load_val(Type *ty)
     printf("  mov rax,[rax]\n");
     break;
   }
+}
+
+void gennode_cast(Type *from, Type *to)
+{
+
+  if (to->kind == TY_VOID)
+    return;
+
+  int cast_from = get_cast_type_id(from);
+  int cast_to = get_cast_type_id(to);
+
+  if (cast_op[cast_from][cast_to])
+    printf("%s\n", cast_op[cast_from][cast_to]);
 }
 
 void gennode_addr(Node *cur_node)
@@ -127,6 +173,10 @@ void gennode_expr(Node *cur_node)
   case ND_COMMA:
     gennode_expr(cur_node->lhs);
     gennode_expr(cur_node->rhs);
+    return;
+  case ND_CAST:
+    gennode_expr(cur_node->lhs);
+    gennode_cast(cur_node->lhs->ty, cur_node->ty);
     return;
   default:
     break;
@@ -292,7 +342,6 @@ void codegen_func(Ident *func)
     gennode_stmt(cur_code);
 }
 
-
 void assign_lvar_offsets(Ident *prog_list)
 {
 
@@ -305,12 +354,11 @@ void assign_lvar_offsets(Ident *prog_list)
     for (Ident *cur_lvar = cur_func->locals; cur_lvar; cur_lvar = cur_lvar->next)
     {
       // accumulate local variable offset.
-      cur_lvar -> offset = offset + cur_lvar->ty->size;
-      cur_lvar -> offset = align_to(cur_lvar -> offset, cur_lvar->ty->align);
-      offset = cur_lvar -> offset;
+      cur_lvar->offset = offset + cur_lvar->ty->size;
+      cur_lvar->offset = align_to(cur_lvar->offset, cur_lvar->ty->align);
+      offset = cur_lvar->offset;
     }
-    cur_func->offset = align_to(offset, 16);//なぜ16かは不明。IBM仕様？
-
+    cur_func->offset = align_to(offset, 16); // なぜ16かは不明。IBM仕様？
   }
 }
 

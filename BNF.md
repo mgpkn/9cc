@@ -32,10 +32,11 @@ assign ::= equality ("=" assign )?
 equality ::= relational ("==" relational |"!=" relational )*
 relational ::= add (">" add | "<" add | ">=" add | "<=" add)*
 add ::= mul ("+" mul | "-" mul)*
-mul ::= unary ("*" unary|"/" unary|"%" unary)*
+mul ::= cast ("*" cast|"/" cast|"%" cast)*
+cast ::= "(" type_name ")" cast | unary
 unary ::= 
     ("+"|"-"|"&"|"*"|"sizeof") unary
-    | "sizeof" "(" typename ")"
+    | "sizeof" "(" base_type ")"
     |postfix
 postfix ::= primary ("[" & expr & "]" | "." ident | "->" ident )*
 primary ::= "(" "{" statement+ "}" ")"

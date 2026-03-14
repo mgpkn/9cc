@@ -157,11 +157,12 @@ int main()
     ASSERT(40, sizeof(arr));
     ASSERT(4, sizeof(arr[1]));
     ASSERT(1, sizeof('a'));    
-    //ASSERT(4, sizeof("abc"));  //todo
+    //ASSERT(8, sizeof("abc"));  //todo
     //ASSERT(1, sizeof("abc"[0]));  //todo
 
     //sizeof using typename
     ASSERT(4, ({ sizeof(int); }));
+    ASSERT(1, ({ sizeof(void); }));
     ASSERT(5, ({ typedef struct {int a;char b;} st;sizeof(st);}));
     ASSERT(13, ({ typedef struct {int a;char b;long c;} st;sizeof(st);}));    
 

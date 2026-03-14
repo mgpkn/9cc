@@ -172,14 +172,10 @@ void init_nodetype(Node *n)
     }
 }
 
-bool is_typename(Token *tok)
+bool is_typename(Token *tok,bool include_user_defined_type)
 {
 
     //search basic type keywords.
-    if (equal(tok, "struct"))
-        return true;
-    if (equal(tok, "union"))
-        return true;    
     if (equal(tok, "void"))
         return true;    
     if (equal(tok, "char"))
@@ -192,7 +188,12 @@ bool is_typename(Token *tok)
         return true;
     
     //search typedef keywords.
-    if(find_typedef(tok))
+    if (include_user_defined_type && equal(tok, "struct"))
+        return true;
+    if (include_user_defined_type && equal(tok, "union"))
+        return true;    
+
+    if(include_user_defined_type && find_typedef(tok))
         return true;
 
     return false;

@@ -57,6 +57,7 @@ Node *add(Token **rest, Token *tok);
 Node *extra_add(Node *lhs, Node *rhs, Token *tok_dummy);
 Node *extra_sub(Node *lhs, Node *rhs, Token *tok_dummy);
 Node *mul(Token **rest, Token *tok);
+Node *cast(Token **rest, Token *tok);
 Node *unary(Token **rest, Token *tok);
 Node *postfix(Token **rest, Token *tok);
 Node *primary(Token **rest, Token *tok);
@@ -272,7 +273,7 @@ Type *base_type(Token **rest, Token *tok)
   if (consume(&tok, tok, "typedef"))
     is_first = false;
 
-  while (is_typename(tok))
+  while (is_typename(tok,true))
   {
     is_first = false;
 
@@ -356,6 +357,16 @@ Type *base_type(Token **rest, Token *tok)
   *rest = tok;
   return ty;
 }
+
+static Type *type_name(Token **rest,Token *tok){
+
+  Type *ty;
+  ty = base_type(&tok,tok);
+
+  *rest = tok;
+  return ty;
+}
+
 
 static Ident *declaration_str(Token *tok)
 {
@@ -513,6 +524,17 @@ Node *new_node_member(Token **rest, Token *tok, Node *lhs)
 
   *rest = tok;
   return n;
+}
+
+Node *new_node_cast(Node *lhs,Type *cast_ty){
+
+  Node *n = calloc(1, sizeof(Node));
+  n->kind = ND_CAST;
+  n->ty = cast_ty;
+  n->lhs = lhs;
+
+  return n;
+
 }
 
 // create function node
@@ -1101,7 +1123,7 @@ Node *statement(Token **rest, Token *tok)
   }
   else
   {
-    if (is_typename(tok))
+    if (is_typename(tok,true))
       n = declaration_local(&tok, tok);
     else
     {
@@ -1372,19 +1394,19 @@ Node *extra_sub(Node *lhs, Node *rhs, Token *tok_dummy)
   return NULL;
 }
 
-// mul ::= unary ("*" unary|"/" unary|"%" unary)*
+// mul ::= cast ("*" cast|"/" cast|"%" cast)*
 Node *mul(Token **rest, Token *tok)
 {
-  Node *n = unary(&tok, tok);
+  Node *n = cast(&tok, tok);
 
   for (;;)
   {
     if (consume(&tok, tok, "*"))
-      n = new_node(ND_MUL, n, unary(&tok, tok));
+      n = new_node(ND_MUL, n, cast(&tok, tok));
     else if (consume(&tok, tok, "/"))
-      n = new_node(ND_DIV, n, unary(&tok, tok));
+      n = new_node(ND_DIV, n, cast(&tok, tok));
     else if (consume(&tok, tok, "%"))
-      n = new_node(ND_MOD, n, unary(&tok, tok));
+      n = new_node(ND_MOD, n, cast(&tok, tok));
     else
     {
       *rest = tok;
@@ -1394,10 +1416,32 @@ Node *mul(Token **rest, Token *tok)
 }
 
 /*
+  cast ::= "(" type_name ")" cast | unary
+*/
+Node *cast(Token **rest, Token *tok)
+{
+
+  Node *n;
+  Type *cast_ty;
+  if (equal(tok, "(") && is_typename(tok->next,false))
+  {
+    consume(&tok, tok, "(");    
+    cast_ty = type_name(&tok,tok);
+    consume(&tok, tok, ")");
+    n = new_node_cast(cast(&tok,tok),cast_ty);
+  }  
+  else 
+    n = unary(&tok,tok);
+
+  *rest = tok;
+  return n;
+}
+
+/*
 数値などの正負の項、ポインタデリファレンサ
 unary ::= 
     ("+"|"-"|"&"|"*"|"sizeof") unary
-    | "sizeof" "(" typename ")"
+    | "sizeof" "(" base_type ")"
     |postfix
 */
 Node *unary(Token **rest, Token *tok)
@@ -1415,7 +1459,7 @@ Node *unary(Token **rest, Token *tok)
   else if (consume(&tok, tok, "sizeof"))
   {
     Type *ty;    
-    if (equal(tok,"(") && is_typename(tok->next))
+    if (equal(tok,"(") && is_typename(tok->next,true))
     {
       // sizeof using typenmae
       consume(&tok, tok, "(");

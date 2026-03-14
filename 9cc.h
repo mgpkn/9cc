@@ -72,7 +72,8 @@ typedef enum
   ND_FUNC,    // function
   ND_NUM,     // num value
   ND_STR,     // string value
-  ND_CHAR     // char value
+  ND_CHAR,    // char value
+  ND_CAST     //cast
 } NodeKind;
 
 // struct members def
@@ -171,7 +172,7 @@ int align_to(int offset, int align);
 void init_nodetype(Node *n);
 bool is_num_node(Node *n);
 bool is_ptr_node(Node *n);
-bool is_typename(Token *tok);
+bool is_typename(Token *tok,bool include_user_defined_type);
 
 extern Type *ty_char;
 
