@@ -129,7 +129,7 @@ void gennode_expr(Node *cur_node)
   case ND_FUNC:
     for (argn = 0; cur_node->func_arg[argn]; argn++)
     {
-      gennode_expr(cur_node->func_arg[argn]);
+      gennode_stmt(cur_node->func_arg[argn]);
       push();
     }
     for (argn--; argn >= 0; argn--)
@@ -169,6 +169,7 @@ void gennode_expr(Node *cur_node)
       printf("  mov [rax],rdi\n");
       break;
     }
+    load_val(cur_node->ty);
     return;
   case ND_COMMA:
     gennode_expr(cur_node->lhs);

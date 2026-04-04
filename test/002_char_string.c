@@ -2,7 +2,7 @@
 
 int main()
 {
-    
+
     ASSERT(1, ({char c;sizeof(c);}));
     ASSERT(8, ({char *c;sizeof(c);}));    
     ASSERT(72, ({char c1;c1='H';}));

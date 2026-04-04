@@ -273,7 +273,7 @@ Type *base_type(Token **rest, Token *tok)
   if (consume(&tok, tok, "typedef"))
     is_first = false;
 
-  while (is_typename(tok,true))
+  while (is_typename(tok, true))
   {
     is_first = false;
 
@@ -358,15 +358,15 @@ Type *base_type(Token **rest, Token *tok)
   return ty;
 }
 
-static Type *type_name(Token **rest,Token *tok){
+static Type *type_name(Token **rest, Token *tok)
+{
 
   Type *ty;
-  ty = base_type(&tok,tok);
+  ty = base_type(&tok, tok);
 
   *rest = tok;
   return ty;
 }
-
 
 static Ident *declaration_str(Token *tok)
 {
@@ -404,27 +404,28 @@ Node *new_node(NodeKind kind, Node *lhs, Node *rhs)
   n->kind = kind;
   n->lhs = lhs;
   n->rhs = rhs;
+  init_nodetype(n);
   return n;
 }
 
 Node *new_node_num(int val)
 {
-  Node *node = calloc(1, sizeof(Node));
-  node->kind = ND_NUM;
-  node->val = val;
-  init_nodetype(node);
-  return node;
+  Node *n = calloc(1, sizeof(Node));
+  n->kind = ND_NUM;
+  n->val = val;
+  init_nodetype(n);
+  return n;
 }
 
 Node *new_node_char(Token **rest, Token *tok, int val)
 {
-  Node *node = calloc(1, sizeof(Node));
-  node->kind = ND_CHAR;
-  node->val = val;
-
+  Node *n = calloc(1, sizeof(Node));
+  n->kind = ND_CHAR;
+  n->val = val;
+  init_nodetype(n);
   tok = tok->next;
   *rest = tok;
-  return node;
+  return n;
 }
 
 Node *new_node_str(Token **rest, Token *tok)
@@ -526,7 +527,8 @@ Node *new_node_member(Token **rest, Token *tok, Node *lhs)
   return n;
 }
 
-Node *new_node_cast(Node *lhs,Type *cast_ty){
+Node *new_node_cast(Node *lhs, Type *cast_ty)
+{
 
   Node *n = calloc(1, sizeof(Node));
   n->kind = ND_CAST;
@@ -534,16 +536,14 @@ Node *new_node_cast(Node *lhs,Type *cast_ty){
   n->lhs = lhs;
 
   return n;
-
 }
 
 // create function node
 Node *new_node_function(Token **rest, Token *tok)
 {
-  Node *node;
   int i = 0;
 
-  node = calloc(1, sizeof(Node));
+  Node *node = calloc(1, sizeof(Node));
   node->kind = ND_FUNC;
   node->ident_name = strndup(tok->pos, sizeof(char) * (tok->len));
   tok = tok->next;
@@ -1012,7 +1012,7 @@ statement ::=
 */
 Node *statement(Token **rest, Token *tok)
 {
-  Node *n;
+  Node *n = NULL;
   Node *n_block_cur = calloc(1, sizeof(Node));
 
   if (tok->kind == TK_KEYWORD)
@@ -1123,7 +1123,7 @@ Node *statement(Token **rest, Token *tok)
   }
   else
   {
-    if (is_typename(tok,true))
+    if (is_typename(tok, true))
       n = declaration_local(&tok, tok);
     else
     {
@@ -1421,17 +1421,17 @@ Node *mul(Token **rest, Token *tok)
 Node *cast(Token **rest, Token *tok)
 {
 
-  Node *n;
+  Node *n = NULL;
   Type *cast_ty;
-  if (equal(tok, "(") && is_typename(tok->next,false))
+  if (equal(tok, "(") && is_typename(tok->next, false))
   {
-    consume(&tok, tok, "(");    
-    cast_ty = type_name(&tok,tok);
+    consume(&tok, tok, "(");
+    cast_ty = type_name(&tok, tok);
     consume(&tok, tok, ")");
-    n = new_node_cast(cast(&tok,tok),cast_ty);
-  }  
-  else 
-    n = unary(&tok,tok);
+    n = new_node_cast(cast(&tok, tok), cast_ty);
+  }
+  else
+    n = unary(&tok, tok);
 
   *rest = tok;
   return n;
@@ -1439,14 +1439,14 @@ Node *cast(Token **rest, Token *tok)
 
 /*
 数値などの正負の項、ポインタデリファレンサ
-unary ::= 
+unary ::=
     ("+"|"-"|"&"|"*"|"sizeof") unary
     | "sizeof" "(" base_type ")"
     |postfix
 */
 Node *unary(Token **rest, Token *tok)
 {
-  Node *n;
+  Node *n = NULL;
 
   if (consume(&tok, tok, "+"))
     n = unary(&tok, tok);
@@ -1458,8 +1458,8 @@ Node *unary(Token **rest, Token *tok)
     n = new_node(ND_DEREF, unary(&tok, tok), NULL);
   else if (consume(&tok, tok, "sizeof"))
   {
-    Type *ty;    
-    if (equal(tok,"(") && is_typename(tok->next,true))
+    Type *ty;
+    if (equal(tok, "(") && is_typename(tok->next, true))
     {
       // sizeof using typenmae
       consume(&tok, tok, "(");
@@ -1467,7 +1467,7 @@ Node *unary(Token **rest, Token *tok)
       n = new_node_num(ty->size);
       consume(&tok, tok, ")");
     }
-    else 
+    else
     {
       // sizeof using some value
       n = unary(&tok, tok);
@@ -1487,7 +1487,7 @@ postfix ::= primary ("[" & expr & "]" | "." ident | "->" ident )*
 */
 Node *postfix(Token **rest, Token *tok)
 {
-  Node *n, *idx;
+  Node *n = NULL, *idx = NULL;
   n = primary(&tok, tok);
 
   while (true)
@@ -1534,7 +1534,7 @@ primary ::= "(" "{" statement+ "}" ")"
 */
 Node *primary(Token **rest, Token *tok)
 {
-  Node *n;
+  Node *n = NULL;
   if (consume(&tok, tok, "("))
   {
     // block statement
