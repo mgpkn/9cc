@@ -161,10 +161,10 @@ int main()
     //ASSERT(1, sizeof("abc"[0]));  //todo
 
     //sizeof using typename
-    //ASSERT(4, ({ sizeof(int); }));
-    //ASSERT(1, ({ sizeof(void); }));
-    //ASSERT(5, ({ typedef struct {int a;char b;} st;sizeof(st);}));
-    //ASSERT(13, ({ typedef struct {int a;char b;long c;} st;sizeof(st);}));    
+    ASSERT(4, ({ sizeof(int); }));
+    ASSERT(1, ({ sizeof(void); }));
+    ASSERT(8, ({ typedef struct {int a;char b;} st;sizeof(st);}));
+    ASSERT(16, ({ typedef struct {int a;char b;long c;} st;sizeof(st);}));    
 
     arr[0]=13;
     arr[1]=22;    

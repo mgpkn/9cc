@@ -165,7 +165,6 @@ void init_nodetype(Node *n)
         return;
     case ND_COMMA:
         n->ty = n->rhs->ty;
-        ;
         return;
     default:
         return;

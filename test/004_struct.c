@@ -46,7 +46,7 @@ int main()
     //struct undefined_mystr x6;
 
     //member
-    ASSERT(sizeof(x), 8);
+    ASSERT(8,sizeof(x));
     ASSERT(50, x.a);
     ASSERT(99, x.b);
     ASSERT(97, x.c);
@@ -55,7 +55,7 @@ int main()
     ASSERT(65, x2.b);
     ASSERT(68, x2.c);
 
-    ASSERT(sizeof(x3), 8);
+    ASSERT(8,sizeof(x3));
     ASSERT(51, x3.a);
     ASSERT(100, x3.b);
     ASSERT(98, x3.c);

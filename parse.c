@@ -354,6 +354,9 @@ Type *base_type(Token **rest, Token *tok)
   if (is_first)
     error_at(tok->pos, "invalid type token.");
 
+  ty->size = calc_sizeof(ty);
+  ty->align = calc_alignof(ty);
+
   *rest = tok;
   return ty;
 }
@@ -1461,15 +1464,17 @@ Node *unary(Token **rest, Token *tok)
     Type *ty;
     if (equal(tok, "(") && is_typename(tok->next, true))
     {
-      // sizeof using typenmae
+      // sizeof with typenmae
       consume(&tok, tok, "(");
       ty = base_type(&tok, tok);
+      ty = declarator_struct(&tok, tok, ty);
+      ty = declarator_union(&tok, tok, ty);
       n = new_node_num(ty->size);
       consume(&tok, tok, ")");
     }
     else
     {
-      // sizeof using some value
+      // sizeof with something num values
       n = unary(&tok, tok);
       init_nodetype(n);
       n = new_node_num(n->ty->size);
