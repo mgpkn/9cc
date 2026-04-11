@@ -173,6 +173,7 @@ void init_nodetype(Node *n);
 bool is_num_node(Node *n);
 bool is_ptr_node(Node *n);
 bool is_typename(Token *tok,bool include_user_defined_type);
+Type *copy_type(Type *org);
 
 extern Type *ty_char;
 extern Type *ty_int;
