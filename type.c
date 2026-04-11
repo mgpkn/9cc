@@ -1,6 +1,7 @@
 #include "9cc.h"
 
 Type *ty_char = &(Type){TY_CHAR};
+Type *ty_int = &(Type){TY_INT};
 
 void init_nodetype(Node *n);
 
@@ -171,12 +172,12 @@ void init_nodetype(Node *n)
     }
 }
 
-bool is_typename(Token *tok,bool include_user_defined_type)
+bool is_typename(Token *tok, bool include_user_defined_type)
 {
 
-    //search basic type keywords.
+    // search basic type keywords.
     if (equal(tok, "void"))
-        return true;    
+        return true;
     if (equal(tok, "char"))
         return true;
     if (equal(tok, "short"))
@@ -185,15 +186,30 @@ bool is_typename(Token *tok,bool include_user_defined_type)
         return true;
     if (equal(tok, "long"))
         return true;
-    
-    //search typedef keywords.
+
+    // search typedef keywords.
     if (include_user_defined_type && equal(tok, "struct"))
         return true;
     if (include_user_defined_type && equal(tok, "union"))
-        return true;    
+        return true;
 
-    if(include_user_defined_type && find_typedef(tok))
+    if (include_user_defined_type && find_typedef(tok))
         return true;
 
     return false;
+}
+
+Type *copy_type(Type *org)
+{
+    Type *rep = calloc(1, sizeof(Type));
+
+    rep->kind = org->kind;
+    rep->size = org->size;
+    rep->align = org->align;
+    rep->ptr_to = org->ptr_to;
+    rep->array_size = org->array_size;
+    rep->ident_name_tok = org->ident_name_tok;
+    rep->members = org->members;
+
+    return rep;
 }

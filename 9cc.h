@@ -175,6 +175,7 @@ bool is_ptr_node(Node *n);
 bool is_typename(Token *tok,bool include_user_defined_type);
 
 extern Type *ty_char;
+extern Type *ty_int;
 
 // read_file
 char *read_file(char *path);

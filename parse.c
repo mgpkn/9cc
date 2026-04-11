@@ -351,8 +351,8 @@ Type *base_type(Token **rest, Token *tok)
     tok = tok->next;
   }
 
-  if (is_first)
-    error_at(tok->pos, "invalid type token.");
+  if (!ty)
+    ty = copy_type(ty_int);
 
   ty->size = calc_sizeof(ty);
   ty->align = calc_alignof(ty);
@@ -839,9 +839,9 @@ Type *declarator_struct(Token **rest, Token *tok, Type *parent_ty)
 
     tmp_mem->next = calloc(1, sizeof(Member));
 
-    Type *mem_ty = base_type(&tok, tok);
-    if (!mem_ty)
+    if (!is_typename(tok, true))
       error_at(tok->pos, "undefined data type.");
+    Type *mem_ty = base_type(&tok, tok);
     mem_ty = declarator(&tok, tok, mem_ty);
 
     tmp_mem->next->ty = mem_ty;
@@ -926,9 +926,9 @@ Type *declarator_union(Token **rest, Token *tok, Type *parent_ty)
 
     tmp_mem->next = calloc(1, sizeof(Member));
 
-    Type *mem_ty = base_type(&tok, tok);
-    if (!mem_ty)
+    if (!is_typename(tok, true))
       error_at(tok->pos, "undefined data type.");
+    Type *mem_ty = base_type(&tok, tok);
     mem_ty = declarator(&tok, tok, mem_ty);
 
     tmp_mem->next->ty = mem_ty;
@@ -1160,12 +1160,14 @@ Node *type_def(Token **rest, Token *tok)
 {
 
   Type *base_ty = base_type(&tok, tok);
+  /*
   if (!base_ty)
   {
     // default int
     base_ty = calloc(1, sizeof(Type));
     base_ty->kind = TY_INT;
   }
+  */
 
   // perse strcut or union type
   base_ty = declarator_struct(&tok, tok, base_ty);
@@ -1202,9 +1204,9 @@ declaration_local ::=
 Node *declaration_local(Token **rest, Token *tok)
 {
 
-  Type *base_ty = base_type(&tok, tok);
-  if (!base_ty)
+  if (!is_typename(tok, true))
     error_at(tok->pos, "undefined data type.");
+  Type *base_ty = base_type(&tok, tok);
 
   // perse strcut or union type
   base_ty = declarator_struct(&tok, tok, base_ty);
@@ -1247,9 +1249,9 @@ declaration_param ::= base_type (declarator_struct|declarator_union)? declarator
 Node *declaration_param(Token **rest, Token *tok)
 {
 
-  Type *base_ty = base_type(&tok, tok);
-  if (!base_ty)
+  if (!is_typename(tok, true))
     error_at(tok->pos, "undefined data type");
+  Type *base_ty = base_type(&tok, tok);
 
   // perse strcut or union type
   base_ty = declarator_struct(&tok, tok, base_ty);
