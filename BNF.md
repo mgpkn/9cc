@@ -34,9 +34,9 @@ relational ::= add (">" add | "<" add | ">=" add | "<=" add)*
 add ::= mul ("+" mul | "-" mul)*
 mul ::= cast ("*" cast|"/" cast|"%" cast)*
 cast ::= "(" type_name ")" cast | unary
-unary ::= 
-    ("+"|"-"|"&"|"*"|"sizeof") unary
-    | "sizeof" "(" base_type ")"
+unary ::=
+    ("+"|"-"|"&"|"*"|"sizeof") cast
+    | "sizeof" "(" type_name ")"
     |postfix
 postfix ::= primary ("[" & expr & "]" | "." ident | "->" ident )*
 primary ::= "(" "{" statement+ "}" ")"

@@ -1487,7 +1487,7 @@ Node *cast(Token **rest, Token *tok)
 数値などの正負の項、ポインタデリファレンサ
 unary ::=
     ("+"|"-"|"&"|"*"|"sizeof") cast
-    | "sizeof" "(" base_type ")"
+    | "sizeof" "(" type_name ")"
     |postfix
 */
 Node *unary(Token **rest, Token *tok)
@@ -1509,16 +1509,14 @@ Node *unary(Token **rest, Token *tok)
     {
       // sizeof with typenmae
       consume(&tok, tok, "(");
-      ty = base_type(&tok, tok);
-      ty = declarator_struct(&tok, tok, ty);
-      ty = declarator_union(&tok, tok, ty);
+      ty= type_name(&tok, tok);
       n = new_node_num(ty->size);
       consume(&tok, tok, ")");
     }
     else
     {
       // sizeof with something num values
-      n = unary(&tok, tok);
+      n = cast(&tok, tok);
       init_nodetype(n);
       n = new_node_num(n->ty->size);
     }
