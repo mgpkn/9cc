@@ -41,6 +41,7 @@ Ident *global(Token **rest, Token *tok);
 Ident *declaration_global_var(Token **rest, Token *tok);
 Ident *declaration_function(Token **rest, Token *tok);
 Type *declarator(Token **rest, Token *tok, Type *base_ty);
+Type *abstract_declarator(Token **rest, Token *tok, Type *base_ty);
 Type *declarator_struct(Token **rest, Token *tok, Type *base_ty);
 Type *declarator_prefix(Token **rest, Token *tok, Type *ty);
 Type *declarator_suffix(Token **rest, Token *tok, Type *ty);
@@ -366,6 +367,7 @@ static Type *type_name(Token **rest, Token *tok)
 
   Type *ty;
   ty = base_type(&tok, tok);
+  ty = abstract_declarator(&tok,tok,ty);
 
   *rest = tok;
   return ty;
@@ -783,6 +785,45 @@ Type *declarator(Token **rest, Token *tok, Type *ty)
 
   // set indent name token;
   ty->ident_name_tok = tmp_ident_name_tok;
+
+  *rest = tok;
+  return ty;
+}
+
+
+// abstract_declarator ::= declarator_prefix ("(" abstract_declarator ")")? declarator_suffix
+Type *abstract_declarator(Token **rest, Token *tok, Type *ty)
+{
+
+  Token *tmp_ident_name_tok;
+
+  // get prefix type
+  ty = declarator_prefix(&tok, tok, ty);
+
+  if (consume(&tok, tok, "("))
+  {
+    Token *nest_start_tok = tok;
+
+    // skip tokens in nest and get suffix token
+    Type *dummy_ty = calloc(1, sizeof(Type));
+    abstract_declarator(&tok, nest_start_tok, dummy_ty);
+    expect(&tok, tok, ")");
+
+    ty = declarator_suffix(&tok, tok, ty);
+    ty = declarator(&nest_start_tok, nest_start_tok, ty);
+
+    *rest = tok;
+    return ty;
+  }
+
+  // get suffix type
+  ty = declarator_suffix(&tok, tok, ty);
+
+  for (Type *tmp_ty = ty; tmp_ty; tmp_ty = tmp_ty->ptr_to)
+  {
+    tmp_ty->size = calc_sizeof(tmp_ty);
+    tmp_ty->align = calc_alignof(tmp_ty);
+  }
 
   *rest = tok;
   return ty;
@@ -1445,7 +1486,7 @@ Node *cast(Token **rest, Token *tok)
 /*
 数値などの正負の項、ポインタデリファレンサ
 unary ::=
-    ("+"|"-"|"&"|"*"|"sizeof") unary
+    ("+"|"-"|"&"|"*"|"sizeof") cast
     | "sizeof" "(" base_type ")"
     |postfix
 */
@@ -1454,13 +1495,13 @@ Node *unary(Token **rest, Token *tok)
   Node *n = NULL;
 
   if (consume(&tok, tok, "+"))
-    n = unary(&tok, tok);
+    n = cast(&tok, tok);
   else if (consume(&tok, tok, "-"))
-    n = new_node(ND_SUB, new_node_num(0), unary(&tok, tok));
+    n = new_node(ND_SUB, new_node_num(0), cast(&tok, tok));
   else if (consume(&tok, tok, "&"))
-    n = new_node(ND_ADDR, unary(&tok, tok), NULL);
+    n = new_node(ND_ADDR, cast(&tok, tok), NULL);
   else if (consume(&tok, tok, "*"))
-    n = new_node(ND_DEREF, unary(&tok, tok), NULL);
+    n = new_node(ND_DEREF, cast(&tok, tok), NULL);
   else if (consume(&tok, tok, "sizeof"))
   {
     Type *ty;
