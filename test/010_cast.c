@@ -16,7 +16,9 @@ int main()
   ASSERT(1, (char)8590066177);
   ASSERT(1, (long)1);
 
-  //ASSERT(-260, (short)-16909060);
+  //ASSERT(-260, ({long i=-16909060;(short)i;})); //todo
+  //ASSERT(-260, (short)-16909060); //todo
+  
   ASSERT(0, (long)&*(int *)0);
   ASSERT(8, ({ int x=512; sizeof(&x); }));
   ASSERT(1, ({ int x=512; sizeof((char)&x); }));

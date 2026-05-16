@@ -55,8 +55,8 @@ Node *assign(Token **rest, Token *tok);
 Node *equality(Token **rest, Token *tok);
 Node *relational(Token **rest, Token *tok);
 Node *add(Token **rest, Token *tok);
-Node *extra_add(Node *lhs, Node *rhs, Token *tok_dummy);
-Node *extra_sub(Node *lhs, Node *rhs, Token *tok_dummy);
+Node *extra_add(Node *lhs, Node *rhs);
+Node *extra_sub(Node *lhs, Node *rhs);
 Node *mul(Token **rest, Token *tok);
 Node *cast(Token **rest, Token *tok);
 Node *unary(Token **rest, Token *tok);
@@ -383,7 +383,7 @@ static Ident *declaration_str(Token *tok)
 
   Type *ty = calloc(1, sizeof(Type));
   ty->kind = TY_ARRAY;
-  ty->ptr_to = ty_char;
+  ty->ptr_to = copy_type(ty_char);
   ty->array_size = tok->len;
   ty->size = calc_sizeof(ty);
   ty->align = calc_alignof(ty);
@@ -1371,13 +1371,13 @@ Node *add(Token **rest, Token *tok)
   {
     if (consume(&tok, tok, "+"))
     {
-      n = extra_add(n, mul(&tok, tok), tok_dummy);
+      n = extra_add(n, mul(&tok, tok));
       continue;
     }
 
     if (consume(&tok, tok, "-"))
     {
-      n = extra_sub(n, mul(&tok, tok), tok_dummy);
+      n = extra_sub(n, mul(&tok, tok));
       continue;
     }
 
@@ -1387,7 +1387,7 @@ Node *add(Token **rest, Token *tok)
 }
 
 // 数値とポインタの組み合わせによってノードの加算方法をよしなに変える
-Node *extra_add(Node *lhs, Node *rhs, Token *tok_dummy)
+Node *extra_add(Node *lhs, Node *rhs)
 {
 
   init_nodetype(lhs);
@@ -1418,7 +1418,7 @@ Node *extra_add(Node *lhs, Node *rhs, Token *tok_dummy)
 }
 
 // 数値とポインタの組み合わせによってノードの減算方法をよしなに変える
-Node *extra_sub(Node *lhs, Node *rhs, Token *tok_dummy)
+Node *extra_sub(Node *lhs, Node *rhs)
 {
 
   init_nodetype(lhs);
@@ -1543,7 +1543,7 @@ Node *postfix(Token **rest, Token *tok)
     // a[b] = *(a+(b*ty_size))
     if (consume(&tok, tok, "["))
     {
-      idx = extra_add(n, expr(&tok, tok), NULL);
+      idx = extra_add(n, expr(&tok, tok));
       expect(&tok, tok, "]");
       n = new_node(ND_DEREF, idx, NULL);
       continue;

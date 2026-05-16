@@ -1,7 +1,7 @@
 #include "9cc.h"
 
-Type *ty_char = &(Type){TY_CHAR};
-Type *ty_int = &(Type){TY_INT};
+Type *ty_char = &(Type){TY_CHAR,1,1};
+Type *ty_int = &(Type){TY_INT,4,4};
 
 void init_nodetype(Node *n);
 
