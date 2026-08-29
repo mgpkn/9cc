@@ -45,7 +45,7 @@ Type *abstract_declarator(Token **rest, Token *tok, Type *base_ty);
 Type *declarator_struct(Token **rest, Token *tok, Type *base_ty);
 Type *declarator_prefix(Token **rest, Token *tok, Type *ty);
 Type *declarator_suffix(Token **rest, Token *tok, Type *ty);
-Node *statement(Token **rest, Token *tok);
+Node *stmt(Token **rest, Token *tok);
 Node *expr(Token **rest, Token *tok);
 Node *type_def(Token **rest, Token *tok);
 Node *declaration_local(Token **rest, Token *tok);
@@ -367,7 +367,7 @@ static Type *type_name(Token **rest, Token *tok)
 
   Type *ty;
   ty = base_type(&tok, tok);
-  ty = abstract_declarator(&tok,tok,ty);
+  ty = abstract_declarator(&tok, tok, ty);
 
   *rest = tok;
   return ty;
@@ -413,7 +413,7 @@ Node *new_node(NodeKind kind, Node *lhs, Node *rhs)
   return n;
 }
 
-Node *new_node_num(int val)
+Node *new_node_num_int(int val)
 {
   Node *n = calloc(1, sizeof(Node));
   n->kind = ND_NUM;
@@ -421,6 +421,14 @@ Node *new_node_num(int val)
   init_nodetype(n);
   return n;
 }
+
+Node *new_node_num_long(int val)
+{
+  Node *n = new_node_num_int(val);
+  n->ty = copy_type(ty_long);
+  return n;
+}
+
 
 Node *new_node_char(Token **rest, Token *tok, int val)
 {
@@ -430,6 +438,16 @@ Node *new_node_char(Token **rest, Token *tok, int val)
   init_nodetype(n);
   tok = tok->next;
   *rest = tok;
+  return n;
+}
+
+Node *new_node_cast(Node *lhs, Type *cast_ty)
+{
+  Node *n = calloc(1, sizeof(Node));
+  n->kind = ND_CAST;
+  n->ty = cast_ty;
+  n->lhs = lhs;
+
   return n;
 }
 
@@ -532,31 +550,21 @@ Node *new_node_member(Token **rest, Token *tok, Node *lhs)
   return n;
 }
 
-Node *new_node_cast(Node *lhs, Type *cast_ty)
-{
-
-  Node *n = calloc(1, sizeof(Node));
-  n->kind = ND_CAST;
-  n->ty = cast_ty;
-  n->lhs = lhs;
-
-  return n;
-}
 
 // create function node
 Node *new_node_function(Token **rest, Token *tok)
 {
   int i = 0;
 
-  Node *node = calloc(1, sizeof(Node));
-  node->kind = ND_FUNC;
-  node->ident_name = strndup(tok->pos, sizeof(char) * (tok->len));
+  Node *n = calloc(1, sizeof(Node));
+  n->kind = ND_FUNC;
+  n->ident_name = strndup(tok->pos, sizeof(char) * (tok->len));
   tok = tok->next;
   expect(&tok, tok, "(");
   if (consume(&tok, tok, ")"))
   {
     *rest = tok;
-    return node;
+    return n;
   }
 
   while (true)
@@ -564,14 +572,14 @@ Node *new_node_function(Token **rest, Token *tok)
     if (i >= FUNC_ARG_NUM)
       error("function aguments limit is %d", FUNC_ARG_NUM);
 
-    node->func_arg[i] = assign(&tok, tok);
+    n->func_arg[i] = assign(&tok, tok);
     if (!consume(&tok, tok, ","))
       break;
     i++;
   }
   expect(&tok, tok, ")");
   *rest = tok;
-  return node;
+  return n;
 }
 
 bool at_eof(Token *tok)
@@ -731,7 +739,7 @@ Ident *declaration_function(Token **rest, Token *tok)
     if (equal(tok, "}"))
       break;
 
-    cur_body->next = statement(&tok, tok);
+    cur_body->next = stmt(&tok, tok);
     cur_body = cur_body->next;
     init_nodetype(cur_body);
   }
@@ -789,7 +797,6 @@ Type *declarator(Token **rest, Token *tok, Type *ty)
   *rest = tok;
   return ty;
 }
-
 
 // abstract_declarator ::= declarator_prefix ("(" abstract_declarator ")")? declarator_suffix
 Type *abstract_declarator(Token **rest, Token *tok, Type *ty)
@@ -1043,18 +1050,18 @@ Type *declarator_suffix(Token **rest, Token *tok, Type *ty)
 }
 
 /*
-statement ::=
+stmt ::=
     |";"
-    |"{" statement? "}"
+    |"{" stmt? "}"
     |"return " expr ";"
-    |"if" "(" expr ")" statement "else" statement
-    |"while" "(" expr ")"  statement
-    |"for" "(" (declaration_local|expr)? ";" expr? ";" expr? ";" ")"  statement
+    |"if" "(" expr ")" stmt "else" stmt
+    |"while" "(" expr ")"  stmt
+    |"for" "(" (declaration_local|expr)? ";" expr? ";" expr? ";" ")"  stmt
     |type_def
     |declaration_local
     |expr ";"
 */
-Node *statement(Token **rest, Token *tok)
+Node *stmt(Token **rest, Token *tok)
 {
   Node *n = NULL;
   Node *n_block_cur = calloc(1, sizeof(Node));
@@ -1075,7 +1082,7 @@ Node *statement(Token **rest, Token *tok)
       while (!consume(&tok, tok, "}"))
       {
 
-        n_block_cur->next = statement(&tok, tok);
+        n_block_cur->next = stmt(&tok, tok);
         if (!n->block_head)
           n->block_head = n_block_cur->next;
         n_block_cur = n_block_cur->next;
@@ -1101,13 +1108,13 @@ Node *statement(Token **rest, Token *tok)
         n->cond = expr(&tok, tok);
         expect(&tok, tok, ")");
       }
-      n->then = statement(&tok, tok);
+      n->then = stmt(&tok, tok);
 
       // else
       if (equal(tok, "else"))
       {
         tok = tok->next;
-        n->els = statement(&tok, tok);
+        n->els = stmt(&tok, tok);
       }
 
       *rest = tok;
@@ -1125,7 +1132,7 @@ Node *statement(Token **rest, Token *tok)
         n->cond = expr(&tok, tok);
         expect(&tok, tok, ")");
       }
-      n->then = statement(&tok, tok);
+      n->then = stmt(&tok, tok);
 
       *rest = tok;
       return n;
@@ -1153,7 +1160,7 @@ Node *statement(Token **rest, Token *tok)
           n->inc = expr(&tok, tok);
         expect(&tok, tok, ")");
       }
-      n->then = statement(&tok, tok);
+      n->then = stmt(&tok, tok);
       *rest = tok;
       return n;
     }
@@ -1201,14 +1208,6 @@ Node *type_def(Token **rest, Token *tok)
 {
 
   Type *base_ty = base_type(&tok, tok);
-  /*
-  if (!base_ty)
-  {
-    // default int
-    base_ty = calloc(1, sizeof(Type));
-    base_ty->kind = TY_INT;
-  }
-  */
 
   // perse strcut or union type
   base_ty = declarator_struct(&tok, tok, base_ty);
@@ -1409,7 +1408,7 @@ Node *extra_add(Node *lhs, Node *rhs)
 
   if (is_ptr_node(lhs) && !is_ptr_node(rhs))
   {
-    Node *n = new_node(ND_MUL, rhs, new_node_num(lhs->ty->ptr_to->size));
+    Node *n = new_node(ND_MUL, rhs, new_node_num_long(lhs->ty->ptr_to->size));
     return new_node(ND_ADD, lhs, n);
   }
 
@@ -1430,11 +1429,11 @@ Node *extra_sub(Node *lhs, Node *rhs)
 
   // pointer - num (=num + pointer)の場合はオフセットの計算
   if (is_ptr_node(lhs) && !is_ptr_node(rhs))
-    return new_node(ND_SUB, lhs, new_node(ND_MUL, rhs, new_node_num(lhs->ty->ptr_to->size)));
+    return new_node(ND_SUB, lhs, new_node(ND_MUL, rhs, new_node_num_long(lhs->ty->ptr_to->size)));
 
   // pointer - pointerはアドレスの差
   if (is_ptr_node(lhs) && is_ptr_node(rhs))
-    return new_node(ND_DIV, new_node(ND_SUB, lhs, rhs), new_node_num(lhs->ty->ptr_to->size));
+    return new_node(ND_DIV, new_node(ND_SUB, lhs, rhs), new_node_num_int(lhs->ty->ptr_to->size));
 
   error("invalid types subtraction");
   return NULL;
@@ -1497,7 +1496,7 @@ Node *unary(Token **rest, Token *tok)
   if (consume(&tok, tok, "+"))
     n = cast(&tok, tok);
   else if (consume(&tok, tok, "-"))
-    n = new_node(ND_SUB, new_node_num(0), cast(&tok, tok));
+    n = new_node(ND_SUB, new_node_num_int(0), cast(&tok, tok));
   else if (consume(&tok, tok, "&"))
     n = new_node(ND_ADDR, cast(&tok, tok), NULL);
   else if (consume(&tok, tok, "*"))
@@ -1509,8 +1508,8 @@ Node *unary(Token **rest, Token *tok)
     {
       // sizeof with typenmae
       consume(&tok, tok, "(");
-      ty= type_name(&tok, tok);
-      n = new_node_num(ty->size);
+      ty = type_name(&tok, tok);
+      n = new_node_num_int(ty->size);
       consume(&tok, tok, ")");
     }
     else
@@ -1518,7 +1517,7 @@ Node *unary(Token **rest, Token *tok)
       // sizeof with something num values
       n = cast(&tok, tok);
       init_nodetype(n);
-      n = new_node_num(n->ty->size);
+      n = new_node_num_int(n->ty->size);
     }
   }
   else
@@ -1573,7 +1572,7 @@ Node *postfix(Token **rest, Token *tok)
 }
 
 /*
-primary ::= "(" "{" statement+ "}" ")"
+primary ::= "(" "{" stmt+ "}" ")"
     |"(" expr ")"
     |ident ("(" assign? ("," assign)* ")")?
     |num|char|str
@@ -1583,7 +1582,7 @@ Node *primary(Token **rest, Token *tok)
   Node *n = NULL;
   if (consume(&tok, tok, "("))
   {
-    // block statement
+    // block stmt
     if (consume(&tok, tok, "{"))
     {
       n = new_node(ND_BLOCK, NULL, NULL);
@@ -1591,7 +1590,7 @@ Node *primary(Token **rest, Token *tok)
       Node *n_block_cur = calloc(1, sizeof(Node));
       while (!consume(&tok, tok, "}"))
       {
-        n_block_cur->next = statement(&tok, tok);
+        n_block_cur->next = stmt(&tok, tok);
         if (!(n->block_head))
           n->block_head = n_block_cur->next;
         n_block_cur = n_block_cur->next;
@@ -1623,7 +1622,7 @@ Node *primary(Token **rest, Token *tok)
     n = new_node_char(&tok, tok, (int)tok->str[0]);
 
   if (tok->kind == TK_NUM)
-    n = new_node_num(expect_number(&tok, tok));
+    n = new_node_num_int(expect_number(&tok, tok));
 
   *rest = tok;
   return n;

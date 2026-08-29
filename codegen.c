@@ -62,13 +62,13 @@ void load_val(Type *ty)
   switch (ty->size)
   {
   case 1:
-    printf("  movsx rax, BYTE PTR [rax]\n");
+    printf("  movsx eax, BYTE PTR [rax]\n");
     break;
   case 2:
-    printf("  movsx rax, WORD PTR [rax]\n");
+    printf("  movsx eax, WORD PTR [rax]\n");
     break;
   case 4:
-    printf("  movsxd rax, DWORD PTR [rax]\n");
+    printf("  movsx eax, DWORD PTR [rax]\n");
     break;
   case 8:
   default:

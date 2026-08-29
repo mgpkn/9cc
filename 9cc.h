@@ -119,7 +119,7 @@ struct Node
   Node *rhs;        // 右辺
   Type *ty;         // ノードの論理的なデータ型
   char *ident_name; // 識別子名
-  int val;          // kindがND_NUMの場合のみ使う
+  int64_t val;          // kindがND_NUMの場合のみ使う
   Ident *var;       // kindがND_VAL系の場合のみ扱う
   Member *mem;       // kindがND_MEMBER系の場合のみ扱う  
   Node *init;       // 初期化(for)
@@ -161,6 +161,7 @@ struct Ident
 Ident *parse(Token *token);
 bool equal(Token *tok, char *op_str);
 Type *find_typedef(Token *tok);
+Node *new_node_cast(Node *lhs, Type *cast_ty);
 
 // codegen
 void codegen(Ident *func_list);
@@ -177,6 +178,7 @@ Type *copy_type(Type *org);
 
 extern Type *ty_char;
 extern Type *ty_int;
+extern Type *ty_long;
 
 // read_file
 char *read_file(char *path);

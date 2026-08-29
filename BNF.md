@@ -17,13 +17,13 @@ declarator_struct ::=  ident? "{" ( base_type declarator ";")* "}"
 declarator_union  ::=  ident? "{" ( base_type declarator ";")* "}"
 declarator_prefix := ("*" declarator_prefix)? 
 declarator_suffix ::= ("[" num "]" declarator_suffix)?
-statement ::=
+stmt ::=
     |";"
-    |"{" statement? "}"
+    |"{" stmt? "}"
     |"return " expr ";"
-    |"if" "(" expr ")" statement "else" statement
-    |"while" "(" expr ")"  statement
-    |"for" "(" (declaration_local|expr)? ";" expr? ";" expr? ";" ")"  statement
+    |"if" "(" expr ")" stmt "else" stmt
+    |"while" "(" expr ")"  stmt
+    |"for" "(" (declaration_local|expr)? ";" expr? ";" expr? ";" ")"  stmt
     |type_def
     |declaration_local
     |expr ";"
@@ -39,7 +39,7 @@ unary ::=
     | "sizeof" "(" type_name ")"
     |postfix
 postfix ::= primary ("[" & expr & "]" | "." ident | "->" ident )*
-primary ::= "(" "{" statement+ "}" ")"
+primary ::= "(" "{" stmt+ "}" ")"
     |"(" expr ")"
     |ident ("(" assign? ("," assign)* ")")?
     |num|char|str

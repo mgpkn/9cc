@@ -1,7 +1,8 @@
 #include "9cc.h"
 
-Type *ty_char = &(Type){TY_CHAR,1,1};
-Type *ty_int = &(Type){TY_INT,4,4};
+Type *ty_char = &(Type){TY_CHAR, 1, 1};
+Type *ty_int = &(Type){TY_INT, 4, 4};
+Type *ty_long = &(Type){TY_LONG, 8, 8};
 
 void init_nodetype(Node *n);
 
@@ -12,6 +13,30 @@ bool is_ptr_node(Node *n)
     if (n->ty->kind == TY_ARRAY)
         return true;
     return false;
+}
+
+Type *get_common_type(Type *lhs_ty, Type *rhs_ty)
+{
+    Type *ty;
+
+    if (lhs_ty->ptr_to)
+    {
+        ty = calloc(1, sizeof(Type));
+        ty->kind = TY_PTR;
+        ty->ptr_to = lhs_ty->ptr_to;
+        return ty;
+    }
+    
+    if (lhs_ty->size == 8 || rhs_ty->size == 8)
+        return ty_long;
+    return ty_int;
+}
+
+void usual_arith_conv(Node **lhs, Node **rhs)
+{
+    Type *ty = get_common_type((*lhs)->ty, (*rhs)->ty);
+    *lhs = new_node_cast(*lhs, ty);
+    *rhs = new_node_cast(*rhs, ty);
 }
 
 // Round up `n` to the nearest multiple of `align`. For instance,
@@ -133,6 +158,9 @@ void init_nodetype(Node *n)
     case ND_MUL:
     case ND_DIV:
     case ND_MOD:
+        usual_arith_conv(&n->lhs, &n->rhs);
+        n->ty = n->lhs->ty;
+        return;
     case ND_ASSIGN:
         n->ty = n->lhs->ty;
         return;
@@ -143,7 +171,7 @@ void init_nodetype(Node *n)
     case ND_LVAR:
     case ND_FUNC:
     case ND_NUM:
-        t->kind = TY_LONG;
+        t->kind = TY_INT;
         t->size = calc_sizeof(t);
         t->align = calc_alignof(t);
         n->ty = t;
