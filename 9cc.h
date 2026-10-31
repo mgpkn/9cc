@@ -64,6 +64,7 @@ typedef enum
   ND_WHILE,   // while
   ND_FOR,     // for
   ND_BLOCK,   //{}
+  ND_STMT_EXPR, //({})
   ND_ADDR,    //&（address）
   ND_DEREF,   //*（dereferencer）
   ND_MEMBER,  // struct member(.)

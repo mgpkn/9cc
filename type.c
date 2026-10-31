@@ -26,9 +26,10 @@ Type *get_common_type(Type *lhs_ty, Type *rhs_ty)
         ty->ptr_to = lhs_ty->ptr_to;
         return ty;
     }
-    
+
     if (lhs_ty->size == 8 || rhs_ty->size == 8)
         return ty_long;
+
     return ty_int;
 }
 
@@ -136,16 +137,6 @@ void init_nodetype(Node *n)
     init_nodetype(n->inc);
     init_nodetype(n->then);
     init_nodetype(n->els);
-    for (Node *block_n = n->block_head; block_n; block_n = block_n->next)
-    {
-        init_nodetype(block_n);
-        if (!block_n->next)
-        {
-            t = block_n->ty;
-            n->ty = t;
-            return;
-        }
-    }
 
     for (int i; i < FUNC_ARG_NUM; i++)
         init_nodetype(n->func_arg[i]);
@@ -194,6 +185,18 @@ void init_nodetype(Node *n)
         return;
     case ND_COMMA:
         n->ty = n->rhs->ty;
+        return;
+    case ND_STMT_EXPR:
+        for (Node *block_n = n->block_head; block_n; block_n = block_n->next)
+        {
+            init_nodetype(block_n);
+            if (!block_n->next)
+                n->ty = block_n->ty;
+        }
+        return;
+    case ND_BLOCK:
+        for (Node *block_n = n->block_head; block_n; block_n = block_n->next)
+            init_nodetype(block_n);
         return;
     default:
         return;

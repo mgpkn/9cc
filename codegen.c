@@ -179,6 +179,10 @@ void gennode_expr(Node *cur_node)
     gennode_expr(cur_node->lhs);
     gennode_cast(cur_node->lhs->ty, cur_node->ty);
     return;
+  case ND_STMT_EXPR:
+    for (Node *n = cur_node->block_head; n; n = n->next)
+      gennode_stmt(n);
+    return;
   default:
     break;
   }
@@ -237,7 +241,6 @@ void gennode_expr(Node *cur_node)
 void gennode_stmt(Node *cur_node)
 {
 
-  Node *n;
   if (!cur_node)
     return;
 
@@ -281,12 +284,10 @@ void gennode_stmt(Node *cur_node)
     printf(".Lend%d:\n", cur_node->label_num);
     return;
   case ND_BLOCK:
-    n = cur_node->block_head;
-    while (n)
-    {
+  case ND_STMT_EXPR:
+    for (Node *n = cur_node->block_head; n; n = n->next)
       gennode_stmt(n);
-      n = n->next;
-    }
+    return;
   default:
     break;
   }

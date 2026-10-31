@@ -1582,10 +1582,10 @@ Node *primary(Token **rest, Token *tok)
   Node *n = NULL;
   if (consume(&tok, tok, "("))
   {
-    // block stmt
+    // stmt-expr
     if (consume(&tok, tok, "{"))
     {
-      n = new_node(ND_BLOCK, NULL, NULL);
+      n = new_node(ND_STMT_EXPR, NULL, NULL);
       enter_scope();
       Node *n_block_cur = calloc(1, sizeof(Node));
       while (!consume(&tok, tok, "}"))
